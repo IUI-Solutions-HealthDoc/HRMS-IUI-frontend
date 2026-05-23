@@ -9,7 +9,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import Loader from "@/components/ui/Loader";
 
-export default function IncrementsPage() {
+export default function AppraisalPage() {
   const { role } = useAuth();
   const isAdmin = role === "admin";
   const isAccounts = role === "accounts";
@@ -113,16 +113,16 @@ export default function IncrementsPage() {
     }
   }
 
-  const heading = isAccounts ? "Increment Review Queue" : "Salary Increment Approvals";
+  const heading = isAccounts ? "Appraisal Review Queue" : "Salary Appraisal Approvals";
   const subheading = isAccounts
-    ? "Review HR requests, verify amount impact, and forward to Admin"
+    ? "Review HR appraisals, verify amount impact, and forward to Admin"
     : (isAdmin
-      ? "Review account-verified increment requests and finalize approval"
-      : "Create and track increment requests from HR");
+      ? "Review account-verified appraisals and finalize approval"
+      : "Create and track appraisals from HR");
 
   const emptyTitle = isAccounts
-    ? "No requests pending Accounts review"
-    : (isAdmin ? "No requests pending Admin approval" : "No increment requests yet");
+    ? "No appraisals pending Accounts review"
+    : (isAdmin ? "No appraisals pending Admin approval" : "No appraisals yet");
 
   return (
     <div>
@@ -130,7 +130,7 @@ export default function IncrementsPage() {
 
       {isHR ? (
         <div className="card" style={{ padding: 20, marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, marginBottom: 12 }}>Create Increment Request</div>
+          <div style={{ fontWeight: 700, marginBottom: 12 }}>Create Appraisal</div>
           <form onSubmit={submitIncrementRequest}>
             <div className="form-row">
               <div className="form-group">
@@ -151,7 +151,7 @@ export default function IncrementsPage() {
             </div>
             <div className="form-group">
               <label className="label">Justification</label>
-              <textarea className="input" rows={3} value={requestForm.justification} onChange={(e) => setRequestForm((current) => ({ ...current, justification: e.target.value }))} placeholder="Reason for this increment" />
+              <textarea className="input" rows={3} value={requestForm.justification} onChange={(e) => setRequestForm((current) => ({ ...current, justification: e.target.value }))} placeholder="Reason for this appraisal" />
             </div>
             <button className="btn-primary" type="submit" disabled={submitting || loading}>{submitting ? "Submitting..." : "Submit to Accounts"}</button>
           </form>
@@ -159,7 +159,7 @@ export default function IncrementsPage() {
       ) : null}
 
       <div className="card">
-        {!canView ? <EmptyState icon="💹" title="Access restricted" sub="Only HR, Accounts, and Admin can view increment requests." /> : loading ? <Loader /> : requests.length === 0 ? <EmptyState icon="💹" title={emptyTitle} /> : (
+        {!canView ? <EmptyState icon="💹" title="Access restricted" sub="Only HR, Accounts, and Admin can view appraisals." /> : loading ? <Loader /> : requests.length === 0 ? <EmptyState icon="💹" title={emptyTitle} /> : (
           <div className="table-wrap">
             <table>
               <thead><tr><th>Employee</th>{showFinancialColumns ? <th>Current</th> : null}<th>Increment</th>{showFinancialColumns ? <th>Increment Amount</th> : null}{showFinancialColumns ? <th>Proposed</th> : null}<th>Requested By</th><th>Notes</th><th>Status</th><th>Action</th></tr></thead>

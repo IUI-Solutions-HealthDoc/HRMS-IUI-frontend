@@ -73,15 +73,15 @@ function EmployeeDashboard({ user, showToast }) {
       </div>
 
       <div className="grid-stats" style={{ marginBottom: 28 }}>
-        <div className="stat-card" style={{ "--accent": "#6366f1" }}>
-          <div style={{ fontSize: 28, marginBottom: 8 }}>⏱</div>
-          <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "'DM Sans',sans-serif" }}>
+        <div className="stat-card" style={{ "--accent": "var(--accent)" }}>
+          <div style={{ fontSize: 28, marginBottom: 12 }}>⏱</div>
+          <div className="syne" style={{ fontSize: 20, fontWeight: 800, letterSpacing: "0.04em" }}>
             {today?.punch_in ? `In at ${fmtTime(today.punch_in)}` : "Not recorded yet"}
           </div>
-          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+          <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 6 }}>
             {today?.punch_out ? `Out at ${fmtTime(today.punch_out)}` : "Awaiting out-time"}
           </div>
-          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 10, padding: "6px 10px", background: "rgba(255,255,255,0.05)", borderRadius: 6 }}>
+          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 12, padding: "8px 10px", background: "rgba(0,200,150,0.06)", borderRadius: 8, border: "1px solid rgba(0,200,150,0.14)" }}>
             Mark attendance at the biometric terminal
           </div>
         </div>
@@ -178,9 +178,20 @@ function HRDashboard({ showToast }) {
           <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>Live Monitoring</h1>
           <p style={{ color: "var(--muted)", marginTop: 4 }}>Today&apos;s real-time attendance overview</p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span className="dot" style={{ background: "#10b981", animation: "pulse 2s infinite" }} />
-          <span style={{ fontSize: 13, color: "#10b981", fontWeight: 600 }}>Live</span>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "6px 14px", borderRadius: 999,
+          background: "rgba(16,185,129,0.08)",
+          border: "1px solid rgba(16,185,129,0.25)",
+        }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: "50%",
+            background: "#10B981",
+            boxShadow: "0 0 6px #10B981, 0 0 12px rgba(16,185,129,0.5)",
+            animation: "pulse 2s infinite",
+            display: "inline-block",
+          }} />
+          <span style={{ fontSize: 12, color: "#10B981", fontWeight: 700, letterSpacing: "0.05em" }} className="syne">Live</span>
         </div>
       </div>
       <div className="grid-stats" style={{ marginBottom: 24 }}>
@@ -264,7 +275,7 @@ function AdminDashboard({ showToast }) {
   const quickActions = [
     ["Approve Increments", "💹", "#10b981", "/dashboard/increments"],
     ["View All Grievances", "⚠", "#ef4444", "/dashboard/grievances-hr"],
-    ["Export Reports", "⬇", "#6366f1", "/dashboard/exports"],
+    ["Export Reports", "⬇", "#00C896", "/dashboard/exports"],
     ["Notice Board", "📢", "#f59e0b", "/dashboard/notices"],
   ];
 
@@ -277,9 +288,9 @@ function AdminDashboard({ showToast }) {
       {loading ? <Loader /> : (
         <>
           <div className="grid-stats" style={{ marginBottom: 28 }}>
-            <StatCard icon="👥" label="Total Employees" value={totalEmployees} accent="#6366f1" />
+            <StatCard icon="👥" label="Total Employees" value={totalEmployees} accent="#00C896" />
             <StatCard icon="✅" label="Present Today" value={`${presentCount}/${totalEmployees || 0}`} accent="#10b981" />
-            <StatCard icon="🏢" label="Departments" value={departmentCounts.length} accent="#8b5cf6" />
+            <StatCard icon="🏢" label="Departments" value={departmentCounts.length} accent="#00A87E" />
             <StatCard icon="⭐" label="Avg Performance" value={avgPerformance} accent="#f59e0b" sub={ratedCount > 0 ? "/ 5.0" : "No ratings yet"} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 20 }}>
@@ -297,9 +308,40 @@ function AdminDashboard({ showToast }) {
             <div className="card">
               <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}><h3 className="syne" style={{ fontSize: 15, fontWeight: 700 }}>⚡ Quick Actions</h3></div>
               {quickActions.map(([label, icon, color, href], i) => (
-                <button key={i} type="button" onClick={() => router.push(href)} style={{ width: "100%", padding: "14px 20px", border: 0, borderBottom: "1px solid var(--border)", background: "transparent", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 14, cursor: "pointer", color: "inherit" }}>
-                  <span>{icon} {label}</span>
-                  <span style={{ color }}>→</span>
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => router.push(href)}
+                  style={{
+                    width: "calc(100% - 24px)",
+                    padding: "14px 20px",
+                    border: "1px solid rgba(0,200,150,0.2)",
+                    background: "rgba(0,200,150,0.04)",
+                    borderRadius: 10,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    fontSize: 14,
+                    cursor: "pointer",
+                    color: "var(--text)",
+                    transition: "all 0.18s",
+                    margin: "12px",
+                    boxShadow: "none",
+                  }}
+                  onMouseEnter={(event) => {
+                    event.currentTarget.style.borderColor = "rgba(0,200,150,0.45)";
+                    event.currentTarget.style.boxShadow = "0 0 16px rgba(0,200,150,0.15)";
+                  }}
+                  onMouseLeave={(event) => {
+                    event.currentTarget.style.borderColor = "rgba(0,200,150,0.2)";
+                    event.currentTarget.style.boxShadow = "none";
+                  }}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 18 }}>{icon}</span>
+                    <span>{label}</span>
+                  </span>
+                  <span style={{ color, fontWeight: 700 }}>→</span>
                 </button>
               ))}
             </div>
@@ -371,7 +413,7 @@ function HODDashboard({ showToast }) {
                       <div style={{ fontWeight: 700 }}>{department.name}</div>
                       <div style={{ color: "var(--muted)", fontSize: 12 }}>Managed team</div>
                     </div>
-                    <div style={{ fontSize: 24, fontWeight: 800, fontFamily: "'DM Sans',sans-serif" }}>{department.employee_count || 0}</div>
+                    <div className="syne" style={{ fontSize: 24, fontWeight: 800 }}>{department.employee_count || 0}</div>
                   </div>
                 ))}
               </div>
@@ -384,11 +426,11 @@ function HODDashboard({ showToast }) {
               <div style={{ padding: 20, display: "grid", gap: 14 }}>
                 <div style={{ padding: "14px 16px", borderRadius: 14, background: "var(--hover-bg)", border: "1px solid var(--border)" }}>
                   <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>Coverage</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "'DM Sans',sans-serif" }}>{team.length} employees across {managedDepartments.length} departments</div>
+                  <div className="syne" style={{ fontSize: 18, fontWeight: 800 }}>{team.length} employees across {managedDepartments.length} departments</div>
                 </div>
                 <div style={{ padding: "14px 16px", borderRadius: 14, background: "var(--hover-bg)", border: "1px solid var(--border)" }}>
                   <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>Pending Reviews</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "'DM Sans',sans-serif" }}>{pendingApprovals.length} task submissions waiting for action</div>
+                  <div className="syne" style={{ fontSize: 18, fontWeight: 800 }}>{pendingApprovals.length} task submissions waiting for action</div>
                 </div>
                 <button className="btn-primary" onClick={() => router.push("/dashboard/tasks-assign")}>Open Task Manager</button>
               </div>
@@ -470,6 +512,7 @@ export default function DashboardPage() {
       {role === "admin" && <AdminDashboard {...props} />}
       {role === "hr" && <HRDashboard {...props} />}
       {role === "accounts" && <AccountsDashboard {...props} />}
+      {role === "tl" && <HODDashboard {...props} />}
       {role === "hod" && <HODDashboard {...props} />}
       {role === "employee" && <EmployeeDashboard {...props} />}
       {toastNode}

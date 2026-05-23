@@ -9,12 +9,16 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import Loader from "@/components/ui/Loader";
 
+const AUTO_REFRESH_MS = 60000;
+
 export default function AttendancePage() {
   const [records, setRecords] = useState([]);
+  const [summary, setSummary] = useState({ working_days: 0, present: 0, late: 0, absent: 0, half_day: 0, early_leave: 0, paid_leave: 0 });
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [showToast, toastNode] = useToast();
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const currentYear = new Date().getFullYear();
@@ -28,16 +32,37 @@ export default function AttendancePage() {
     return [];
   }
 
-  const loadAttendance = useCallback(async () => {
-    setLoading(true);
+  const loadAttendance = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
-      const data = await apiFetch(`/attendance/me?month=${month}&year=${year}`);
+      const [data, ratingData] = await Promise.all([
+        apiFetch(`/attendance/me?month=${month}&year=${year}`),
+        apiFetch(`/performance/attendance-ratings?month=${month}&year=${year}`).catch(() => null),
+      ]);
       setRecords(normalizeRecords(data));
+      const myRow = ratingData?.employees?.[0];
+      if (myRow) {
+        setSummary({
+          working_days: myRow.working_days || 0,
+          present: myRow.present || 0,
+          late: myRow.late || 0,
+          absent: myRow.absent || 0,
+          half_day: myRow.half_day || 0,
+          early_leave: myRow.early_leave || 0,
+          paid_leave: myRow.paid_leave || 0,
+          attendance_star: myRow.attendance_star,
+          punctuality_star: myRow.punctuality_star,
+          present_equivalent: myRow.present_equivalent,
+        });
+      }
+      setLastUpdated(new Date());
     } catch (error) {
-      setRecords([]);
-      showToast(error.message, "error");
+      if (!silent) {
+        setRecords([]);
+        showToast(error.message, "error");
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [month, showToast, year]);
 
@@ -72,11 +97,27 @@ export default function AttendancePage() {
 
   useEffect(() => {
     loadAttendance();
+    const interval = setInterval(() => loadAttendance({ silent: true }), AUTO_REFRESH_MS);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") loadAttendance({ silent: true });
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [loadAttendance]);
 
-  const presents = records.filter((r) => r.status === "present" || r.status === "half_day" || r.status === "late").length;
-  const lates = records.filter((r) => r.status === "late").length;
-  const absents = records.filter((r) => r.status === "absent").length;
+  // Authoritative counts come from /performance/attendance-ratings (includes no-punch absents).
+  // Fallback to record-based counts when the rating call has not landed yet.
+  const presents = summary.present_equivalent != null
+    ? summary.present_equivalent
+    : records.filter((r) => r.status === "present" || r.status === "half_day" || r.status === "late" || r.status === "early_leave").length;
+  const lates = summary.late || records.filter((r) => r.status === "late").length;
+  const absents = summary.absent != null
+    ? summary.absent
+    : records.filter((r) => r.status === "absent").length;
+  const workingDays = summary.working_days || 0;
 
   return (
     <div>
@@ -92,7 +133,12 @@ export default function AttendancePage() {
               <option key={item} value={item}>{item}</option>
             ))}
           </select>
-          <button className="btn-ghost" onClick={loadAttendance}>Refresh</button>
+          <button className="btn-ghost" onClick={() => loadAttendance()}>Refresh</button>
+          {lastUpdated ? (
+            <span style={{ alignSelf: "center", fontSize: 12, color: "var(--muted)" }}>
+              Auto-updates every minute · last {lastUpdated.toLocaleTimeString()}
+            </span>
+          ) : null}
           <button className="btn-primary" disabled={exporting} onClick={downloadMyAttendance}>
             {exporting ? "Exporting..." : "Export My Attendance"}
           </button>
@@ -108,11 +154,25 @@ export default function AttendancePage() {
         </div>
       </div>
       <div className="grid-stats" style={{ marginBottom: 28 }}>
-        <StatCard icon="✅" label="Days Present" value={presents} accent="#10b981" />
+        <StatCard icon="✅" label={`Present (of ${workingDays || "—"} working days)`} value={presents} accent="#10b981" />
         <StatCard icon="⚠️" label="Late Arrivals" value={lates} accent="#f59e0b" />
         <StatCard icon="✗" label="Absences" value={absents} accent="#ef4444" />
         <StatCard icon="📅" label="Total Records" value={records.length} />
       </div>
+      {summary.attendance_star ? (
+        <div className="card" style={{ padding: 16, marginBottom: 24, display: "flex", gap: 24, flexWrap: "wrap", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>Attendance Stars</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "#f59e0b" }}>{"★".repeat(summary.attendance_star)}<span style={{ color: "rgba(148,163,184,0.4)" }}>{"★".repeat(5 - summary.attendance_star)}</span></div>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>{summary.present_equivalent}/{workingDays} present-equivalent</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>Punctuality Stars</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "#f59e0b" }}>{"★".repeat(summary.punctuality_star)}<span style={{ color: "rgba(148,163,184,0.4)" }}>{"★".repeat(5 - summary.punctuality_star)}</span></div>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>{summary.late} late punches this month</div>
+          </div>
+        </div>
+      ) : null}
       <div className="card">
         <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
           <h2 className="syne" style={{ fontSize: 16, fontWeight: 700 }}>Monthly Records — {months[month - 1]} {year}</h2>

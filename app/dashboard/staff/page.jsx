@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
@@ -17,20 +17,23 @@ export default function StaffPage() {
   const [staff, setStaff] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [biometricRequests, setBiometricRequests] = useState([]);
+  const [machineCandidates, setMachineCandidates] = useState([]);
   const [onlineDevice, setOnlineDevice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editModal, setEditModal] = useState(null);
   const [form, setForm] = useState({
     username: "", password: "", first_name: "", last_name: "", email: "",
-    emp_id: "", department_id: "", is_hr: false, is_accounts: false, is_hod: false,
-    base_salary: "", hod_department_ids: [],
+    emp_id: "", department_id: "", is_hr: false, is_accounts: false, is_hod: false, is_tl: false,
+    machine_user_id: "", base_salary: "", hod_department_ids: [],
+    hod_user_id: "", tl_user_id: "", system_no: "", is_night_shift: false,
   });
   const [editForm, setEditForm] = useState({
     first_name: "", last_name: "", email: "", department: "", department_id: "",
-    is_hr: false, is_accounts: false, is_hod: false,
-    base_salary: "", bank_account: "", ifsc_code: "",
+    is_hr: false, is_accounts: false, is_hod: false, is_tl: false,
+    machine_user_id: "", base_salary: "", bank_account: "", ifsc_code: "",
     new_password: "", is_active: true, hod_department_ids: [],
+    hod_user_id: "", tl_user_id: "", system_no: "", is_night_shift: false,
   });
   const [search, setSearch] = useState("");
   const [showToast, toastNode] = useToast();
@@ -66,7 +69,7 @@ export default function StaffPage() {
 
   function resolveOnlineCommandDevice(devices) {
     return Array.isArray(devices)
-      ? devices.find((device) => device.is_online && device.commands_supported) || null
+      ? devices.find((device) => device.is_online) || null
       : null;
   }
 
@@ -75,10 +78,11 @@ export default function StaffPage() {
     latestLoadIdRef.current = currentLoadId;
     setLoading(true);
     try {
-      const [employeesResult, departmentsResult, enrollmentResult, devicesResult] = await Promise.allSettled([
+      const [employeesResult, departmentsResult, enrollmentResult, unmappedUsersResult, devicesResult] = await Promise.allSettled([
         apiFetch("/employees/"),
         apiFetch("/departments/"),
         isAdmin ? apiFetch("/api/devices/enrollment-requests/").catch(() => ({ requests: [] })) : Promise.resolve({ requests: [] }),
+        isAdmin ? apiFetch("/api/devices/unmapped-users/").catch(() => ({ users: [] })) : Promise.resolve({ users: [] }),
         apiFetch("/api/devices/").catch(() => ({ devices: [] })),
       ]);
       if (currentLoadId !== latestLoadIdRef.current) return;
@@ -90,6 +94,9 @@ export default function StaffPage() {
       }
       if (enrollmentResult.status === "fulfilled") {
         setBiometricRequests(Array.isArray(enrollmentResult.value?.requests) ? enrollmentResult.value.requests : []);
+      }
+      if (unmappedUsersResult.status === "fulfilled") {
+        setMachineCandidates(Array.isArray(unmappedUsersResult.value?.users) ? unmappedUsersResult.value.users : []);
       }
       if (devicesResult.status === "fulfilled") {
         setOnlineDevice(resolveOnlineDevice(devicesResult.value?.devices));
@@ -112,12 +119,14 @@ export default function StaffPage() {
     const poll = async () => {
       if (document.visibilityState !== "visible") return;
       try {
-        const [requestResult, devicesResult] = await Promise.all([
+        const [requestResult, unmappedUsersResult, devicesResult] = await Promise.all([
           apiFetch("/api/devices/enrollment-requests/"),
+          apiFetch("/api/devices/unmapped-users/").catch(() => ({ users: [] })),
           apiFetch("/api/devices/").catch(() => ({ devices: [] })),
         ]);
         if (stopped) return;
         setBiometricRequests(Array.isArray(requestResult?.requests) ? requestResult.requests : []);
+        setMachineCandidates(Array.isArray(unmappedUsersResult?.users) ? unmappedUsersResult.users : []);
         setOnlineDevice(resolveOnlineDevice(devicesResult?.devices));
       } catch {
         // keep last known state on intermittent machine/network lag
@@ -153,10 +162,16 @@ export default function StaffPage() {
         first_name: form.first_name.trim(),
         last_name: form.last_name.trim(),
         email: form.email.trim(),
+        machine_user_id: form.machine_user_id.trim() || undefined,
         department_id: +form.department_id,
+        hod_user_id: form.hod_user_id ? Number(form.hod_user_id) : undefined,
+        tl_user_id: form.tl_user_id ? Number(form.tl_user_id) : undefined,
         hod_department_ids: form.is_hod
           ? withPrimaryDepartment(form.hod_department_ids, parseDepartmentId(form.department_id))
           : [],
+        is_tl: !!form.is_tl,
+        is_night_shift: !!form.is_night_shift,
+        system_no: form.system_no.trim() || undefined,
         base_salary: +form.base_salary || 0,
       };
       await apiFetch("/employees/", {
@@ -165,7 +180,12 @@ export default function StaffPage() {
       });
       showToast("Employee added!");
       setShowModal(false);
-      setForm({ username: "", password: "", first_name: "", last_name: "", email: "", emp_id: "", department_id: "", is_hr: false, is_accounts: false, is_hod: false, base_salary: "", hod_department_ids: [] });
+      setForm({
+        username: "", password: "", first_name: "", last_name: "", email: "",
+        emp_id: "", department_id: "", is_hr: false, is_accounts: false, is_hod: false, is_tl: false,
+        machine_user_id: "", base_salary: "", hod_department_ids: [],
+        hod_user_id: "", tl_user_id: "", system_no: "", is_night_shift: false,
+      });
       await load();
     } catch (e) {
       showToast(e.message, "error");
@@ -191,13 +211,19 @@ export default function StaffPage() {
         first_name: (editForm.first_name ?? "").trim(),
         last_name: (editForm.last_name ?? "").trim(),
         email: (editForm.email ?? "").trim(),
+        machine_user_id: (editForm.machine_user_id ?? "").trim(),
         department_id: Number.isFinite(parsedDepartmentId) ? parsedDepartmentId : undefined,
+        hod_user_id: editForm.hod_user_id ? Number(editForm.hod_user_id) : null,
+        tl_user_id: editForm.tl_user_id ? Number(editForm.tl_user_id) : null,
         hod_department_ids: !!editForm.is_hod
           ? withPrimaryDepartment(editForm.hod_department_ids, parsedDepartmentId)
           : [],
         is_hr: !!editForm.is_hr,
         is_accounts: !!editForm.is_accounts,
         is_hod: !!editForm.is_hod,
+        is_tl: !!editForm.is_tl,
+        is_night_shift: !!editForm.is_night_shift,
+        system_no: (editForm.system_no ?? "").trim() || null,
         base_salary: Number.isFinite(parsedBaseSalary) ? parsedBaseSalary : undefined,
         bank_account: (editForm.bank_account ?? "").trim(),
         ifsc_code: (editForm.ifsc_code ?? "").trim(),
@@ -209,11 +235,11 @@ export default function StaffPage() {
       if (payload.base_salary === undefined) delete payload.base_salary;
       if (!payload.new_password) delete payload.new_password;
 
-      await apiFetch(`/employees/${editModal.emp_id}`, {
+      const result = await apiFetch(`/employees/${editModal.emp_id}`, {
         method: "PUT",
         body: JSON.stringify(payload),
       });
-      showToast("Employee updated!");
+      showToast(result?.message || "Employee updated!");
       setEditModal(null);
       setSearch("");
       await load();
@@ -244,13 +270,7 @@ export default function StaffPage() {
       const { devices } = await apiFetch("/api/devices/");
       const online = resolveOnlineCommandDevice(devices);
       if (!online) {
-        const visibleDevice = resolveOnlineDevice(devices);
-        showToast(
-          visibleDevice
-            ? "Realtime device is online. Complete this action manually on the terminal."
-            : "No command-capable device is online",
-          "error"
-        );
+        showToast("No ZKTeco device is online", "error");
         return;
       }
 
@@ -278,7 +298,8 @@ export default function StaffPage() {
 
   async function deleteDeviceUser() {
     if (!editModal) return;
-    const devicePin = prompt("Enter the exact device user ID to delete from the machine (for example 2, 3, or HR01):", "");
+    const defaultDevicePin = (editForm.machine_user_id || editModal.machine_user_id || editModal.emp_id || "").trim();
+    const devicePin = prompt("Enter the exact device user ID to delete from the machine (for example 2, 3, or HR01):", defaultDevicePin);
     if (devicePin === null) return;
     const cleaned = devicePin.trim();
     if (!cleaned) return;
@@ -287,13 +308,7 @@ export default function StaffPage() {
       const { devices } = await apiFetch("/api/devices/");
       const online = resolveOnlineCommandDevice(devices);
       if (!online) {
-        const visibleDevice = resolveOnlineDevice(devices);
-        showToast(
-          visibleDevice
-            ? "Realtime device is online. Delete this user directly on the terminal."
-            : "No command-capable device is online",
-          "error"
-        );
+        showToast("No ZKTeco device is online", "error");
         return;
       }
 
@@ -340,13 +355,7 @@ export default function StaffPage() {
       const { devices } = await apiFetch("/api/devices/");
       const online = resolveOnlineCommandDevice(devices);
       if (!online) {
-        const visibleDevice = resolveOnlineDevice(devices);
-        showToast(
-          visibleDevice
-            ? "Realtime device is online. Reset this user directly on the terminal."
-            : "No command-capable device is online",
-          "error"
-        );
+        showToast("No ZKTeco device is online", "error");
         return;
       }
 
@@ -411,7 +420,13 @@ export default function StaffPage() {
       is_hr:        emp.is_hr       || false,
       is_accounts:  emp.is_accounts || false,
       is_hod:       emp.is_hod      || false,
+      is_tl:        emp.is_tl       || false,
+      machine_user_id: emp.machine_user_id || "",
+      hod_user_id:  emp.hod_user_id ? String(emp.hod_user_id) : "",
+      tl_user_id:   emp.tl_user_id ? String(emp.tl_user_id) : "",
       hod_department_ids: withPrimaryDepartment(emp.hod_department_ids || [], parseDepartmentId(emp.department_id)),
+      system_no: emp.system_no || "",
+      is_night_shift: emp.is_night_shift || false,
       base_salary:  emp.base_salary || "",
       bank_account: emp.bank_account || "",
       ifsc_code:    emp.ifsc_code   || "",
@@ -447,6 +462,14 @@ export default function StaffPage() {
 
   const filtered = staff.filter(
     (s) => !search || `${s.first_name} ${s.last_name} ${s.emp_id} ${s.department}`.toLowerCase().includes(search.toLowerCase())
+  );
+  const hodOptions = useMemo(
+    () => staff.filter((employee) => employee.is_hod || employee.is_superuser),
+    [staff]
+  );
+  const tlOptions = useMemo(
+    () => staff.filter((employee) => employee.is_tl),
+    [staff]
   );
   const pendingBiometricCount = biometricRequests.filter((r) => ["queued", "sent"].includes(r.status)).length;
   const employeeRequestHistory = editModal ? biometricRequests.filter((r) => r.employee_emp_id === editModal.emp_id).slice(0, 4) : [];
@@ -487,7 +510,8 @@ export default function StaffPage() {
         {employee.is_hr && <span className="badge" style={{ background: "#10b98122", color: "#10b981" }}>HR</span>}
         {employee.is_accounts && <span className="badge" style={{ background: "#f59e0b22", color: "#f59e0b" }}>Accounts</span>}
         {employee.is_hod && <span className="badge" style={{ background: "#8b5cf622", color: "#8b5cf6" }}>HOD</span>}
-        {!employee.is_hr && !employee.is_accounts && !employee.is_hod && (
+        {employee.is_tl && <span className="badge" style={{ background: "#14b8a622", color: "#14b8a6" }}>TL</span>}
+        {!employee.is_hr && !employee.is_accounts && !employee.is_hod && !employee.is_tl && (
           <span className="badge" style={{ background: "#6366f122", color: "#6366f1" }}>Employee</span>
         )}
       </>
@@ -617,10 +641,18 @@ export default function StaffPage() {
               <tbody>
                 {filtered.map((e) => (
                   <tr key={e.emp_id}>
-                    <td><span className="chip">{e.emp_id}</span></td>
+                    <td>
+                      <span className="chip">{e.emp_id}</span>
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>
+                        Machine: {e.machine_user_id || "Not linked"}
+                      </div>
+                    </td>
                     <td>
                       <div style={{ fontWeight: 600 }}>{e.first_name} {e.last_name}</div>
                       <div style={{ fontSize: 12, color: "var(--muted)" }}>@{e.username}</div>
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                        System: {e.system_no || "Not set"} · Shift: {e.is_night_shift ? "Night" : "Day"}
+                      </div>
                     </td>
                     <td>{e.department}</td>
                     <td>
@@ -674,8 +706,12 @@ export default function StaffPage() {
             <div className="form-group"><label className="label">Username</label><input className="input" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} required /></div>
             <div className="form-group"><label className="label">Password</label><PasswordInput autoComplete="off" name="staff_create_password_no_autofill" minLength={6} value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required /></div>
             <div className="form-group"><label className="label">Employee ID</label><input className="input" placeholder="EMP005" value={form.emp_id} onChange={(e) => setForm((f) => ({ ...f, emp_id: e.target.value }))} required /></div>
+            <div className="form-group"><label className="label">Machine User ID</label><input className="input" placeholder="Leave blank to use Employee ID for ZKTeco" value={form.machine_user_id} onChange={(e) => setForm((f) => ({ ...f, machine_user_id: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Department</label><select className="input" value={form.department_id} onChange={(e) => setForm((f) => ({ ...f, department_id: e.target.value, hod_department_ids: f.is_hod ? withPrimaryDepartment(f.hod_department_ids, parseDepartmentId(e.target.value)) : f.hod_department_ids }))} required><option value="">Select department…</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
             <div className="form-group"><label className="label">Email</label><input className="input" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required /></div>
+            <div className="form-group"><label className="label">Reports To HOD</label><select className="input" value={form.hod_user_id} onChange={(e) => setForm((f) => ({ ...f, hod_user_id: e.target.value }))}><option value="">Select HOD…</option>{hodOptions.map((employee) => <option key={employee.user_id || employee.id} value={employee.user_id || employee.id}>{employee.first_name} {employee.last_name} ({employee.emp_id})</option>)}</select></div>
+            <div className="form-group"><label className="label">Reports To TL</label><select className="input" value={form.tl_user_id} onChange={(e) => setForm((f) => ({ ...f, tl_user_id: e.target.value }))}><option value="">Select TL…</option>{tlOptions.map((employee) => <option key={employee.user_id || employee.id} value={employee.user_id || employee.id}>{employee.first_name} {employee.last_name} ({employee.emp_id})</option>)}</select></div>
+            <div className="form-group"><label className="label">System No.</label><input className="input" placeholder="System number" value={form.system_no} onChange={(e) => setForm((f) => ({ ...f, system_no: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Base Salary (₹)</label><input className="input" type="number" value={form.base_salary} onChange={(e) => setForm((f) => ({ ...f, base_salary: e.target.value }))} /></div>
           </div>
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 4 }}>
@@ -683,6 +719,8 @@ export default function StaffPage() {
             {isAdmin && <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={form.is_hr} onChange={(e) => setForm((f) => ({ ...f, is_hr: e.target.checked }))} /> HR Role</label>}
             <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={form.is_accounts} onChange={(e) => setForm((f) => ({ ...f, is_accounts: e.target.checked }))} /> Accounts Role</label>
             <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={form.is_hod} onChange={(e) => setForm((f) => ({ ...f, is_hod: e.target.checked, hod_department_ids: e.target.checked ? withPrimaryDepartment(f.hod_department_ids, parseDepartmentId(f.department_id)) : f.hod_department_ids }))} /> HOD Role</label>
+            <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={form.is_tl} onChange={(e) => setForm((f) => ({ ...f, is_tl: e.target.checked }))} /> TL Role</label>
+            <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={form.is_night_shift} onChange={(e) => setForm((f) => ({ ...f, is_night_shift: e.target.checked }))} /> Night Shift</label>
           </div>
           {form.is_hod && (
             <div style={{ marginTop: 18 }}>
@@ -747,7 +785,12 @@ export default function StaffPage() {
             <div className="form-group"><label className="label">First Name</label><input className="input" value={editForm.first_name} onChange={(e) => setEditForm((f) => ({ ...f, first_name: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Last Name</label><input className="input" value={editForm.last_name} onChange={(e) => setEditForm((f) => ({ ...f, last_name: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Email</label><input className="input" type="email" value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} /></div>
+            <div className="form-group"><label className="label">Machine User ID</label><input className="input" placeholder="Leave blank to use Employee ID for ZKTeco" value={editForm.machine_user_id} onChange={(e) => setEditForm((f) => ({ ...f, machine_user_id: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Department</label><select className="input" value={editForm.department_id} onChange={(e) => setEditForm((f) => ({ ...f, department_id: e.target.value, department: departments.find((d) => d.id === +e.target.value)?.name || "", hod_department_ids: f.is_hod ? withPrimaryDepartment(f.hod_department_ids, parseDepartmentId(e.target.value)) : f.hod_department_ids }))}><option value="">Select department…</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
+            <div className="form-group"><label className="label">Reports To HOD</label><select className="input" value={editForm.hod_user_id} onChange={(e) => setEditForm((f) => ({ ...f, hod_user_id: e.target.value }))}><option value="">Select HOD…</option>{hodOptions.map((employee) => <option key={employee.user_id || employee.id} value={employee.user_id || employee.id}>{employee.first_name} {employee.last_name} ({employee.emp_id})</option>)}</select></div>
+            <div className="form-group"><label className="label">Reports To TL</label><select className="input" value={editForm.tl_user_id} onChange={(e) => setEditForm((f) => ({ ...f, tl_user_id: e.target.value }))}><option value="">Select TL…</option>{tlOptions.map((employee) => <option key={employee.user_id || employee.id} value={employee.user_id || employee.id}>{employee.first_name} {employee.last_name} ({employee.emp_id})</option>)}</select></div>
+            <div className="form-group"><label className="label">System No.</label><input className="input" value={editForm.system_no} onChange={(e) => setEditForm((f) => ({ ...f, system_no: e.target.value }))} /></div>
+            <div className="form-group"><label className="label">Shift Type</label><select className="input" value={editForm.is_night_shift ? "night" : "day"} onChange={(e) => setEditForm((f) => ({ ...f, is_night_shift: e.target.value === "night" }))}><option value="day">Day Shift</option><option value="night">Night Shift</option></select></div>
             <div className="form-group"><label className="label">Base Salary (₹)</label><input className="input" type="number" value={editForm.base_salary} onChange={(e) => setEditForm((f) => ({ ...f, base_salary: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Bank Account</label><input className="input" value={editForm.bank_account} onChange={(e) => setEditForm((f) => ({ ...f, bank_account: e.target.value }))} /></div>
             <div className="form-group"><label className="label">IFSC Code</label><input className="input" value={editForm.ifsc_code} onChange={(e) => setEditForm((f) => ({ ...f, ifsc_code: e.target.value }))} /></div>
@@ -770,19 +813,34 @@ export default function StaffPage() {
             {isAdmin ? (
             <div>
               <h4 className="syne" style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>📟 Device Registration</h4>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {onlineDevice && !onlineDevice.commands_supported ? (
-                  <div style={{ fontSize: 12, color: "var(--muted)", padding: "6px 10px", background: "rgba(245,158,11,0.08)", borderRadius: 6 }}>
-                    Realtime terminal detected. Add users and enroll or delete biometrics directly on the machine using this employee ID.
+              {machineCandidates.length > 0 ? (
+                <div style={{ marginBottom: 12 }}>
+                  <label className="label" style={{ marginBottom: 6 }}>Detected From Machine</label>
+                  <select
+                    className="input"
+                    value=""
+                    onChange={(e) => {
+                      if (!e.target.value) return;
+                      setEditForm((current) => ({ ...current, machine_user_id: e.target.value }));
+                    }}
+                  >
+                    <option value="">Select an unmapped machine ID…</option>
+                    {machineCandidates.map((candidate) => (
+                      <option key={candidate.machine_user_id} value={candidate.machine_user_id}>
+                        {candidate.machine_user_id} · {candidate.punch_count || candidate.event_count} event(s){candidate.last_device_sn ? ` · ${candidate.last_device_sn}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>
+                    Pick a detected machine ID to link it with this employee. Any stored unmatched punches for that ID will be recovered on save.
                   </div>
-                ) : (
-                  <>
-                    <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => registerBiometric(editModal.emp_id, "enroll_fp")}>☝️ Fingerprint</button>
-                    <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => registerBiometric(editModal.emp_id, "enroll_face")}>🎭 Face Sync</button>
-                    <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => resetBiometrics(editModal.emp_id, "all")}>♻️ Reset Biometrics</button>
-                    <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: 11 }} onClick={deleteDeviceUser}>🧹 Delete Device ID</button>
-                  </>
-                )}
+                </div>
+              ) : null}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => registerBiometric(editModal.emp_id, "enroll_fp")}>☝️ Fingerprint</button>
+                <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => registerBiometric(editModal.emp_id, "enroll_face")}>🎭 Face Sync</button>
+                <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => resetBiometrics(editModal.emp_id, "all")}>♻️ Reset Biometrics</button>
+                <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: 11 }} onClick={deleteDeviceUser}>🧹 Delete Device ID</button>
                 <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => clearEnrollmentRequests({ empId: editModal.emp_id })}>🗑️ Clear Request Rows</button>
               </div>
               <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -795,14 +853,13 @@ export default function StaffPage() {
                 )}
               </div>
               <div style={{ marginTop: 12, display: "grid", gap: 6, fontSize: 12, color: "var(--muted)" }}>
-                <div>Machine Employee ID: <strong style={{ color: "var(--text)" }}>{editModal.emp_id}</strong></div>
+                <div>Portal Employee ID: <strong style={{ color: "var(--text)" }}>{editModal.emp_id}</strong></div>
+                <div>Linked Machine User ID: <strong style={{ color: "var(--text)" }}>{editForm.machine_user_id || editModal.machine_user_id || "Not linked yet"}</strong></div>
                 <div>Fingerprint: <strong style={{ color: "var(--text)" }}>{editModal.fingerprint_registered ? "Enrolled on machine" : "Blank in portal"}</strong></div>
                 <div>Face: <strong style={{ color: "var(--text)" }}>{editModal.face_registered ? "Enrolled on machine" : "Blank in portal"}</strong></div>
                 <div>Card: <strong style={{ color: "var(--text)" }}>{editModal.card_number || "Blank in portal"}</strong></div>
                 <div style={{ fontSize: 11 }}>
-                  {onlineDevice && !onlineDevice.commands_supported
-                    ? "Realtime terminals require manual user cleanup on the device menu. Use the same employee ID shown in the portal when enrolling."
-                    : "The machine now uses the same employee ID shown in the portal. If older numeric test users like 2 or 3 still exist on the device, remove them with Delete Device ID once."}
+                  For ZKTeco, leaving Machine User ID blank makes the portal use the Employee ID exactly like the working HRMS-FastAPI-Nextjs flow. Set a separate Machine User ID only when the device already uses a different pin.
                 </div>
               </div>
             </div>
@@ -815,6 +872,8 @@ export default function StaffPage() {
             <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={editForm.is_hr} onChange={(e) => setEditForm((f) => ({ ...f, is_hr: e.target.checked }))} /> HR Role</label>
             <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={editForm.is_accounts} onChange={(e) => setEditForm((f) => ({ ...f, is_accounts: e.target.checked }))} /> Accounts</label>
             <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={editForm.is_hod} onChange={(e) => setEditForm((f) => ({ ...f, is_hod: e.target.checked, hod_department_ids: e.target.checked ? withPrimaryDepartment(f.hod_department_ids, parseDepartmentId(f.department_id)) : f.hod_department_ids }))} /> HOD</label>
+            <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={editForm.is_tl} onChange={(e) => setEditForm((f) => ({ ...f, is_tl: e.target.checked }))} /> TL</label>
+            <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={editForm.is_night_shift} onChange={(e) => setEditForm((f) => ({ ...f, is_night_shift: e.target.checked }))} /> Night Shift</label>
             <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={editForm.is_active} onChange={(e) => setEditForm((f) => ({ ...f, is_active: e.target.checked }))} /> Active</label>
           </div>
           {editForm.is_hod && (

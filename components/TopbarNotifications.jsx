@@ -5,7 +5,7 @@ import { Bell, CheckCheck } from "lucide-react";
 
 import { apiFetch } from "@/lib/api";
 
-export default function TopbarNotifications({ accent, role }) {
+export default function TopbarNotifications({ role }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
@@ -75,7 +75,6 @@ export default function TopbarNotifications({ accent, role }) {
           setOpen((current) => !current);
           if (!open) loadNotifications();
         }}
-        style={{ boxShadow: `inset 0 0 0 1px ${accent}22` }}
       >
         <Bell size={18} />
         {unreadCount > 0 ? (
@@ -118,7 +117,7 @@ export default function TopbarNotifications({ accent, role }) {
                   className={`notification-item${item.is_read ? " is-read" : ""}`}
                   onClick={() => markRead(item)}
                 >
-                  <span className="notification-item__dot" style={{ background: item.is_read ? "var(--border)" : accent }} />
+                  <span className="notification-item__dot" style={{ background: item.is_read ? "var(--border)" : "var(--accent)" }} />
                   <span className="notification-item__content">
                     <span className="notification-item__message">{item.message}</span>
                     <span className="notification-item__time">{item.time || "Now"}</span>

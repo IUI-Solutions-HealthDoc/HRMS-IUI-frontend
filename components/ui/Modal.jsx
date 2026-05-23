@@ -16,7 +16,7 @@ export default function Modal({ title, onClose, children, footer, className = ""
           <h3 className="syne" style={{ fontSize: 18, fontWeight: 700 }}>{title}</h3>
           <button
             onClick={onClose}
-            style={{ background: "rgba(255,255,255,0.06)", border: "none", color: "var(--text)", borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 16 }}
+            style={{ background: "var(--surface3)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 10, width: 34, height: 34, cursor: "pointer", fontSize: 16, boxShadow: "0 0 10px rgba(0,0,0,0.2)" }}
           >
             ✕
           </button>

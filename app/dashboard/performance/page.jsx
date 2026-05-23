@@ -25,6 +25,7 @@ function roleForEmployee(emp) {
   if (emp.is_superuser) return "admin";
   if (emp.is_accounts) return "accounts";
   if (emp.is_hr) return "hr";
+  if (emp.is_tl) return "tl";
   if (emp.is_hod) return "hod";
   return "employee";
 }
@@ -34,7 +35,8 @@ function resolveMode(raterRole, targetRole) {
   if (raterRole === "admin") return targetRole === "admin" ? null : "detailed";
   if (raterRole === "hr") return targetRole === "employee" ? "detailed" : "single";
   if (raterRole === "hod") return targetRole === "employee" ? "detailed" : "single";
-  if (raterRole === "employee") return ["admin", "hr", "hod"].includes(targetRole) ? "single" : null;
+  if (raterRole === "tl") return targetRole === "employee" ? "detailed" : "single";
+  if (raterRole === "employee") return ["admin", "hr", "hod", "tl"].includes(targetRole) ? "single" : null;
   return null;
 }
 
@@ -209,12 +211,85 @@ function buildSeries(ratings, view) {
   })).slice(-8);
 }
 
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function StarStrip({ value, total = 5, size = 16 }) {
+  return (
+    <span style={{ color: "#f59e0b", fontSize: size, letterSpacing: 1 }}>
+      {"★".repeat(Math.min(total, Math.max(0, value)))}
+      <span style={{ color: "rgba(148,163,184,0.42)" }}>{"★".repeat(Math.max(0, total - value))}</span>
+    </span>
+  );
+}
+
+function BarMeter({ label, value, max = 5, color = "#6366f1", suffix = "/5" }) {
+  const pct = Math.max(0, Math.min(100, (value / max) * 100));
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, fontSize: 12 }}>
+        <span>{label}</span>
+        <span style={{ fontWeight: 700 }}>{value}{suffix}</span>
+      </div>
+      <div style={{ height: 8, borderRadius: 999, background: "rgba(148,163,184,0.14)", overflow: "hidden" }}>
+        <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 999 }} />
+      </div>
+    </div>
+  );
+}
+
+function AttendanceDonut({ present, late, halfDay, earlyLeave, absent, paidLeave }) {
+  const total = Math.max(1, present + late + halfDay + earlyLeave + absent + paidLeave);
+  const segments = [
+    { label: "Present", value: present, color: "#16a34a" },
+    { label: "Late", value: late, color: "#f59e0b" },
+    { label: "Half Day", value: halfDay, color: "#7c3aed" },
+    { label: "Early Leave", value: earlyLeave, color: "#ea580c" },
+    { label: "Paid Leave", value: paidLeave, color: "#0ea5e9" },
+    { label: "Absent", value: absent, color: "#dc2626" },
+  ];
+  let cursor = 0;
+  const stops = segments.map((segment) => {
+    const start = (cursor / total) * 360;
+    cursor += segment.value;
+    const end = (cursor / total) * 360;
+    return `${segment.color} ${start}deg ${end}deg`;
+  }).join(", ");
+  return (
+    <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{
+        width: 130, height: 130, borderRadius: "50%",
+        background: `conic-gradient(${stops})`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: "inset 0 0 0 18px var(--surface, #fff)",
+      }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1 }}>{Math.round((present / total) * 100)}%</div>
+          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>Present</div>
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 4, flex: "1 1 200px" }}>
+        {segments.map((segment) => (
+          <div key={segment.label} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 3, background: segment.color, display: "inline-block" }} />
+            <span style={{ color: "var(--muted)" }}>{segment.label}</span>
+            <span style={{ marginLeft: "auto", fontWeight: 700 }}>{segment.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function PerformancePage() {
   const { role, user } = useAuth();
   const canRate = role !== "accounts";
   const [employees, setEmployees] = useState([]);
   const [ratings, setRatings] = useState([]);
   const [employeeAverages, setEmployeeAverages] = useState([]);
+  const [attendanceRatings, setAttendanceRatings] = useState({ employees: [], month: new Date().getMonth() + 1, year: new Date().getFullYear(), month_working_days: 0, month_name: "" });
+  const [attMonth, setAttMonth] = useState(new Date().getMonth() + 1);
+  const [attYear, setAttYear] = useState(new Date().getFullYear());
+  const [attEmpFilter, setAttEmpFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [showRate, setShowRate] = useState(false);
   const [autoPreview, setAutoPreview] = useState(null);
@@ -310,20 +385,24 @@ export default function PerformancePage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [employeeData, ratingData, averagesData] = await Promise.all([
+      const [employeeData, ratingData, averagesData, attendanceData] = await Promise.all([
         apiFetch("/performance/targets"),
         apiFetch("/performance/ratings?include_all=true"),
         apiFetch("/performance/employee-averages").catch(() => []),
+        apiFetch(`/performance/attendance-ratings?month=${attMonth}&year=${attYear}`).catch(() => null),
       ]);
       setEmployees(Array.isArray(employeeData) ? employeeData : []);
       setRatings(Array.isArray(ratingData) ? ratingData : []);
       setEmployeeAverages(Array.isArray(averagesData) ? averagesData : []);
+      if (attendanceData && Array.isArray(attendanceData.employees)) {
+        setAttendanceRatings(attendanceData);
+      }
     } catch (error) {
       showToast(error.message, "error");
     } finally {
       setLoading(false);
     }
-  }, [role, showToast]);
+  }, [attMonth, attYear, role, showToast]);
 
   useEffect(() => {
     load();
@@ -494,6 +573,71 @@ export default function PerformancePage() {
                 ))}
               </div>
             </div>
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{ padding: 18, marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700 }}>
+              <BarChart3 size={18} /> Attendance &amp; Punctuality Performance
+            </div>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+              Auto-computed from punches. {attendanceRatings.month_name} {attendanceRatings.year} · {attendanceRatings.month_working_days} working days.
+              Attendance star: 25/25 → 5★, 23–24 → 4★, 20–22 → 3★, 18–19 → 2★, &lt;18 → 1★.
+              Punctuality star: 0 lates → 5★, 1–3 → 4★, 4–5 → 3★, 6–8 → 2★, 9+ → 1★.
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <select className="input" style={{ width: "auto" }} value={attMonth} onChange={(event) => setAttMonth(Number(event.target.value))}>
+              {MONTH_LABELS.map((name, index) => <option key={name} value={index + 1}>{name}</option>)}
+            </select>
+            <select className="input" style={{ width: "auto" }} value={attYear} onChange={(event) => setAttYear(Number(event.target.value))}>
+              {[attYear - 1, attYear, attYear + 1].map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+            <select className="input" style={{ width: "min(100%, 240px)" }} value={attEmpFilter} onChange={(event) => setAttEmpFilter(event.target.value)}>
+              <option value="ALL">All employees</option>
+              {attendanceRatings.employees.map((item) => <option key={item.emp_id} value={item.emp_id}>{item.emp_id} - {item.name}</option>)}
+            </select>
+          </div>
+        </div>
+        {attendanceRatings.employees.length === 0 ? (
+          <EmptyState icon="📈" title="No attendance data" subtitle="No employee attendance found for this month yet." />
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16 }}>
+            {attendanceRatings.employees
+              .filter((item) => attEmpFilter === "ALL" || item.emp_id === attEmpFilter)
+              .map((item) => (
+              <div key={item.emp_id} className="card" style={{ padding: 18 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start", marginBottom: 12 }}>
+                  <div>
+                    <div style={{ fontWeight: 700 }}>{item.name}{item.is_tl ? <span style={{ marginLeft: 6, fontSize: 10, padding: "1px 6px", borderRadius: 4, background: "rgba(99,102,241,0.15)", color: "#4338ca" }}>TL</span> : null}{item.is_hod ? <span style={{ marginLeft: 6, fontSize: 10, padding: "1px 6px", borderRadius: 4, background: "rgba(245,158,11,0.15)", color: "#b45309" }}>HOD</span> : null}</div>
+                    <div style={{ fontSize: 12, color: "var(--muted)" }}>{item.emp_id} · {item.department || "—"}</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: "#b45309" }}>{item.overall_star}/5</div>
+                    <StarStrip value={Math.round(item.overall_star)} />
+                  </div>
+                </div>
+                <AttendanceDonut
+                  present={item.present}
+                  late={item.late}
+                  halfDay={item.half_day}
+                  earlyLeave={item.early_leave}
+                  absent={item.absent}
+                  paidLeave={item.paid_leave}
+                />
+                <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+                  <BarMeter label="Attendance" value={item.attendance_star} color="#16a34a" />
+                  <BarMeter label="Punctuality" value={item.punctuality_star} color="#f59e0b" />
+                </div>
+                <div style={{ marginTop: 12, display: "grid", gap: 4, fontSize: 12, color: "var(--muted)" }}>
+                  <div>Present-equivalent: <b style={{ color: "var(--text)" }}>{item.present_equivalent}/{item.working_days}</b></div>
+                  <div>Late punches: <b style={{ color: "var(--text)" }}>{item.late}</b> · Absences: <b style={{ color: "var(--text)" }}>{item.absent}</b></div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

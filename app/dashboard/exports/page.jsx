@@ -46,7 +46,10 @@ export default function ExportsPage() {
     }
   }
 
+  const formattedMonth = `${year}-${String(month).padStart(2, "0")}`;
   const query = `month=${month}&year=${year}${employee ? `&emp_id=${employee}` : ""}${department ? `&department=${encodeURIComponent(department)}` : ""}`;
+  const attendanceCombinedQuery = `month=${formattedMonth}${department ? `&department=${encodeURIComponent(department)}` : ""}${employee ? `&emp_id=${employee}` : ""}`;
+  const attendanceSingleQuery = `month=${month}&year=${year}${department ? `&department=${encodeURIComponent(department)}` : ""}${employee ? `&emp_id=${employee}` : ""}`;
   const bgvQuery = `${employee ? `emp_id=${employee}&` : ""}department=${encodeURIComponent(department || "All")}`;
 
   return (
@@ -78,10 +81,30 @@ export default function ExportsPage() {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 16 }}>
         {[
-          { icon: "📊", label: "Attendance Report", desc: "Attendance XLSX export", color: "#6366f1", path: `/exports/attendance?${query}` },
-          { icon: "💰", label: "Salary Annexure", desc: "Payroll XLSX export", color: "#f59e0b", path: `/exports/annexure?${query}` },
-          { icon: "🛡", label: "BGV PDF Report", desc: "Background verification report", color: "#10b981", path: `/exports/bgv?${bgvQuery}` },
-          { icon: "📈", label: "Performance Report", desc: "Employee performance XLSX", color: "#8b5cf6", path: `/performance/export?month=${month}&year=${year}${employee ? `&emp_id=${employee}` : ""}` },
+          {
+            icon: "📊", label: "Attendance Report", color: "#6366f1",
+            desc: "Choose Excel (multi-sheet), CSV or PDF",
+            formats: [
+              { tag: "XLSX", path: `/exports/all-attendance-formats?${attendanceCombinedQuery}` },
+              { tag: "CSV", path: `/exports/attendance.csv?${attendanceSingleQuery}` },
+              { tag: "PDF", path: `/exports/attendance.pdf?${attendanceSingleQuery}` },
+            ],
+          },
+          {
+            icon: "💰", label: "Salary Annexure", color: "#f59e0b",
+            desc: "Payroll XLSX export",
+            formats: [{ tag: "XLSX", path: `/exports/annexure?${query}` }],
+          },
+          {
+            icon: "🛡", label: "BGV Report", color: "#10b981",
+            desc: "Background verification report",
+            formats: [{ tag: "PDF", path: `/exports/bgv?${bgvQuery}` }],
+          },
+          {
+            icon: "📈", label: "Performance Report", color: "#8b5cf6",
+            desc: "Employee performance XLSX",
+            formats: [{ tag: "XLSX", path: `/performance/export?month=${month}&year=${year}${employee ? `&emp_id=${employee}` : ""}` }],
+          },
         ]
           .filter((item) => (isAccounts ? item.label === "Salary Annexure" : true))
           .filter((item) => (item.label === "Salary Annexure" ? canSeeAnnexure : true))
@@ -90,9 +113,18 @@ export default function ExportsPage() {
             <div style={{ fontSize: 36, marginBottom: 12 }}>{item.icon}</div>
             <div style={{ fontWeight: 700, marginBottom: 4 }}>{item.label}</div>
             <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 20 }}>{item.desc}</div>
-            <button className="btn-primary" style={{ background: item.color, width: "100%", justifyContent: "center" }} onClick={() => download(item.path, item.label)}>
-              Download
-            </button>
+            <div style={{ display: "grid", gap: 8 }}>
+              {item.formats.map((fmt) => (
+                <button
+                  key={fmt.tag}
+                  className="btn-primary"
+                  style={{ background: item.color, width: "100%", justifyContent: "center" }}
+                  onClick={() => download(fmt.path, `${item.label} (${fmt.tag})`)}
+                >
+                  Download {fmt.tag}
+                </button>
+              ))}
+            </div>
           </div>
         ))}
       </div>

@@ -10,7 +10,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import Loader from "@/components/ui/Loader";
 
-export default function SundayWorkPage() {
+export default function CompOffPage() {
   const { role } = useAuth();
   const isAdmin = role === "admin";
   const canEdit = role === "hr";
@@ -39,7 +39,7 @@ export default function SundayWorkPage() {
   async function logWork() {
     try {
       await apiFetch("/sunday-work/log", { method: "POST", body: JSON.stringify(form) });
-      showToast("Sunday work logged");
+      showToast("Comp-Off logged");
       setShowModal(false);
       setForm({ employee_emp_id: "", work_date: "", hours_worked: 8, notes: "" });
       load();
@@ -66,14 +66,14 @@ export default function SundayWorkPage() {
     <div>
       <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>Sunday Work & Comp-Off</h1>
-          <p style={{ color: "var(--muted)", marginTop: 4 }}>{isAdmin ? "Admin view is detail-first and read-only. HR resolves comp-off or extra pay." : "Log Sunday work and resolve it as comp-off or extra pay."}</p>
+          <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>Comp-Off Management</h1>
+          <p style={{ color: "var(--muted)", marginTop: 4 }}>{isAdmin ? "Admin view is detail-first and read-only. HR resolves comp-off or extra pay." : "Log comp-off work and resolve it as comp-off or extra pay."}</p>
         </div>
-        {canEdit ? <button className="btn-primary" onClick={() => setShowModal(true)}>Log Sunday Work</button> : null}
+        {canEdit ? <button className="btn-primary" onClick={() => setShowModal(true)}>Log Comp-Off Work</button> : null}
       </div>
       <div className="card">
         {loading ? <Loader /> : logs.length === 0 ? (
-          <EmptyState icon="☀" title="No Sunday work logs" />
+          <EmptyState icon="☀" title="No comp-off logs" />
         ) : (
           <div className="table-wrap">
             <table>
@@ -104,7 +104,7 @@ export default function SundayWorkPage() {
       </div>
       {showModal ? (
         <Modal
-          title="Log Sunday Work"
+          title="Log Comp-Off Work"
           onClose={() => setShowModal(false)}
           footer={
             <>

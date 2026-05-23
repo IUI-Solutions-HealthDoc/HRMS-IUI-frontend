@@ -1,15 +1,14 @@
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
-import appIcon from "@/lib/app icon.png";
 
 export const metadata = {
   title: "IUI Solutions — HRMS & Payroll",
   description: "Enterprise Human Resource Management System with attendance, payroll, leave management, and more.",
   icons: {
-    icon: appIcon.src,
-    shortcut: appIcon.src,
-    apple: appIcon.src,
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
   },
 };
 

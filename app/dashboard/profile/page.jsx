@@ -7,10 +7,6 @@ import { useToast } from "@/hooks/useToast";
 import PasswordInput from "@/components/ui/PasswordInput";
 import StatusBadge from "@/components/ui/StatusBadge";
 
-const ROLE_ACCENT = {
-  admin: "#ef4444", hr: "#10b981", accounts: "#f59e0b", hod: "#8b5cf6", employee: "#6366f1",
-};
-
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
   const [showToast, toastNode] = useToast();
@@ -36,6 +32,15 @@ export default function ProfilePage() {
   });
 
   const roleLabel = user?.is_superuser ? "ADMIN" : (user?.role?.toUpperCase() || "EMPLOYEE");
+
+  useEffect(() => {
+    setForm((current) => ({
+      ...current,
+      first_name: user?.first_name || "",
+      last_name: user?.last_name || "",
+      email: user?.email || "",
+    }));
+  }, [user?.email, user?.first_name, user?.last_name]);
 
   async function save(e) {
     e.preventDefault();
@@ -180,11 +185,11 @@ export default function ProfilePage() {
             <div style={{ position: "relative" }}>
               <div style={{
                 width: 64, height: 64, borderRadius: "50%",
-                backgroundImage: user?.profile_pic ? `url(${user.profile_pic})` : `linear-gradient(135deg,var(--accent),${(ROLE_ACCENT[user?.role] || "#6366f1")}88)`,
+                backgroundImage: user?.profile_pic ? `url(${user.profile_pic})` : "var(--accent-gradient)",
                 backgroundSize: "cover", backgroundPosition: "center",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 26, fontWeight: 800, color: "#fff", flexShrink: 0,
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
               }}>
                 {!user?.profile_pic && (user?.first_name || user?.username || "?")[0].toUpperCase()}
               </div>

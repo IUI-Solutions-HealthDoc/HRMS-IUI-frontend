@@ -11,7 +11,7 @@ import TopbarNotifications from "@/components/TopbarNotifications";
 import Loader from "@/components/ui/Loader";
 
 export default function DashboardLayout({ children }) {
-  const { isAuthed, loading, role, accent } = useAuth();
+  const { isAuthed, loading, role } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
 
@@ -32,7 +32,7 @@ export default function DashboardLayout({ children }) {
   if (!isAuthed) return null;
 
   return (
-    <div className="app-container" style={{ "--accent": accent }}>
+    <div className="app-container">
       {sidebarOpen ? <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} /> : null}
 
       <Sidebar sidebarOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -49,8 +49,8 @@ export default function DashboardLayout({ children }) {
           </div>
 
           <div className="dashboard-topbar__actions">
-            <TopbarNotifications accent={accent} role={role} />
-            <span className="role-pill" style={{ background: `${accent}18`, color: accent, boxShadow: `inset 0 0 0 1px ${accent}33` }}>
+            <TopbarNotifications role={role} />
+            <span className="role-pill">
               <ShieldEllipsis size={14} />
               {role.toUpperCase()} PORTAL
             </span>

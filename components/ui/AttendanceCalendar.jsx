@@ -7,13 +7,11 @@ import { useState } from "react";
  * @param {Array} attendance - List of attendance records for the month
  * @param {Array} holidays - List of company holidays
  * @param {Function} onDayClick - Optional callback when a day is clicked (for HR)
- * @param {string} accent - Accent color
  */
 export default function AttendanceCalendar({ 
   attendance = [], 
   holidays = [], 
   onDayClick,
-  accent = "#6366f1" 
 }) {
   const [viewDate, setViewDate] = useState(new Date());
 
@@ -72,7 +70,7 @@ export default function AttendanceCalendar({
   }
 
   return (
-    <div className="calendar-container" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="calendar-container">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <h3 className="syne" style={{ fontSize: 18, fontWeight: 700 }}>{monthName} {year}</h3>
         <div style={{ display: "flex", gap: 8 }}>
@@ -97,7 +95,7 @@ export default function AttendanceCalendar({
               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
               fontSize: 14, cursor: day && onDayClick ? "pointer" : "default",
               transition: "0.2s",
-              background: "var(--card-bg)",
+              background: "var(--surface3)",
               border: "1px solid var(--border)",
               position: "relative",
               ...getDayStyle(day)

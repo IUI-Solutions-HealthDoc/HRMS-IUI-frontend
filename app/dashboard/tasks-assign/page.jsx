@@ -21,7 +21,9 @@ export default function TasksAssignPage() {
     emp_id: "",
     department_id: "",
     title: "",
+    employee_name: "",
     description: "",
+    task_count: 1,
     deadline: "",
     file: null,
   });
@@ -66,6 +68,7 @@ export default function TasksAssignPage() {
     }
     formData.append("title", assignForm.title);
     formData.append("description", assignForm.description);
+    formData.append("task_count", String(assignForm.task_count || 1));
     formData.append("due_date", assignForm.deadline);
     if (assignForm.file) {
       formData.append("attached_file", assignForm.file);
@@ -84,7 +87,9 @@ export default function TasksAssignPage() {
         emp_id: "",
         department_id: "",
         title: "",
+        employee_name: "",
         description: "",
+        task_count: 1,
         deadline: "",
         file: null,
       });
@@ -138,22 +143,22 @@ export default function TasksAssignPage() {
       <div className="grid-stats" style={{ marginBottom: 20 }}>
         <div className="stat-card" style={{ "--accent": "#8b5cf6" }}>
           <div style={{ fontSize: 26, marginBottom: 8 }}>👥</div>
-          <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'DM Sans',sans-serif" }}>{teamMemberCount}</div>
+          <div className="syne" style={{ fontSize: 22, fontWeight: 800 }}>{teamMemberCount}</div>
           <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>Managed employees</div>
         </div>
         <div className="stat-card" style={{ "--accent": "#6366f1" }}>
           <div style={{ fontSize: 26, marginBottom: 8 }}>🏢</div>
-          <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'DM Sans',sans-serif" }}>{departments.length}</div>
+          <div className="syne" style={{ fontSize: 22, fontWeight: 800 }}>{departments.length}</div>
           <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>Managed departments</div>
         </div>
         <div className="stat-card" style={{ "--accent": "#10b981" }}>
           <div style={{ fontSize: 26, marginBottom: 8 }}>📋</div>
-          <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'DM Sans',sans-serif" }}>{openTasks}</div>
+          <div className="syne" style={{ fontSize: 22, fontWeight: 800 }}>{openTasks}</div>
           <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>Open tasks</div>
         </div>
         <div className="stat-card" style={{ "--accent": "#f59e0b" }}>
           <div style={{ fontSize: 26, marginBottom: 8 }}>⏳</div>
-          <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'DM Sans',sans-serif" }}>{pendingApprovals.length}</div>
+          <div className="syne" style={{ fontSize: 22, fontWeight: 800 }}>{pendingApprovals.length}</div>
           <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>Pending reviews</div>
         </div>
       </div>
@@ -161,15 +166,19 @@ export default function TasksAssignPage() {
         {loading ? <Loader /> : tasks.length === 0 ? <EmptyState icon="✓" title="No tasks" /> : (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Task</th><th>Description</th><th>Deadline</th><th>Status</th><th>Employee</th><th>Attachment</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Date</th><th>Name of Employee</th><th>Task Details</th><th>No. Tasks Provided</th><th>Deadline</th><th>Status</th><th>Attachment</th><th>Actions</th></tr></thead>
               <tbody>
                 {tasks.map((t, i) => (
                   <tr key={i}>
-                    <td><b>{t.title}</b></td>
-                    <td style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.description}</td>
+                    <td>{t.assigned_date ? new Date(t.assigned_date).toLocaleDateString("en-IN") : "—"}</td>
+                    <td>{t.assigned_to_name || t.emp_id}</td>
+                    <td>
+                      <div style={{ fontWeight: 700 }}>{t.title}</div>
+                      <div style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12, color: "var(--muted)" }}>{t.description}</div>
+                    </td>
+                    <td>{t.task_count || 1}</td>
                     <td>{t.deadline ? new Date(t.deadline).toLocaleString("en-IN") : "—"}</td>
                     <td><StatusBadge status={t.status} /></td>
-                    <td>{t.assigned_to_name || t.emp_id}</td>
                     <td>
                       {t.attached_file ? (
                         <a href={t.attached_file} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "var(--accent)", textDecoration: "none" }}>📎 View File</a>
@@ -195,16 +204,32 @@ export default function TasksAssignPage() {
           </div>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Task</th><th>Employee</th><th>Notes</th><th>Status</th><th>Actions</th></tr></thead>
-              <tbody>{pendingApprovals.map((item) => (
+              <thead><tr><th>Task</th><th>Employee</th><th>Notes</th><th>Attachments</th><th>TL Status</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>{pendingApprovals.map((item) => {
+                const totalAttachments = (item.image_urls?.length || 0) + (item.attachments?.length || 0);
+                return (
                 <tr key={item.revert_id}>
-                  <td>{item.title}</td>
+                  <td>{item.title}{item.task_link ? <div style={{ fontSize: 11 }}><a href={item.task_link} target="_blank" rel="noreferrer">Open link</a></div> : null}</td>
                   <td>{item.assigned_to_name}</td>
-                  <td style={{ maxWidth: 220 }}>{item.employee_notes || "—"}</td>
+                  <td style={{ maxWidth: 220 }}>{item.employee_notes || item.remarks || "—"}</td>
+                  <td>
+                    {totalAttachments ? (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                        {(item.image_urls || []).map((url, idx) => (
+                          <a key={`i-${idx}`} href={url} target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: "rgba(99,102,241,0.12)", color: "#4338ca" }}>📷 {idx + 1}</a>
+                        ))}
+                        {(item.attachments || []).map((att, idx) => (
+                          <a key={`a-${idx}`} href={att.url} target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: "rgba(14,165,233,0.14)", color: "#0369a1" }}>{(att.kind || "file").toUpperCase()}</a>
+                        ))}
+                      </div>
+                    ) : "—"}
+                  </td>
+                  <td>{item.tl_status && item.tl_status !== "skipped" ? <StatusBadge status={item.tl_status} /> : <span style={{ fontSize: 11, color: "var(--muted)" }}>—</span>}</td>
                   <td><StatusBadge status={item.hod_status || item.status} /></td>
                   <td><div style={{ display: "flex", gap: 6 }}><button className="btn-primary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => reviewTask(item.revert_id, "Approved")}>Approve</button><button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => setReviewTarget(item.revert_id)}>Needs Revisions</button></div></td>
                 </tr>
-              ))}</tbody>
+                );
+              })}</tbody>
             </table>
           </div>
         </div>
@@ -293,8 +318,11 @@ export default function TasksAssignPage() {
             </div>
             <div className="form-group"><label className="label">Deadline</label><input className="input" type="datetime-local" value={assignForm.deadline} onChange={(e) => setAssignForm((f) => ({ ...f, deadline: e.target.value }))} /></div>
           </div>
-          <div className="form-group"><label className="label">Task Title</label><input className="input" placeholder="Task title…" value={assignForm.title} onChange={(e) => setAssignForm((f) => ({ ...f, title: e.target.value }))} /></div>
-          <div className="form-group"><label className="label">Description</label><textarea className="input" rows={3} value={assignForm.description} onChange={(e) => setAssignForm((f) => ({ ...f, description: e.target.value }))} /></div>
+          <div className="form-row">
+            <div className="form-group"><label className="label">Name of Task</label><input className="input" placeholder="Task name…" value={assignForm.title} onChange={(e) => setAssignForm((f) => ({ ...f, title: e.target.value }))} /></div>
+            <div className="form-group"><label className="label">No. Tasks Provided</label><input className="input" type="number" min="1" value={assignForm.task_count} onChange={(e) => setAssignForm((f) => ({ ...f, task_count: e.target.value }))} /></div>
+          </div>
+          <div className="form-group"><label className="label">Task Details</label><textarea className="input" rows={3} value={assignForm.description} onChange={(e) => setAssignForm((f) => ({ ...f, description: e.target.value }))} /></div>
           
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label className="label">Attachment (Max 50MB)</label>

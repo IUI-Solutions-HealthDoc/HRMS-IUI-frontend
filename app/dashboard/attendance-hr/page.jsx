@@ -342,6 +342,15 @@ export default function AttendanceHRPage() {
 
   useEffect(() => {
     load();
+    const interval = setInterval(() => load(), 60000);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [load]);
 
   useEffect(() => {

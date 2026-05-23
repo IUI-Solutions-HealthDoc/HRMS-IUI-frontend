@@ -32,12 +32,14 @@ function buildUserData(data, credentialsIdentifier) {
     username:     data.username || fallbackIdentity,
     first_name:   data.first_name || data.full_name?.split(" ")[0] || fallbackIdentity,
     last_name:    data.last_name  || data.full_name?.split(" ").slice(1).join(" ") || "",
+    email:        data.email || "",
     emp_id:       data.emp_id,
     department:   data.department,
     role,
     is_superuser: isSuperuser,
     is_hr:        data.is_hr  || role === "hr"  || isSuperuser,
     is_accounts:  data.is_accounts || role === "accounts",
+    is_tl:        data.is_tl || role === "tl",
     is_hod:       data.is_hod || role === "hod",
     profile_pic:  data.profile_pic,
     self_service_access: data.self_service_access || {},
@@ -78,21 +80,22 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = useCallback(async (credentials) => {
-    const data = await apiFetch("/auth/login", {
+    const loginData = await apiFetch("/auth/login", {
       method: "POST",
       body: JSON.stringify(credentials),
       headers: { "Content-Type": "application/json" },
     });
-    setToken(data.access_token);
+    setToken(loginData.access_token);
 
-    const userData = buildUserData(data, credentials.identifier || credentials.username || "");
+    const meData = await apiFetch("/auth/me").catch(() => loginData);
+    const userData = buildUserData(meData, credentials.identifier || credentials.username || "");
     setUser(userData);
     setRole(userData.role);
     setIsAuthed(true);
     saveUser(userData);
 
     router.push("/dashboard");
-    return data;
+    return loginData;
   }, [router]);
 
   const logout = useCallback(() => {

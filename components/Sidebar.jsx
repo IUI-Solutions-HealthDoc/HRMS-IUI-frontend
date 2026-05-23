@@ -18,7 +18,6 @@ import {
   FileSpreadsheet,
   FolderKanban,
   FolderLock,
-  GraduationCap,
   LayoutDashboard,
   Logs,
   Menu,
@@ -54,6 +53,7 @@ const ICON_MAP = {
   resignations: DoorOpen,
   resignation: DoorOpen,
   tasks_hr: ClipboardList,
+  mis: FileSpreadsheet,
   tasks: ClipboardList,
   tasks_assign: FolderKanban,
   tasks_review: Logs,
@@ -73,7 +73,7 @@ const ICON_MAP = {
 };
 
 export default function Sidebar({ sidebarOpen, onClose }) {
-  const { role, user, logout, accent } = useAuth();
+  const { role, user, logout } = useAuth();
   const pathname = usePathname();
 
   const items = (NAV_ITEMS[role] || NAV_ITEMS.employee).filter((item) => {
@@ -92,7 +92,7 @@ export default function Sidebar({ sidebarOpen, onClose }) {
   };
 
   return (
-    <aside className={`sidebar ${sidebarOpen ? "open" : ""}`} style={{ "--accent": accent }}>
+    <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
       <div className="sidebar-brand">
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
           <AppLogo compact size={46} subtitle={`${role?.toUpperCase()} PORTAL`} />
@@ -107,7 +107,7 @@ export default function Sidebar({ sidebarOpen, onClose }) {
               <img src={user.profile_pic} alt={user?.first_name || "Profile"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </div>
           ) : (
-            <div className="sidebar-user__avatar" style={{ color: accent, borderColor: `${accent}55`, background: `${accent}18` }}>
+            <div className="sidebar-user__avatar">
               {(user?.first_name || user?.username || "?")[0].toUpperCase()}
             </div>
           )}
@@ -126,7 +126,6 @@ export default function Sidebar({ sidebarOpen, onClose }) {
               key={item.id}
               href={item.href}
               className={`nav-item ${isActive(item) ? "active" : ""}`}
-              style={{ "--accent": accent }}
               onClick={onClose}
             >
               <span className="nav-item__icon">

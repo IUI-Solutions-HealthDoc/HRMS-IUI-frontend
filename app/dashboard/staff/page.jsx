@@ -794,7 +794,7 @@ export default function StaffPage() {
             <div className="form-group"><label className="label">Base Salary (₹)</label><input className="input" type="number" value={editForm.base_salary} onChange={(e) => setEditForm((f) => ({ ...f, base_salary: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Bank Account</label><input className="input" value={editForm.bank_account} onChange={(e) => setEditForm((f) => ({ ...f, bank_account: e.target.value }))} /></div>
             <div className="form-group"><label className="label">IFSC Code</label><input className="input" value={editForm.ifsc_code} onChange={(e) => setEditForm((f) => ({ ...f, ifsc_code: e.target.value }))} /></div>
-            <div className="form-group"><label className="label">Reset Password (leave blank to keep)</label><PasswordInput autoComplete="off" name="staff_reset_password_no_autofill" minLength={6} placeholder="New password…" value={editForm.new_password} onChange={(e) => setEditForm((f) => ({ ...f, new_password: e.target.value }))} /></div>
+            <div className="form-group"><label className="label">Reset Password (leave blank to keep)</label><input className="input" type="text" autoComplete="one-time-code" data-lpignore="true" data-1p-ignore="true" name={`staff-reset-secret-${editModal.emp_id}`} minLength={6} placeholder="New password…" value={editForm.new_password} onChange={(e) => setEditForm((f) => ({ ...f, new_password: e.target.value }))} /></div>
           </div>
 
           <div style={{ height: 1, background: "var(--border)", margin: "20px 0" }} />

@@ -18,6 +18,8 @@ export default function DepartmentsPage() {
   const [editItem, setEditItem] = useState(null);
   const [form, setForm] = useState({ name: "", description: "" });
   const [showToast, toastNode] = useToast();
+  const isProtectedDepartment = (dept) => ["administration", "hr"].includes((dept.name || "").trim().toLowerCase());
+  const canDeleteDepartment = (dept) => canDelete && !isProtectedDepartment(dept) && Number(dept.employee_count || 0) === 0;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,8 +79,8 @@ export default function DepartmentsPage() {
                   <td>{dept.name}</td>
                   <td>{dept.description || "—"}</td>
                   <td>{dept.employee_count}</td>
-                  <td>{dept.is_system ? "System" : "Custom"}</td>
-                  {canManage && <td><div style={{ display: "flex", gap: 8 }}>{<button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => setEditItem(dept)}>Edit</button>}{canDelete && !dept.is_system && <button className="btn-danger" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => deleteDepartment(dept.id)}>Delete</button>}</div></td>}
+                  <td>{isProtectedDepartment(dept) ? "Protected" : dept.is_system ? "System" : "Custom"}</td>
+                  {canManage && <td><div style={{ display: "flex", gap: 8 }}>{<button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => setEditItem(dept)}>Edit</button>}{canDeleteDepartment(dept) && <button className="btn-danger" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => deleteDepartment(dept.id)}>Delete</button>}</div></td>}
                 </tr>
               ))}</tbody>
             </table>

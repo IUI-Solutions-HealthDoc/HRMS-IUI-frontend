@@ -74,12 +74,13 @@ export default function GhostLayout({ children }) {
       <div style={{
         width: 280,
         flex: "0 0 280px",
-        minHeight: "100vh",
+        height: "100vh",
+        position: "sticky",
+        top: 0,
         borderRight: "1px solid rgba(148,163,184,0.18)",
         background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.98) 100%)",
         display: "flex",
         flexDirection: "column",
-        position: "relative",
         boxShadow: "18px 0 40px rgba(15,23,42,0.05)",
         zIndex: 2,
       }}>
@@ -128,7 +129,7 @@ export default function GhostLayout({ children }) {
         </div>
 
         {/* Navigation */}
-        <nav style={{ flex: 1, padding: "16px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+        <nav style={{ flex: 1, padding: "16px 12px", display: "flex", flexDirection: "column", gap: 8, overflowY: "auto" }}>
           <NavLink href="/ghost/dashboard" icon={<Eye size={16} />} label="Overview" />
           <NavLink href="/ghost/employees" icon={<Users size={16} />} label="Employees" />
           <NavLink href="/ghost/attendance" icon={<FileText size={16} />} label="Attendance" />

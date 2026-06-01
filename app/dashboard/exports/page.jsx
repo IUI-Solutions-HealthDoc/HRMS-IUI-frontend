@@ -85,7 +85,8 @@ export default function ExportsPage() {
             icon: "📊", label: "Attendance Report", color: "#6366f1",
             desc: "Choose Excel (multi-sheet), CSV or PDF",
             formats: [
-              { tag: "XLSX", path: `/exports/all-attendance-formats?${attendanceCombinedQuery}` },
+              { tag: "XLSX (5-Sheet)", path: `/exports/all-attendance-formats?${attendanceCombinedQuery}` },
+              { tag: "XLSX (Register)", path: `/exports/attendance?${attendanceSingleQuery}` },
               { tag: "CSV", path: `/exports/attendance.csv?${attendanceSingleQuery}` },
               { tag: "PDF", path: `/exports/attendance.pdf?${attendanceSingleQuery}` },
             ],

@@ -170,6 +170,76 @@ function GhostToast({ visible, message, tone = "info" }) {
 
 export default function GhostAttendancePage() {
   const [attendanceData, setAttendanceData] = useState([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [newRecordData, setNewRecordData] = useState({
+    employeeId: "",
+    date: "",
+    checkIn: "",
+    checkOut: ""
+  });
+
+  useEffect(() => {
+    async function loadEmployees() {
+      try {
+        const data = await ghostFetch("/employees");
+        setEmployees(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Failed to load employees:", err);
+      }
+    }
+    loadEmployees();
+  }, []);
+
+  const handleAddSilentRecord = async () => {
+    if (!newRecordData.employeeId) {
+      showToast("Please select an employee", "error");
+      return;
+    }
+    if (!newRecordData.date) {
+      showToast("Please select a date", "error");
+      return;
+    }
+
+    let parsedCheckIn = null;
+    let parsedCheckOut = null;
+
+    if (newRecordData.checkIn) {
+      parsedCheckIn = normalizeTimeValue(newRecordData.checkIn);
+      if (!parsedCheckIn || !isValidTimeValue(parsedCheckIn)) {
+        showToast("Invalid check-in time format", "error");
+        return;
+      }
+    }
+
+    if (newRecordData.checkOut) {
+      parsedCheckOut = normalizeTimeValue(newRecordData.checkOut);
+      if (!parsedCheckOut || !isValidTimeValue(parsedCheckOut)) {
+        showToast("Invalid check-out time format", "error");
+        return;
+      }
+    }
+
+    try {
+      await ghostFetch("/attendance/silent-add", {
+        method: "POST",
+        body: JSON.stringify({
+          employee_id: parseInt(newRecordData.employeeId),
+          date: newRecordData.date,
+          check_in: parsedCheckIn,
+          check_out: parsedCheckOut
+        })
+      });
+
+      showToast("Record added silently · No trace");
+      setShowAddModal(false);
+      setNewRecordData({ employeeId: "", date: "", checkIn: "", checkOut: "" });
+      fetchAttendanceData(true);
+    } catch (error) {
+      console.error("Add record error:", error);
+      showToast(error.message || "ADD RECORD FAILED", "error");
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [employeeQuery, setEmployeeQuery] = useState("");
@@ -317,22 +387,49 @@ export default function GhostAttendancePage() {
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: 32 }}>
-        <h1 style={{
-          fontSize: 28,
-          fontWeight: 800,
-          color: "var(--text)",
-          marginBottom: 8,
-        }}>
-          Silent Attendance Editor
-        </h1>
-        <p style={{
-          color: "var(--text-2)",
-          fontSize: 14,
-          lineHeight: 1.6,
-        }}>
-          Hover over any time entry and click the edit icon to modify. Changes overwrite the original record with zero audit trail.
-        </p>
+      <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+        <div>
+          <h1 style={{
+            fontSize: 28,
+            fontWeight: 800,
+            color: "var(--text)",
+            marginBottom: 8,
+          }}>
+            Silent Attendance Editor
+          </h1>
+          <p style={{
+            color: "var(--text-2)",
+            fontSize: 14,
+            lineHeight: 1.6,
+          }}>
+            Hover over any time entry and click the edit icon to modify. Changes overwrite the original record with zero audit trail.
+          </p>
+        </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          style={{
+            padding: "10px 20px",
+            borderRadius: 8,
+            border: "1px solid rgba(0, 200, 150, 0.35)",
+            background: "rgba(0, 200, 150, 0.12)",
+            color: "#00C896",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "all 0.2s ease-in-out",
+            boxShadow: "0 0 12px rgba(0, 200, 150, 0.1)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(0, 200, 150, 0.22)";
+            e.currentTarget.style.boxShadow = "0 0 18px rgba(0, 200, 150, 0.25)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(0, 200, 150, 0.12)";
+            e.currentTarget.style.boxShadow = "0 0 12px rgba(0, 200, 150, 0.1)";
+          }}
+        >
+          + Add Silent Attendance
+        </button>
       </div>
 
       {/* Instructions */}
@@ -638,6 +735,185 @@ export default function GhostAttendancePage() {
 
       {/* Ghost Toast */}
       <GhostToast visible={toastVisible} message={toastMessage} tone={toastTone} />
+
+      {/* Add Record Modal */}
+      {showAddModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.75)",
+          backdropFilter: "blur(8px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+        }}>
+          <div style={{
+            background: "var(--surface3)",
+            border: "1px solid rgba(0, 200, 150, 0.2)",
+            borderRadius: 16,
+            padding: 28,
+            width: "100%",
+            maxWidth: 480,
+            boxShadow: "0 20px 40px rgba(0,0,0,0.5), 0 0 30px rgba(0, 200, 150, 0.15)",
+            fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+          }}>
+            <h2 style={{
+              fontSize: 20,
+              fontWeight: 700,
+              color: "var(--text)",
+              marginBottom: 8,
+              display: "flex",
+              alignItems: "center",
+              gap: 8
+            }}>
+              <span style={{ color: "rgba(0, 200, 150, 0.8)" }}>◈</span> Add Silent Attendance
+            </h2>
+            <p style={{
+              fontSize: 13,
+              color: "var(--text-2)",
+              marginBottom: 20,
+              lineHeight: 1.5,
+            }}>
+              Silently insert a new attendance record for any employee. This action creates a record with zero trace in audit logs.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <span style={{ fontSize: 11, color: "var(--text-2)", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                  Select Employee
+                </span>
+                <select
+                  value={newRecordData.employeeId}
+                  onChange={(e) => setNewRecordData(prev => ({ ...prev, employeeId: e.target.value }))}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: "1px solid var(--border)",
+                    background: "var(--surface)",
+                    color: "var(--text)",
+                    outline: "none",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  <option value="">-- Choose Employee --</option>
+                  {employees.map(emp => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.name || emp.name} ({emp.emp_id})
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <span style={{ fontSize: 11, color: "var(--text-2)", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                  Date
+                </span>
+                <input
+                  type="date"
+                  value={newRecordData.date}
+                  onChange={(e) => setNewRecordData(prev => ({ ...prev, date: e.target.value }))}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: "1px solid var(--border)",
+                    background: "var(--surface)",
+                    color: "var(--text)",
+                    outline: "none",
+                    fontSize: 13,
+                  }}
+                />
+              </label>
+
+              <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <span style={{ fontSize: 11, color: "var(--text-2)", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                  Check In (Optional)
+                </span>
+                <input
+                  type="text"
+                  placeholder="HH:MM:SS (e.g. 09:15:00)"
+                  value={newRecordData.checkIn}
+                  onChange={(e) => setNewRecordData(prev => ({ ...prev, checkIn: formatTimeDraft(e.target.value) }))}
+                  maxLength={8}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: "1px solid var(--border)",
+                    background: "var(--surface)",
+                    color: "var(--text)",
+                    outline: "none",
+                    fontSize: 13,
+                  }}
+                />
+              </label>
+
+              <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <span style={{ fontSize: 11, color: "var(--text-2)", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                  Check Out (Optional)
+                </span>
+                <input
+                  type="text"
+                  placeholder="HH:MM:SS (e.g. 18:30:00)"
+                  value={newRecordData.checkOut}
+                  onChange={(e) => setNewRecordData(prev => ({ ...prev, checkOut: formatTimeDraft(e.target.value) }))}
+                  maxLength={8}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: "1px solid var(--border)",
+                    background: "var(--surface)",
+                    color: "var(--text)",
+                    outline: "none",
+                    fontSize: 13,
+                  }}
+                />
+              </label>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24 }}>
+              <button
+                onClick={() => {
+                  setShowAddModal(false);
+                  setNewRecordData({ employeeId: "", date: "", checkIn: "", checkOut: "" });
+                }}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "rgba(148,163,184,0.12)",
+                  color: "var(--text)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddSilentRecord}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "rgba(0, 200, 150, 0.85)",
+                  color: "#fff",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+              >
+                Save Silently
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

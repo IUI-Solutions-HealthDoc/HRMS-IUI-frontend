@@ -202,14 +202,16 @@ export default function GhostAttendancePage() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      fetchAttendanceData();
+      fetchAttendanceData(true);
     }, 250);
     return () => window.clearTimeout(timer);
   }, [employeeQuery, startDate, endDate]);
 
-  async function fetchAttendanceData() {
+  async function fetchAttendanceData(isSilent = false) {
     try {
-      setLoading(true);
+      if (!isSilent) {
+        setLoading(true);
+      }
       setError(null);
       const params = new URLSearchParams();
       const trimmed = employeeQuery.trim();

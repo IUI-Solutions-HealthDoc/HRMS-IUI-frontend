@@ -6,20 +6,24 @@ import { ghostFetch } from "@/lib/ghost-api";
 function normalizeTimeValue(value) {
   if (!value) return "";
   const trimmed = String(value).trim();
-  const match = trimmed.match(/^(\d{2}:\d{2})(?::\d{2})?$/);
-  return match ? match[1] : "";
+  const match = trimmed.match(/^(\d{2}:\d{2}:\d{2})$/) || trimmed.match(/^(\d{2}:\d{2})$/);
+  if (match) {
+    return match[1].split(':').length === 2 ? `${match[1]}:00` : match[1];
+  }
+  return "";
 }
 
 function formatTimeDraft(value) {
-  const digits = String(value || "").replace(/\D/g, "").slice(0, 4);
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 6);
   if (digits.length <= 2) return digits;
-  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}:${digits.slice(2, 4)}:${digits.slice(4)}`;
 }
 
 function isValidTimeValue(value) {
-  if (!/^\d{2}:\d{2}$/.test(value)) return false;
-  const [hours, minutes] = value.split(":").map(Number);
-  return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59;
+  if (!/^\d{2}:\d{2}:\d{2}$/.test(value)) return false;
+  const [hours, minutes, seconds] = value.split(":").map(Number);
+  return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59 && seconds >= 0 && seconds <= 59;
 }
 
 function TimeEditCell({ value, onSave, onCancel }) {
@@ -47,8 +51,8 @@ function TimeEditCell({ value, onSave, onCancel }) {
           }
         }}
         inputMode="numeric"
-        placeholder="HH:MM"
-        maxLength={5}
+        placeholder="HH:MM:SS"
+        maxLength={8}
         autoComplete="off"
         className="ghost-time-input"
         style={{
@@ -61,7 +65,7 @@ function TimeEditCell({ value, onSave, onCancel }) {
           outline: "none",
           boxShadow: "0 0 8px rgba(0,200,150,0.15)",
           fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-          width: 82,
+          width: 108,
         }}
       />
       {/* Save — checkmark, green */}
@@ -255,7 +259,7 @@ export default function GhostAttendancePage() {
   };
 
   const formatTime = (time) => {
-    return normalizeTimeValue(time) || "--:--";
+    return normalizeTimeValue(time) || "--:--:--";
   };
 
   const getStatusBadge = (status) => {

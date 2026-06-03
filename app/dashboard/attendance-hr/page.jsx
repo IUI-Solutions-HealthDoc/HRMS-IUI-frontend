@@ -419,6 +419,13 @@ export default function AttendanceHRPage() {
           salary_month: data?.salary_month || "",
           error: "",
         });
+        if (data && !manualForm.apply_to_all && (manualForm.employee_emp_ids.length === 1 || (!manualForm.employee_emp_ids.length && manualForm.employee_emp_id))) {
+          setManualForm((current) => ({
+            ...current,
+            in_time: data.existing_check_in || "",
+            out_time: data.existing_check_out || "",
+          }));
+        }
       })
       .catch((error) => {
         if (cancelled) return;
@@ -1004,8 +1011,8 @@ export default function AttendanceHRPage() {
             </div>
           ) : null}
           <div className="form-row">
-            <div className="form-group"><label className="label">In Time</label><input className="input" type="time" value={manualForm.in_time} onChange={(e) => setManualForm((current) => ({ ...current, in_time: e.target.value }))} /></div>
-            <div className="form-group"><label className="label">Out Time</label><input className="input" type="time" value={manualForm.out_time} onChange={(e) => setManualForm((current) => ({ ...current, out_time: e.target.value }))} /></div>
+            <div className="form-group"><label className="label">In Time</label><input className="input" type="time" step="1" value={manualForm.in_time} onChange={(e) => setManualForm((current) => ({ ...current, in_time: e.target.value }))} /></div>
+            <div className="form-group"><label className="label">Out Time</label><input className="input" type="time" step="1" value={manualForm.out_time} onChange={(e) => setManualForm((current) => ({ ...current, out_time: e.target.value }))} /></div>
           </div>
           <div className="form-group"><label className="label">Reason</label><textarea className="input" rows={3} value={manualForm.reason} onChange={(e) => setManualForm((current) => ({ ...current, reason: e.target.value }))} /></div>
         </Modal>

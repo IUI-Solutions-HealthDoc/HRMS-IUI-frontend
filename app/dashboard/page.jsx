@@ -159,6 +159,7 @@ function EmployeeDashboard({ user, showToast }) {
 function HRDashboard({ showToast }) {
   const [today, setToday] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filterType, setFilterType] = useState("all");
 
   useEffect(() => {
     apiFetch("/attendance/today").then((d) => { const recs = d?.records || d; setToday(Array.isArray(recs) ? recs : []); }).catch(() => {}).finally(() => setLoading(false));
@@ -170,6 +171,13 @@ function HRDashboard({ showToast }) {
   const present = today.filter((t) => presentStatuses.has((t.status || "").toLowerCase())).length;
   const absent = today.filter((t) => !presentStatuses.has((t.status || "").toLowerCase())).length;
   const totalEmployees = today.length;
+
+  const filteredToday = today.filter((t) => {
+    const isPresent = presentStatuses.has((t.status || "").toLowerCase());
+    if (filterType === "present") return isPresent;
+    if (filterType === "absent") return !isPresent;
+    return true;
+  });
 
   return (
     <div>
@@ -195,9 +203,41 @@ function HRDashboard({ showToast }) {
         </div>
       </div>
       <div className="grid-stats" style={{ marginBottom: 24 }}>
-        <StatCard icon="✅" label="Present Today" value={`${present}/${totalEmployees || 0}`} accent="#10b981" />
-        <StatCard icon="✗" label="Absent / Not Punched" value={absent} accent="#ef4444" />
-        <StatCard icon="👥" label="Total Employees" value={totalEmployees} />
+        <StatCard
+          icon="✅"
+          label="Present Today"
+          value={`${present}/${totalEmployees || 0}`}
+          accent="#10b981"
+          onClick={() => setFilterType("present")}
+          style={{
+            border: filterType === "present" ? "1px solid #10b981" : "1px solid var(--border)",
+            boxShadow: filterType === "present" ? "0 0 16px rgba(16, 185, 129, 0.25)" : "none",
+            transition: "all 0.2s ease",
+          }}
+        />
+        <StatCard
+          icon="✗"
+          label="Absent / Not Punched"
+          value={absent}
+          accent="#ef4444"
+          onClick={() => setFilterType("absent")}
+          style={{
+            border: filterType === "absent" ? "1px solid #ef4444" : "1px solid var(--border)",
+            boxShadow: filterType === "absent" ? "0 0 16px rgba(239, 68, 68, 0.25)" : "none",
+            transition: "all 0.2s ease",
+          }}
+        />
+        <StatCard
+          icon="👥"
+          label="Total Employees"
+          value={totalEmployees}
+          onClick={() => setFilterType("all")}
+          style={{
+            border: filterType === "all" ? "1px solid var(--accent)" : "1px solid var(--border)",
+            boxShadow: filterType === "all" ? "0 0 16px rgba(124, 58, 237, 0.25)" : "none",
+            transition: "all 0.2s ease",
+          }}
+        />
       </div>
       <div className="card">
         {loading ? <Loader /> : (
@@ -205,7 +245,7 @@ function HRDashboard({ showToast }) {
             <table>
               <thead><tr><th>Employee</th><th>Department</th><th>Punch In</th><th>Punch Out</th><th>Status</th></tr></thead>
               <tbody>
-                {today.map((e, i) => (
+                {filteredToday.map((e, i) => (
                   <tr key={i}>
                     <td><div style={{ fontWeight: 600 }}>{e.employee_name}</div><div style={{ fontSize: 11, color: "var(--muted)" }}>{e.emp_id}</div></td>
                     <td>{e.department}</td>
@@ -361,6 +401,11 @@ function HODDashboard({ showToast }) {
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Live monitoring state
+  const [today, setToday] = useState([]);
+  const [loadingToday, setLoadingToday] = useState(true);
+  const [filterType, setFilterType] = useState("all");
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -380,7 +425,34 @@ function HODDashboard({ showToast }) {
     load();
   }, []);
 
+  useEffect(() => {
+    apiFetch("/attendance/today").then((d) => {
+      const recs = d?.records || d;
+      setToday(Array.isArray(recs) ? recs : []);
+    }).catch(() => {}).finally(() => setLoadingToday(false));
+
+    const t = setInterval(() => {
+      apiFetch("/attendance/today").then((d) => {
+        const recs = d?.records || d;
+        setToday(Array.isArray(recs) ? recs : []);
+      }).catch(() => {});
+    }, 60000);
+    return () => clearInterval(t);
+  }, []);
+
   const openTasks = tasks.filter((task) => (task.status || "").toLowerCase() !== "completed").length;
+
+  const presentStatuses = new Set(["present", "late", "half_day", "early_leave"]);
+  const present = today.filter((t) => presentStatuses.has((t.status || "").toLowerCase())).length;
+  const absent = today.filter((t) => !presentStatuses.has((t.status || "").toLowerCase())).length;
+  const totalEmployees = today.length;
+
+  const filteredToday = today.filter((t) => {
+    const isPresent = presentStatuses.has((t.status || "").toLowerCase());
+    if (filterType === "present") return isPresent;
+    if (filterType === "absent") return !isPresent;
+    return true;
+  });
 
   return (
     <div>
@@ -400,42 +472,125 @@ function HODDashboard({ showToast }) {
             <EmptyState icon="🏢" title="No managed departments found" sub="Ask HR/Admin to map departments to this HOD profile." />
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 20 }}>
-            <div className="card">
-              <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
-                <h3 className="syne" style={{ fontSize: 15, fontWeight: 700 }}>Managed Departments</h3>
-                <div style={{ marginTop: 4, fontSize: 12, color: "var(--muted)" }}>Employee count by department</div>
-              </div>
-              <div style={{ padding: 20, display: "grid", gap: 12 }}>
-                {managedDepartments.map((department) => (
-                  <div key={department.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 14, background: "var(--hover-bg)" }}>
-                    <div>
-                      <div style={{ fontWeight: 700 }}>{department.name}</div>
-                      <div style={{ color: "var(--muted)", fontSize: 12 }}>Managed team</div>
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 20 }}>
+              <div className="card">
+                <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
+                  <h3 className="syne" style={{ fontSize: 15, fontWeight: 700 }}>Managed Departments</h3>
+                  <div style={{ marginTop: 4, fontSize: 12, color: "var(--muted)" }}>Employee count by department</div>
+                </div>
+                <div style={{ padding: 20, display: "grid", gap: 12 }}>
+                  {managedDepartments.map((department) => (
+                    <div key={department.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 14, background: "var(--hover-bg)" }}>
+                      <div>
+                        <div style={{ fontWeight: 700 }}>{department.name}</div>
+                        <div style={{ color: "var(--muted)", fontSize: 12 }}>Managed team</div>
+                      </div>
+                      <div className="syne" style={{ fontSize: 24, fontWeight: 800 }}>{department.employee_count || 0}</div>
                     </div>
-                    <div className="syne" style={{ fontSize: 24, fontWeight: 800 }}>{department.employee_count || 0}</div>
+                  ))}
+                </div>
+              </div>
+              <div className="card">
+                <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
+                  <h3 className="syne" style={{ fontSize: 15, fontWeight: 700 }}>Task Assignment</h3>
+                  <div style={{ marginTop: 4, fontSize: 12, color: "var(--muted)" }}>Assign to the full team, a department, or one employee</div>
+                </div>
+                <div style={{ padding: 20, display: "grid", gap: 14 }}>
+                  <div style={{ padding: "14px 16px", borderRadius: 14, background: "var(--hover-bg)", border: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>Coverage</div>
+                    <div className="syne" style={{ fontSize: 18, fontWeight: 800 }}>{team.length} employees across {managedDepartments.length} departments</div>
                   </div>
-                ))}
+                  <div style={{ padding: "14px 16px", borderRadius: 14, background: "var(--hover-bg)", border: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>Pending Reviews</div>
+                    <div className="syne" style={{ fontSize: 18, fontWeight: 800 }}>{pendingApprovals.length} task submissions waiting for action</div>
+                  </div>
+                  <button className="btn-primary" onClick={() => router.push("/dashboard/tasks-assign")}>Open Task Manager</button>
+                </div>
               </div>
             </div>
-            <div className="card">
-              <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
-                <h3 className="syne" style={{ fontSize: 15, fontWeight: 700 }}>Task Assignment</h3>
-                <div style={{ marginTop: 4, fontSize: 12, color: "var(--muted)" }}>Assign to the full team, a department, or one employee</div>
+
+            <div style={{ marginTop: 40 }}>
+              <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+                <div>
+                  <h1 className="syne" style={{ fontSize: 24, fontWeight: 800 }}>Team Live Monitoring</h1>
+                  <p style={{ color: "var(--muted)", marginTop: 4 }}>Today&apos;s real-time attendance overview for your managed department team</p>
+                </div>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "6px 14px", borderRadius: 999,
+                  background: "rgba(16,185,129,0.08)",
+                  border: "1px solid rgba(16,185,129,0.25)",
+                }}>
+                  <span style={{
+                    width: 8, height: 8, borderRadius: "50%",
+                    background: "#10B981",
+                    boxShadow: "0 0 6px #10B981, 0 0 12px rgba(16,185,129,0.5)",
+                    animation: "pulse 2s infinite",
+                    display: "inline-block",
+                  }} />
+                  <span style={{ fontSize: 12, color: "#10B981", fontWeight: 700, letterSpacing: "0.05em" }} className="syne">Live</span>
+                </div>
               </div>
-              <div style={{ padding: 20, display: "grid", gap: 14 }}>
-                <div style={{ padding: "14px 16px", borderRadius: 14, background: "var(--hover-bg)", border: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>Coverage</div>
-                  <div className="syne" style={{ fontSize: 18, fontWeight: 800 }}>{team.length} employees across {managedDepartments.length} departments</div>
-                </div>
-                <div style={{ padding: "14px 16px", borderRadius: 14, background: "var(--hover-bg)", border: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>Pending Reviews</div>
-                  <div className="syne" style={{ fontSize: 18, fontWeight: 800 }}>{pendingApprovals.length} task submissions waiting for action</div>
-                </div>
-                <button className="btn-primary" onClick={() => router.push("/dashboard/tasks-assign")}>Open Task Manager</button>
+              <div className="grid-stats" style={{ marginBottom: 24 }}>
+                <StatCard
+                  icon="✅"
+                  label="Present Today"
+                  value={`${present}/${totalEmployees || 0}`}
+                  accent="#10b981"
+                  onClick={() => setFilterType("present")}
+                  style={{
+                    border: filterType === "present" ? "1px solid #10b981" : "1px solid var(--border)",
+                    boxShadow: filterType === "present" ? "0 0 16px rgba(16, 185, 129, 0.25)" : "none",
+                    transition: "all 0.2s ease",
+                  }}
+                />
+                <StatCard
+                  icon="✗"
+                  label="Absent / Not Punched"
+                  value={absent}
+                  accent="#ef4444"
+                  onClick={() => setFilterType("absent")}
+                  style={{
+                    border: filterType === "absent" ? "1px solid #ef4444" : "1px solid var(--border)",
+                    boxShadow: filterType === "absent" ? "0 0 16px rgba(239, 68, 68, 0.25)" : "none",
+                    transition: "all 0.2s ease",
+                  }}
+                />
+                <StatCard
+                  icon="👥"
+                  label="Total Employees"
+                  value={totalEmployees}
+                  onClick={() => setFilterType("all")}
+                  style={{
+                    border: filterType === "all" ? "1px solid var(--accent)" : "1px solid var(--border)",
+                    boxShadow: filterType === "all" ? "0 0 16px rgba(124, 58, 237, 0.25)" : "none",
+                    transition: "all 0.2s ease",
+                  }}
+                />
+              </div>
+              <div className="card">
+                {loadingToday ? <Loader /> : (
+                  <div className="table-wrap">
+                    <table>
+                      <thead><tr><th>Employee</th><th>Department</th><th>Punch In</th><th>Punch Out</th><th>Status</th></tr></thead>
+                      <tbody>
+                        {filteredToday.map((e, i) => (
+                          <tr key={i}>
+                            <td><div style={{ fontWeight: 600 }}>{e.employee_name}</div><div style={{ fontSize: 11, color: "var(--muted)" }}>{e.emp_id}</div></td>
+                            <td>{e.department}</td>
+                            <td>{e.punch_in ? <span style={{ color: "#10b981" }}>{fmtTime(e.punch_in)}</span> : <span style={{ color: "var(--muted)" }}>—</span>}</td>
+                            <td>{e.punch_out ? fmtTime(e.punch_out) : <span style={{ color: "var(--muted)" }}>—</span>}</td>
+                            <td><StatusBadge status={e.status || (e.punch_in ? "present" : "absent")} /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
+          </>
         )
       )}
     </div>

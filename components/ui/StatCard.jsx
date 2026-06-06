@@ -1,6 +1,15 @@
-export default function StatCard({ icon, label, value, accent, sub }) {
+export default function StatCard({ icon, label, value, accent, sub, onClick, style }) {
+  const isClickable = !!onClick;
   return (
-    <div className="stat-card" style={{ "--accent-local": accent || "var(--accent)" }}>
+    <div
+      className={`stat-card ${isClickable ? 'clickable-card' : ''}`}
+      onClick={onClick}
+      style={{
+        "--accent-local": accent || "var(--accent)",
+        cursor: isClickable ? "pointer" : "default",
+        ...style
+      }}
+    >
       <div
         style={{
           width: 44,

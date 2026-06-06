@@ -46,9 +46,15 @@ export default function LeaveApprovalsPage() {
     load();
   }, [load]);
 
-  async function updateLeave(id, action) {
+  async function updateLeave(item, action) {
+    const actionLabel = action === "approve_paid" ? "Paid" : action === "approve_unpaid" ? "Unpaid" : "Rejected";
+    const empName = item.name || item.emp_id || "Employee";
+    const subject = item.subject || "No Subject";
+    if (!confirm(`Are you sure you want to mark this leave as ${actionLabel} for ${empName} (Subject: ${subject})?`)) {
+      return;
+    }
     try {
-      await apiFetch(`/leave/${id}/update`, { method: "POST", body: JSON.stringify({ action }) });
+      await apiFetch(`/leave/${item.id}/update`, { method: "POST", body: JSON.stringify({ action }) });
       showToast("Leave updated");
       load();
     } catch (error) {
@@ -105,9 +111,9 @@ export default function LeaveApprovalsPage() {
                     <td style={{ maxWidth: 220 }}>{item.description}</td>
                     <td>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        <button className="btn-primary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => updateLeave(item.id, "approve_paid")}>Paid</button>
-                        <button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => updateLeave(item.id, "approve_unpaid")}>Unpaid</button>
-                        <button className="btn-danger" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => updateLeave(item.id, "reject")}>Reject</button>
+                        <button className="btn-primary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => updateLeave(item, "approve_paid")}>Paid</button>
+                        <button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => updateLeave(item, "approve_unpaid")}>Unpaid</button>
+                        <button className="btn-danger" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => updateLeave(item, "reject")}>Reject</button>
                       </div>
                     </td>
                   </tr>

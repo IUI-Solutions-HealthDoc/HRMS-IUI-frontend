@@ -266,6 +266,7 @@ export default function AttendanceHRPage() {
   const [manualForm, setManualForm] = useState(createInitialManualForm);
   const [manualLockState, setManualLockState] = useState(createInitialManualLockState);
   const [fixForm, setFixForm] = useState({ attendance_id: null, employee: "", date: "", in_time: "", out_time: "", note: "" });
+  const [detailRecord, setDetailRecord] = useState(null);
   const [showToast, toastNode] = useToast();
 
   const months = useMemo(() => Array.from({ length: 12 }, (_, index) => index), []);
@@ -679,7 +680,7 @@ export default function AttendanceHRPage() {
               <thead><tr><th>Employee</th><th>Date</th><th>Status</th><th>Reason</th></tr></thead>
               <tbody>
                 {paginatedEditedRecords.map((record) => (
-                  <tr key={record.id}>
+                  <tr key={record.id} onClick={() => setDetailRecord(record)} style={{ cursor: "pointer" }}>
                     <td><b>{record.employee_name}</b><div style={{ fontSize: 12, color: "var(--muted)" }}>{record.emp_id}</div></td>
                     <td>{record.date}</td>
                     <td><StatusBadge status={record.status} /></td>
@@ -1041,6 +1042,49 @@ export default function AttendanceHRPage() {
           <div className="form-group">
             <label className="label">HR Note</label>
             <textarea className="input" rows={3} value={fixForm.note} onChange={(e) => setFixForm((current) => ({ ...current, note: e.target.value }))} placeholder="Explain why this timing was corrected." />
+          </div>
+        </Modal>
+      ) : null}
+
+      {detailRecord ? (
+        <Modal
+          title="Manual Edit Details"
+          onClose={() => setDetailRecord(null)}
+          footer={
+            <button className="btn-primary" onClick={() => setDetailRecord(null)}>Close</button>
+          }
+        >
+          <div style={{ display: "grid", gap: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border)", paddingBottom: 10 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{detailRecord.employee_name}</div>
+                <div style={{ fontSize: 12, color: "var(--muted)" }}>{detailRecord.emp_id}</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{detailRecord.date}</div>
+                <div><StatusBadge status={detailRecord.status} /></div>
+              </div>
+            </div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div className="card" style={{ padding: 12, background: "var(--hover-bg)" }}>
+                <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, marginBottom: 8, textTransform: "uppercase" }}>Original Timings</div>
+                <div style={{ fontSize: 13, marginBottom: 4 }}><b>Punch In:</b> {detailRecord.original_punch_in || "—"}</div>
+                <div style={{ fontSize: 13 }}><b>Punch Out:</b> {detailRecord.original_punch_out || "—"}</div>
+              </div>
+              <div className="card" style={{ padding: 12, background: "color-mix(in srgb, var(--accent) 6%, var(--surface2))", borderColor: "color-mix(in srgb, var(--accent) 20%, var(--border))" }}>
+                <div style={{ fontSize: 12, color: "var(--accent)", fontWeight: 700, marginBottom: 8, textTransform: "uppercase" }}>Edited Timings</div>
+                <div style={{ fontSize: 13, marginBottom: 4 }}><b>Punch In:</b> {detailRecord.punch_in || "—"}</div>
+                <div style={{ fontSize: 13 }}><b>Punch Out:</b> {detailRecord.punch_out || "—"}</div>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="label" style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase" }}>Edit Reason</label>
+              <div style={{ fontSize: 14, background: "var(--surface2)", padding: 12, borderRadius: 8, border: "1px solid var(--border)" }}>
+                {detailRecord.edit_reason || "No reason provided."}
+              </div>
+            </div>
           </div>
         </Modal>
       ) : null}

@@ -15,6 +15,7 @@ export default function PayrollPage() {
   const isAdmin = role === "admin";
   const canEdit = role === "accounts";
   const canUploadPayslip = role === "hr";
+  const showSalary = isAdmin || canEdit;
   const [payroll, setPayroll] = useState([]);
   const [loading, setLoading] = useState(true);
   const [queue, setQueue] = useState([]);
@@ -192,8 +193,8 @@ export default function PayrollPage() {
 
       <div className="grid-stats" style={{ marginBottom: 24 }}>
         <StatCard icon="👥" label="Employees" value={payroll.length} />
-        <StatCard icon="💰" label="Total Payroll" value={fmtINR(totalPayroll)} accent="#f59e0b" />
-        <StatCard icon="📊" label="Avg Salary" value={payroll.length ? fmtINR(Math.round(totalPayroll / payroll.length)) : "—"} />
+        {showSalary && <StatCard icon="💰" label="Total Payroll" value={fmtINR(totalPayroll)} accent="#f59e0b" />}
+        {showSalary && <StatCard icon="📊" label="Avg Salary" value={payroll.length ? fmtINR(Math.round(totalPayroll / payroll.length)) : "—"} />}
       </div>
 
       <div className="card">
@@ -207,8 +208,8 @@ export default function PayrollPage() {
                   <th>EMP ID</th>
                   <th>Name</th>
                   <th>Department</th>
-                  <th>Base Salary</th>
-                  <th>Net Salary</th>
+                  {showSalary && <th>Base Salary</th>}
+                  {showSalary && <th>Net Salary</th>}
                   <th>Uploaded Payslip</th>
                   <th>Action</th>
                 </tr>
@@ -219,11 +220,13 @@ export default function PayrollPage() {
                     <td><span className="chip">{row.emp_id}</span></td>
                     <td style={{ fontWeight: 600 }}>{row.employee_name}</td>
                     <td>{row.department || "—"}</td>
+                    {showSalary && (
                       <td>
                         <div>{fmtINR(row.base_salary)}</div>
                         {canEdit ? <div style={{ fontSize: 11, color: "var(--muted)" }}>{row.payroll_edit_count ? "Next change needs admin approval" : "First change can be saved directly"}</div> : null}
                       </td>
-                    <td><span style={{ fontWeight: 700, color: "#10b981" }}>{fmtINR(row.net_salary)}</span></td>
+                    )}
+                    {showSalary && <td><span style={{ fontWeight: 700, color: "#10b981" }}>{fmtINR(row.net_salary)}</span></td>}
                     <td>{row.uploaded_payslip_url ? <a href={row.uploaded_payslip_url} target="_blank" rel="noreferrer">View</a> : "Not uploaded"}</td>
                     <td>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

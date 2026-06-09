@@ -638,7 +638,7 @@ export default function StaffPage() {
                   <th>Name</th>
                   <th>Department</th>
                   <th>Role</th>
-                  <th>Salary</th>
+                  {isAdmin && <th>Salary</th>}
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -665,7 +665,7 @@ export default function StaffPage() {
                         {roleBadges(e)}
                       </div>
                     </td>
-                    <td>{fmtINR(e.base_salary)}</td>
+                    {isAdmin && <td>{fmtINR(e.base_salary)}</td>}
                     <td>
                       <span className="badge" style={{ background: e.is_active ? "#10b98122" : "#ef444422", color: e.is_active ? "#10b981" : "#ef4444" }}>
                         {e.is_active ? "Active" : "Inactive"}
@@ -789,7 +789,7 @@ export default function StaffPage() {
               </div>
             </div>
             <div className="form-group"><label className="label">System No.</label><input className="input" placeholder="System number" value={form.system_no} onChange={(e) => setForm((f) => ({ ...f, system_no: e.target.value }))} /></div>
-            <div className="form-group"><label className="label">Base Salary (₹)</label><input className="input" type="number" value={form.base_salary} onChange={(e) => setForm((f) => ({ ...f, base_salary: e.target.value }))} /></div>
+            {isAdmin && <div className="form-group"><label className="label">Base Salary (₹)</label><input className="input" type="number" value={form.base_salary} onChange={(e) => setForm((f) => ({ ...f, base_salary: e.target.value }))} /></div>}
           </div>
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 4 }}>
             {/* Only admin can create HR */}

@@ -27,6 +27,7 @@ export default function StaffPage() {
     emp_id: "", department_id: "", is_hr: false, is_accounts: false, is_hod: false, is_tl: false,
     machine_user_id: "", base_salary: "", hod_department_ids: [],
     hod_user_id: "", tl_user_id: "", system_no: "", is_night_shift: false,
+    hod_user_ids: [], tl_user_ids: [],
   });
   const [editForm, setEditForm] = useState({
     first_name: "", last_name: "", email: "", department: "", department_id: "",
@@ -34,6 +35,7 @@ export default function StaffPage() {
     machine_user_id: "", base_salary: "", bank_account: "", ifsc_code: "",
     new_password: "", is_active: true, hod_department_ids: [],
     hod_user_id: "", tl_user_id: "", system_no: "", is_night_shift: false,
+    hod_user_ids: [], tl_user_ids: [],
   });
   const [search, setSearch] = useState("");
   const [showToast, toastNode] = useToast();
@@ -164,8 +166,10 @@ export default function StaffPage() {
         email: form.email.trim(),
         machine_user_id: form.machine_user_id.trim() || undefined,
         department_id: +form.department_id,
-        hod_user_id: form.hod_user_id ? Number(form.hod_user_id) : undefined,
-        tl_user_id: form.tl_user_id ? Number(form.tl_user_id) : undefined,
+        hod_user_id: form.hod_user_ids && form.hod_user_ids.length > 0 ? Number(form.hod_user_ids[0]) : undefined,
+        tl_user_id: form.tl_user_ids && form.tl_user_ids.length > 0 ? Number(form.tl_user_ids[0]) : undefined,
+        hod_user_ids: (form.hod_user_ids || []).map(Number),
+        tl_user_ids: (form.tl_user_ids || []).map(Number),
         hod_department_ids: form.is_hod
           ? withPrimaryDepartment(form.hod_department_ids, parseDepartmentId(form.department_id))
           : [],
@@ -185,6 +189,7 @@ export default function StaffPage() {
         emp_id: "", department_id: "", is_hr: false, is_accounts: false, is_hod: false, is_tl: false,
         machine_user_id: "", base_salary: "", hod_department_ids: [],
         hod_user_id: "", tl_user_id: "", system_no: "", is_night_shift: false,
+        hod_user_ids: [], tl_user_ids: [],
       });
       await load();
     } catch (e) {
@@ -213,8 +218,10 @@ export default function StaffPage() {
         email: (editForm.email ?? "").trim(),
         machine_user_id: (editForm.machine_user_id ?? "").trim(),
         department_id: Number.isFinite(parsedDepartmentId) ? parsedDepartmentId : undefined,
-        hod_user_id: editForm.hod_user_id ? Number(editForm.hod_user_id) : null,
-        tl_user_id: editForm.tl_user_id ? Number(editForm.tl_user_id) : null,
+        hod_user_id: editForm.hod_user_ids && editForm.hod_user_ids.length > 0 ? Number(editForm.hod_user_ids[0]) : null,
+        tl_user_id: editForm.tl_user_ids && editForm.tl_user_ids.length > 0 ? Number(editForm.tl_user_ids[0]) : null,
+        hod_user_ids: (editForm.hod_user_ids || []).map(Number),
+        tl_user_ids: (editForm.tl_user_ids || []).map(Number),
         hod_department_ids: !!editForm.is_hod
           ? withPrimaryDepartment(editForm.hod_department_ids, parsedDepartmentId)
           : [],
@@ -424,6 +431,8 @@ export default function StaffPage() {
       machine_user_id: emp.machine_user_id || "",
       hod_user_id:  emp.hod_user_id ? String(emp.hod_user_id) : "",
       tl_user_id:   emp.tl_user_id ? String(emp.tl_user_id) : "",
+      hod_user_ids: emp.hod_user_ids ? emp.hod_user_ids.map(Number) : (emp.hod_user_id ? [Number(emp.hod_user_id)] : []),
+      tl_user_ids:  emp.tl_user_ids ? emp.tl_user_ids.map(Number) : (emp.tl_user_id ? [Number(emp.tl_user_id)] : []),
       hod_department_ids: withPrimaryDepartment(emp.hod_department_ids || [], parseDepartmentId(emp.department_id)),
       system_no: emp.system_no || "",
       is_night_shift: emp.is_night_shift || false,
@@ -709,8 +718,80 @@ export default function StaffPage() {
             <div className="form-group"><label className="label">Machine User ID</label><input className="input" placeholder="Leave blank to use Employee ID for ZKTeco" value={form.machine_user_id} onChange={(e) => setForm((f) => ({ ...f, machine_user_id: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Department</label><select className="input" value={form.department_id} onChange={(e) => setForm((f) => ({ ...f, department_id: e.target.value, hod_department_ids: f.is_hod ? withPrimaryDepartment(f.hod_department_ids, parseDepartmentId(e.target.value)) : f.hod_department_ids }))} required><option value="">Select department…</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
             <div className="form-group"><label className="label">Email</label><input className="input" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required /></div>
-            <div className="form-group"><label className="label">Reports To HOD</label><select className="input" value={form.hod_user_id} onChange={(e) => setForm((f) => ({ ...f, hod_user_id: e.target.value }))}><option value="">Select HOD…</option>{hodOptions.map((employee) => <option key={employee.user_id || employee.id} value={employee.user_id || employee.id}>{employee.first_name} {employee.last_name} ({employee.emp_id})</option>)}</select></div>
-            <div className="form-group"><label className="label">Reports To TL</label><select className="input" value={form.tl_user_id} onChange={(e) => setForm((f) => ({ ...f, tl_user_id: e.target.value }))}><option value="">Select TL…</option>{tlOptions.map((employee) => <option key={employee.user_id || employee.id} value={employee.user_id || employee.id}>{employee.first_name} {employee.last_name} ({employee.emp_id})</option>)}</select></div>
+            <div className="form-group" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <label className="label">Reports To HODs</label>
+              <div style={{
+                maxHeight: "120px",
+                overflowY: "auto",
+                border: "1px solid var(--border)",
+                borderRadius: "6px",
+                padding: "8px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+                backgroundColor: "rgba(255,255,255,0.02)"
+              }}>
+                {hodOptions.map((employee) => {
+                  const id = Number(employee.user_id || employee.id);
+                  const isChecked = (form.hod_user_ids || []).includes(id);
+                  return (
+                    <label key={id} style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px" }}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          setForm((f) => ({
+                            ...f,
+                            hod_user_ids: e.target.checked
+                              ? [...(f.hod_user_ids || []), id]
+                              : (f.hod_user_ids || []).filter((item) => item !== id)
+                          }));
+                        }}
+                      />
+                      <span>{employee.first_name} {employee.last_name} ({employee.emp_id})</span>
+                    </label>
+                  );
+                })}
+                {hodOptions.length === 0 && <span style={{ color: "var(--muted)", fontSize: "12px" }}>No HODs available</span>}
+              </div>
+            </div>
+            <div className="form-group" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <label className="label">Reports To TLs</label>
+              <div style={{
+                maxHeight: "120px",
+                overflowY: "auto",
+                border: "1px solid var(--border)",
+                borderRadius: "6px",
+                padding: "8px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+                backgroundColor: "rgba(255,255,255,0.02)"
+              }}>
+                {tlOptions.map((employee) => {
+                  const id = Number(employee.user_id || employee.id);
+                  const isChecked = (form.tl_user_ids || []).includes(id);
+                  return (
+                    <label key={id} style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px" }}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          setForm((f) => ({
+                            ...f,
+                            tl_user_ids: e.target.checked
+                              ? [...(f.tl_user_ids || []), id]
+                              : (f.tl_user_ids || []).filter((item) => item !== id)
+                          }));
+                        }}
+                      />
+                      <span>{employee.first_name} {employee.last_name} ({employee.emp_id})</span>
+                    </label>
+                  );
+                })}
+                {tlOptions.length === 0 && <span style={{ color: "var(--muted)", fontSize: "12px" }}>No TLs available</span>}
+              </div>
+            </div>
             <div className="form-group"><label className="label">System No.</label><input className="input" placeholder="System number" value={form.system_no} onChange={(e) => setForm((f) => ({ ...f, system_no: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Base Salary (₹)</label><input className="input" type="number" value={form.base_salary} onChange={(e) => setForm((f) => ({ ...f, base_salary: e.target.value }))} /></div>
           </div>
@@ -787,8 +868,80 @@ export default function StaffPage() {
             <div className="form-group"><label className="label">Email</label><input className="input" type="email" value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Machine User ID</label><input className="input" placeholder="Leave blank to use Employee ID for ZKTeco" value={editForm.machine_user_id} onChange={(e) => setEditForm((f) => ({ ...f, machine_user_id: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Department</label><select className="input" value={editForm.department_id} onChange={(e) => setEditForm((f) => ({ ...f, department_id: e.target.value, department: departments.find((d) => d.id === +e.target.value)?.name || "", hod_department_ids: f.is_hod ? withPrimaryDepartment(f.hod_department_ids, parseDepartmentId(e.target.value)) : f.hod_department_ids }))}><option value="">Select department…</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
-            <div className="form-group"><label className="label">Reports To HOD</label><select className="input" value={editForm.hod_user_id} onChange={(e) => setEditForm((f) => ({ ...f, hod_user_id: e.target.value }))}><option value="">Select HOD…</option>{hodOptions.map((employee) => <option key={employee.user_id || employee.id} value={employee.user_id || employee.id}>{employee.first_name} {employee.last_name} ({employee.emp_id})</option>)}</select></div>
-            <div className="form-group"><label className="label">Reports To TL</label><select className="input" value={editForm.tl_user_id} onChange={(e) => setEditForm((f) => ({ ...f, tl_user_id: e.target.value }))}><option value="">Select TL…</option>{tlOptions.map((employee) => <option key={employee.user_id || employee.id} value={employee.user_id || employee.id}>{employee.first_name} {employee.last_name} ({employee.emp_id})</option>)}</select></div>
+            <div className="form-group" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <label className="label">Reports To HODs</label>
+              <div style={{
+                maxHeight: "120px",
+                overflowY: "auto",
+                border: "1px solid var(--border)",
+                borderRadius: "6px",
+                padding: "8px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+                backgroundColor: "rgba(255,255,255,0.02)"
+              }}>
+                {hodOptions.map((employee) => {
+                  const id = Number(employee.user_id || employee.id);
+                  const isChecked = (editForm.hod_user_ids || []).includes(id);
+                  return (
+                    <label key={id} style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px" }}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          setEditForm((f) => ({
+                            ...f,
+                            hod_user_ids: e.target.checked
+                              ? [...(f.hod_user_ids || []), id]
+                              : (f.hod_user_ids || []).filter((item) => item !== id)
+                          }));
+                        }}
+                      />
+                      <span>{employee.first_name} {employee.last_name} ({employee.emp_id})</span>
+                    </label>
+                  );
+                })}
+                {hodOptions.length === 0 && <span style={{ color: "var(--muted)", fontSize: "12px" }}>No HODs available</span>}
+              </div>
+            </div>
+            <div className="form-group" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <label className="label">Reports To TLs</label>
+              <div style={{
+                maxHeight: "120px",
+                overflowY: "auto",
+                border: "1px solid var(--border)",
+                borderRadius: "6px",
+                padding: "8px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+                backgroundColor: "rgba(255,255,255,0.02)"
+              }}>
+                {tlOptions.map((employee) => {
+                  const id = Number(employee.user_id || employee.id);
+                  const isChecked = (editForm.tl_user_ids || []).includes(id);
+                  return (
+                    <label key={id} style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px" }}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          setEditForm((f) => ({
+                            ...f,
+                            tl_user_ids: e.target.checked
+                              ? [...(f.tl_user_ids || []), id]
+                              : (f.tl_user_ids || []).filter((item) => item !== id)
+                          }));
+                        }}
+                      />
+                      <span>{employee.first_name} {employee.last_name} ({employee.emp_id})</span>
+                    </label>
+                  );
+                })}
+                {tlOptions.length === 0 && <span style={{ color: "var(--muted)", fontSize: "12px" }}>No TLs available</span>}
+              </div>
+            </div>
             <div className="form-group"><label className="label">System No.</label><input className="input" value={editForm.system_no} onChange={(e) => setEditForm((f) => ({ ...f, system_no: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Shift Type</label><select className="input" value={editForm.is_night_shift ? "night" : "day"} onChange={(e) => setEditForm((f) => ({ ...f, is_night_shift: e.target.value === "night" }))}><option value="day">Day Shift</option><option value="night">Night Shift</option></select></div>
             <div className="form-group"><label className="label">Base Salary (₹)</label><input className="input" type="number" value={editForm.base_salary} onChange={(e) => setEditForm((f) => ({ ...f, base_salary: e.target.value }))} /></div>

@@ -148,10 +148,6 @@ export default function StaffPage() {
       showToast("Employee ID is required", "error");
       return;
     }
-    if (!form.email.trim()) {
-      showToast("Email is required", "error");
-      return;
-    }
     if ((form.password || "").length < 6) {
       showToast("Password must be at least 6 characters", "error");
       return;
@@ -717,7 +713,7 @@ export default function StaffPage() {
             <div className="form-group"><label className="label">Employee ID</label><input className="input" placeholder="EMP005" value={form.emp_id} onChange={(e) => setForm((f) => ({ ...f, emp_id: e.target.value }))} required /></div>
             <div className="form-group"><label className="label">Machine User ID</label><input className="input" placeholder="Leave blank to use Employee ID for ZKTeco" value={form.machine_user_id} onChange={(e) => setForm((f) => ({ ...f, machine_user_id: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Department</label><select className="input" value={form.department_id} onChange={(e) => setForm((f) => ({ ...f, department_id: e.target.value, hod_department_ids: f.is_hod ? withPrimaryDepartment(f.hod_department_ids, parseDepartmentId(e.target.value)) : f.hod_department_ids }))} required><option value="">Select department…</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
-            <div className="form-group"><label className="label">Email</label><input className="input" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required /></div>
+            <div className="form-group"><label className="label">Email</label><input className="input" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} /></div>
             <div className="form-group" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <label className="label">Reports To HODs</label>
               <div style={{

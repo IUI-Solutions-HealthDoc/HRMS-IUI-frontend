@@ -313,7 +313,7 @@ function AdminDashboard({ showToast }) {
   const ratedCount = Number(stats?.perf?.employees_rated || 0);
   const performanceBase = Number(stats?.perf?.total_employees || totalEmployees || 0);
   const quickActions = [
-    ["Approve Increments", "💹", "#10b981", "/dashboard/increments"],
+    ["Approve Increments", "💹", "#10b981", "/dashboard/appraisal"],
     ["View All Grievances", "⚠", "#ef4444", "/dashboard/grievances-hr"],
     ["Export Reports", "⬇", "#00C896", "/dashboard/exports"],
     ["Notice Board", "📢", "#f59e0b", "/dashboard/notices"],

@@ -41,6 +41,43 @@ export default function StaffPage() {
   const [showToast, toastNode] = useToast();
   const latestLoadIdRef = useRef(0);
 
+  const getNextEmpId = (empId) => {
+    if (!empId) return "";
+    const match = empId.trim().match(/^([a-zA-Z_\-]+)?(\d+)$/);
+    if (match) {
+      const prefix = match[1] || "";
+      const numStr = match[2];
+      const nextNum = parseInt(numStr, 10) + 1;
+      const nextNumStr = String(nextNum).padStart(numStr.length, "0");
+      return prefix + nextNumStr;
+    }
+    return empId;
+  };
+
+  const handleOpenAddModal = () => {
+    let nextId = "";
+    if (staff && staff.length > 0) {
+      const lastEmp = staff.reduce((max, curr) => {
+        if (!max) return curr;
+        if (curr.id && max.id) {
+          return curr.id > max.id ? curr : max;
+        }
+        return curr;
+      }, null);
+      if (lastEmp && lastEmp.emp_id) {
+        nextId = getNextEmpId(lastEmp.emp_id);
+      }
+    }
+    setForm({
+      username: "", password: "", first_name: "", last_name: "", email: "",
+      emp_id: nextId, department_id: "", is_hr: false, is_accounts: false, is_hod: false, is_tl: false,
+      machine_user_id: "", base_salary: "", hod_department_ids: [],
+      hod_user_id: "", tl_user_id: "", system_no: "", is_night_shift: false,
+      hod_user_ids: [], tl_user_ids: [],
+    });
+    setShowModal(true);
+  };
+
   function parseDepartmentId(value) {
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
@@ -533,7 +570,7 @@ export default function StaffPage() {
             {isAdmin ? "Admin: view, add, edit, and deactivate all employees" : "Add, manage and deactivate employees"}
           </p>
         </div>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Employee</button>
+        <button className="btn-primary" onClick={handleOpenAddModal}>+ Add Employee</button>
       </div>
 
       {/* Search */}

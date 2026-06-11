@@ -1,27 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 /**
  * Password input with eye icon toggle for show/hide.
  * Drop-in replacement for <input type="password" ... />.
+ * Uses type="text" with WebkitTextSecurity to prevent Chrome autofill.
  */
 export default function PasswordInput({ className = "input", style, ...props }) {
   const [visible, setVisible] = useState(false);
+  const [isFirefox, setIsFirefox] = useState(false);
+
+  useEffect(() => {
+    setIsFirefox(navigator.userAgent.toLowerCase().includes("firefox"));
+  }, []);
+
   const { inputStyle, autoComplete, name, ...inputProps } = props;
+
+  // ONLY allow standard password type for current-password (login screen)
+  const isCurrentPassword = autoComplete === "current-password";
+
+  const inputType = isCurrentPassword
+    ? (visible ? "text" : "password")
+    : (isFirefox ? (visible ? "text" : "password") : "text");
+
+  const textSecurity = (isCurrentPassword || isFirefox)
+    ? undefined
+    : (visible ? "none" : "disc");
 
   return (
     <div style={{ position: "relative", ...style }}>
       <input
         {...inputProps}
-        autoComplete={autoComplete ?? "off"}
+        autoComplete={autoComplete ?? "new-password"}
         name={name ?? "password_no_autofill"}
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
         className={className}
-        type={visible ? "text" : "password"}
-        style={{ paddingRight: 42, width: "100%", ...(inputStyle || {}) }}
+        type={inputType}
+        style={{
+          paddingRight: 42,
+          width: "100%",
+          WebkitTextSecurity: textSecurity,
+          ...(inputStyle || {})
+        }}
       />
       <button
         type="button"

@@ -706,10 +706,13 @@ export default function StaffPage() {
             <button className="btn-primary" onClick={addEmployee}>Add Employee</button>
           </>}>
           <div className="form-row staff-form-grid">
+            {/* Dummy inputs to prevent Chrome autofill */}
+            <input type="text" name="chrome-autofill-dummy-username" style={{ position: "absolute", top: -1000, left: -1000, width: 1, height: 1, opacity: 0 }} tabIndex={-1} readOnly />
+            <input type="password" name="chrome-autofill-dummy-password" style={{ position: "absolute", top: -1000, left: -1000, width: 1, height: 1, opacity: 0 }} tabIndex={-1} readOnly />
             <div className="form-group"><label className="label">First Name</label><input className="input" value={form.first_name} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} required /></div>
             <div className="form-group"><label className="label">Last Name</label><input className="input" value={form.last_name} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Username</label><input className="input" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} required /></div>
-            <div className="form-group"><label className="label">Password</label><PasswordInput autoComplete="off" name="staff_create_password_no_autofill" minLength={6} value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required /></div>
+            <div className="form-group"><label className="label">Password</label><PasswordInput autoComplete="new-password" name="staff_create_password_no_autofill" minLength={6} value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required /></div>
             <div className="form-group"><label className="label">Employee ID</label><input className="input" placeholder="EMP005" value={form.emp_id} onChange={(e) => setForm((f) => ({ ...f, emp_id: e.target.value }))} required /></div>
             <div className="form-group"><label className="label">Machine User ID</label><input className="input" placeholder="Leave blank to use Employee ID for ZKTeco" value={form.machine_user_id} onChange={(e) => setForm((f) => ({ ...f, machine_user_id: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Department</label><select className="input" value={form.department_id} onChange={(e) => setForm((f) => ({ ...f, department_id: e.target.value, hod_department_ids: f.is_hod ? withPrimaryDepartment(f.hod_department_ids, parseDepartmentId(e.target.value)) : f.hod_department_ids }))} required><option value="">Select department…</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
@@ -859,6 +862,9 @@ export default function StaffPage() {
           </div>
 
           <div className="form-row staff-form-grid">
+            {/* Dummy inputs to prevent Chrome autofill */}
+            <input type="text" name="chrome-autofill-dummy-username" style={{ position: "absolute", top: -1000, left: -1000, width: 1, height: 1, opacity: 0 }} tabIndex={-1} readOnly />
+            <input type="password" name="chrome-autofill-dummy-password" style={{ position: "absolute", top: -1000, left: -1000, width: 1, height: 1, opacity: 0 }} tabIndex={-1} readOnly />
             <div className="form-group"><label className="label">First Name</label><input className="input" value={editForm.first_name} onChange={(e) => setEditForm((f) => ({ ...f, first_name: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Last Name</label><input className="input" value={editForm.last_name} onChange={(e) => setEditForm((f) => ({ ...f, last_name: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Email</label><input className="input" type="email" value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} /></div>
@@ -943,7 +949,7 @@ export default function StaffPage() {
             {isAdmin && <div className="form-group"><label className="label">Base Salary (₹)</label><input className="input" type="number" value={editForm.base_salary} onChange={(e) => setEditForm((f) => ({ ...f, base_salary: e.target.value }))} /></div>}
             <div className="form-group"><label className="label">Bank Account</label><input className="input" value={editForm.bank_account} onChange={(e) => setEditForm((f) => ({ ...f, bank_account: e.target.value }))} /></div>
             <div className="form-group"><label className="label">IFSC Code</label><input className="input" value={editForm.ifsc_code} onChange={(e) => setEditForm((f) => ({ ...f, ifsc_code: e.target.value }))} /></div>
-            <div className="form-group"><label className="label">Reset Password (leave blank to keep)</label><input className="input" type="text" autoComplete="one-time-code" data-lpignore="true" data-1p-ignore="true" name={`staff-reset-secret-${editModal.emp_id}`} minLength={6} placeholder="New password…" value={editForm.new_password} onChange={(e) => setEditForm((f) => ({ ...f, new_password: e.target.value }))} /></div>
+            <div className="form-group"><label className="label">Reset Password (leave blank to keep)</label><PasswordInput autoComplete="new-password" name="staff_reset_password_no_autofill" minLength={6} placeholder="New password…" value={editForm.new_password} onChange={(e) => setEditForm((f) => ({ ...f, new_password: e.target.value }))} /></div>
           </div>
 
           <div style={{ height: 1, background: "var(--border)", margin: "20px 0" }} />

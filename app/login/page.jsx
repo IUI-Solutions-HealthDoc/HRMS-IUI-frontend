@@ -120,7 +120,7 @@ export default function LoginPage() {
               <p style={{ color: "var(--text-2)", fontSize: 13, marginTop: 8, letterSpacing: "0.06em", textTransform: "uppercase" }}>Enterprise HR Mission Control</p>
             </div>
 
-            <form onSubmit={handleSubmit} autoComplete="off">
+            <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label className="label">Username or Email</label>
                 <div style={{ position: "relative" }}>
@@ -128,8 +128,8 @@ export default function LoginPage() {
                   <input
                     className="input" placeholder="Enter username or email" value={form.identifier}
                     onChange={(e) => setForm((f) => ({ ...f, identifier: e.target.value }))}
-                    autoComplete="off"
-                    name="login_identifier_no_autofill"
+                    autoComplete="username"
+                    name="username"
                     style={{ paddingLeft: 40 }}
                     required
                   />
@@ -142,8 +142,8 @@ export default function LoginPage() {
                   <PasswordInput
                     placeholder="••••••••" value={form.password}
                     onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                    autoComplete="off"
-                    name="login_password_no_autofill"
+                    autoComplete="current-password"
+                    name="password"
                     inputStyle={{ paddingLeft: 40 }}
                     required
                   />

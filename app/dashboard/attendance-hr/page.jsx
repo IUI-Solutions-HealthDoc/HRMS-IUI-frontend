@@ -1066,18 +1066,30 @@ export default function AttendanceHRPage() {
               </div>
             </div>
             
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div className="card" style={{ padding: 12, background: "var(--hover-bg)" }}>
-                <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, marginBottom: 8, textTransform: "uppercase" }}>Original Timings</div>
-                <div style={{ fontSize: 13, marginBottom: 4 }}><b>Punch In:</b> {detailRecord.original_punch_in || "—"}</div>
-                <div style={{ fontSize: 13 }}><b>Punch Out:</b> {detailRecord.original_punch_out || "—"}</div>
-              </div>
-              <div className="card" style={{ padding: 12, background: "color-mix(in srgb, var(--accent) 6%, var(--surface2))", borderColor: "color-mix(in srgb, var(--accent) 20%, var(--border))" }}>
-                <div style={{ fontSize: 12, color: "var(--accent)", fontWeight: 700, marginBottom: 8, textTransform: "uppercase" }}>Edited Timings</div>
-                <div style={{ fontSize: 13, marginBottom: 4 }}><b>Punch In:</b> {detailRecord.punch_in || "—"}</div>
-                <div style={{ fontSize: 13 }}><b>Punch Out:</b> {detailRecord.punch_out || "—"}</div>
-              </div>
-            </div>
+            {(() => {
+              const wasInEdited = detailRecord.original_punch_in !== detailRecord.punch_in;
+              const originalIn = wasInEdited ? detailRecord.original_punch_in : detailRecord.punch_in;
+              const editedIn = wasInEdited ? detailRecord.punch_in : "—";
+
+              const wasOutEdited = detailRecord.original_punch_out !== detailRecord.punch_out;
+              const originalOut = wasOutEdited ? detailRecord.original_punch_out : detailRecord.punch_out;
+              const editedOut = wasOutEdited ? detailRecord.punch_out : "—";
+
+              return (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div className="card" style={{ padding: 12, background: "var(--hover-bg)" }}>
+                    <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, marginBottom: 8, textTransform: "uppercase" }}>Original Timings</div>
+                    <div style={{ fontSize: 13, marginBottom: 4 }}><b>Punch In:</b> {originalIn || "—"}</div>
+                    <div style={{ fontSize: 13 }}><b>Punch Out:</b> {originalOut || "—"}</div>
+                  </div>
+                  <div className="card" style={{ padding: 12, background: "color-mix(in srgb, var(--accent) 6%, var(--surface2))", borderColor: "color-mix(in srgb, var(--accent) 20%, var(--border))" }}>
+                    <div style={{ fontSize: 12, color: "var(--accent)", fontWeight: 700, marginBottom: 8, textTransform: "uppercase" }}>Edited Timings</div>
+                    <div style={{ fontSize: 13, marginBottom: 4 }}><b>Punch In:</b> {editedIn || "—"}</div>
+                    <div style={{ fontSize: 13 }}><b>Punch Out:</b> {editedOut || "—"}</div>
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="form-group">
               <label className="label" style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase" }}>Edit Reason</label>

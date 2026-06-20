@@ -554,6 +554,22 @@ export default function AttendanceHRPage() {
     }
   }
 
+  async function revertManualEntry(attendanceId) {
+    if (!confirm("Are you sure you want to delete or revert this manual entry?")) {
+      return;
+    }
+    try {
+      await apiFetch(`/attendance/manual-entry/${attendanceId}`, {
+        method: "DELETE",
+      });
+      showToast("Manual entry deleted/reverted successfully");
+      setDetailRecord(null);
+      await load();
+    } catch (error) {
+      showToast(error.message, "error");
+    }
+  }
+
   async function exportMachineLogsXlsx() {
     try {
       const machineParams = new URLSearchParams();
@@ -1051,7 +1067,12 @@ export default function AttendanceHRPage() {
           title="Manual Edit Details"
           onClose={() => setDetailRecord(null)}
           footer={
-            <button className="btn-primary" onClick={() => setDetailRecord(null)}>Close</button>
+            <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+              <button className="btn-danger" onClick={() => revertManualEntry(detailRecord.id)}>
+                Delete / Revert Record
+              </button>
+              <button className="btn-primary" onClick={() => setDetailRecord(null)}>Close</button>
+            </div>
           }
         >
           <div style={{ display: "grid", gap: 16 }}>

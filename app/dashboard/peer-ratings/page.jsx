@@ -10,26 +10,34 @@ import Loader from "@/components/ui/Loader";
 function StarRow({ value = 0, onChange, readOnly = false, size = 18 }) {
   const safeValue = Math.max(0, Math.min(5, Number(value || 0)));
   return (
-    <div className="flex items-center gap-1">
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
       {[1, 2, 3, 4, 5].map((star) => {
         const filled = star <= safeValue;
         const icon = (
           <Star
             size={size}
-            className={`transition-all ${
-              filled ? "text-amber-400 fill-amber-400" : "text-slate-600 fill-transparent"
-            }`}
+            style={{
+              transition: "all 0.2s ease",
+              color: filled ? "#f59e0b" : "rgba(148, 163, 184, 0.2)",
+              fill: filled ? "#f59e0b" : "transparent"
+            }}
           />
         );
         if (readOnly) {
-          return <span key={star}>{icon}</span>;
+          return <span key={star} style={{ display: "inline-flex" }}>{icon}</span>;
         }
         return (
           <button
             key={star}
             type="button"
             onClick={() => onChange?.(star)}
-            className="focus:outline-none hover:scale-110 active:scale-95 transition-transform"
+            style={{
+              padding: 0,
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              display: "inline-flex"
+            }}
           >
             {icon}
           </button>
@@ -147,58 +155,67 @@ export default function PeerRatingsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
+      <div style={{ display: "flex", height: "60vh", alignItems: "center", justifyContent: "center" }}>
         <Loader size="large" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6 text-slate-100">
+    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 10px", display: "flex", flexDirection: "column", gap: 24 }}>
       {/* Header Banner */}
-      <div className="relative bg-gradient-to-r from-violet-950 via-slate-900 to-slate-900 border border-violet-900/40 rounded-2xl p-6 overflow-hidden shadow-2xl shadow-indigo-950/20">
-        <div className="relative z-10 space-y-2">
-          <div className="inline-flex items-center gap-2 bg-violet-500/10 border border-violet-500/20 rounded-full px-3 py-1 text-xs text-violet-300 font-medium">
-            ⭐ Peer-to-Peer Feedback
-          </div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Peer Rating System</h1>
-          <p className="text-slate-400 text-sm max-w-2xl">
-            Submit ratings and construct positive feedback for your team members. Peer ratings are completely anonymous to the recipients.
-          </p>
+      <div className="card" style={{ padding: 24, background: "linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(30,27,75,0.4) 100%)", border: "1px solid rgba(99,102,241,0.2)" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.2)", borderRadius: 99, padding: "4px 12px", fontSize: 12, color: "#a78bfa", fontWeight: 600, width: "fit-content", marginBottom: 12 }}>
+          ⭐ Peer-to-Peer Feedback
         </div>
-        <div className="absolute right-0 top-0 w-80 h-80 bg-violet-600/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+        <h1 className="syne" style={{ fontSize: 28, fontWeight: 800, margin: 0 }}>Peer Rating System</h1>
+        <p style={{ color: "var(--muted)", fontSize: 14, margin: "6px 0 0 0", maxWidth: 650, lineHeight: 1.5 }}>
+          Submit ratings and constructive feedback for your team members. Peer ratings are completely anonymous to the recipients.
+        </p>
       </div>
 
       {/* Tabs Menu */}
-      <div className="flex items-center gap-1 border-b border-slate-800 pb-px">
+      <div style={{ display: "flex", gap: 8, borderBottom: "1px solid var(--border)", paddingBottom: 1 }}>
         <button
+          className="btn-ghost"
           onClick={() => setActiveTab("give")}
-          className={`px-4 py-2.5 font-medium text-sm border-b-2 transition-all ${
-            activeTab === "give"
-              ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-              : "border-transparent text-slate-400 hover:text-slate-200"
-          }`}
+          style={{
+            borderBottom: activeTab === "give" ? "2px solid var(--primary, #6366f1)" : "none",
+            borderRadius: 0,
+            padding: "10px 20px",
+            background: activeTab === "give" ? "rgba(99,102,241,0.05)" : "transparent",
+            color: activeTab === "give" ? "var(--primary, #6366f1)" : "var(--muted)",
+            fontWeight: 600
+          }}
         >
           Give Rating
         </button>
         <button
+          className="btn-ghost"
           onClick={() => setActiveTab("my")}
-          className={`px-4 py-2.5 font-medium text-sm border-b-2 transition-all ${
-            activeTab === "my"
-              ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-              : "border-transparent text-slate-400 hover:text-slate-200"
-          }`}
+          style={{
+            borderBottom: activeTab === "my" ? "2px solid var(--primary, #6366f1)" : "none",
+            borderRadius: 0,
+            padding: "10px 20px",
+            background: activeTab === "my" ? "rgba(99,102,241,0.05)" : "transparent",
+            color: activeTab === "my" ? "var(--primary, #6366f1)" : "var(--muted)",
+            fontWeight: 600
+          }}
         >
           My Performance
         </button>
         {isPrivileged && (
           <button
+            className="btn-ghost"
             onClick={() => setActiveTab("admin")}
-            className={`px-4 py-2.5 font-medium text-sm border-b-2 transition-all ${
-              activeTab === "admin"
-                ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
+            style={{
+              borderBottom: activeTab === "admin" ? "2px solid var(--primary, #6366f1)" : "none",
+              borderRadius: 0,
+              padding: "10px 20px",
+              background: activeTab === "admin" ? "rgba(99,102,241,0.05)" : "transparent",
+              color: activeTab === "admin" ? "var(--primary, #6366f1)" : "var(--muted)",
+              fontWeight: 600
+            }}
           >
             Ratings Dashboard
           </button>
@@ -207,35 +224,44 @@ export default function PeerRatingsPage() {
 
       {/* TAB 1: Give Rating */}
       {activeTab === "give" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24 }}>
           {/* Rating Form */}
-          <div className="lg:col-span-1 bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-xl p-5 md:p-6 space-y-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Award className="text-indigo-400" size={20} />
+          <div className="card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 20, height: "fit-content" }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <Award size={20} style={{ color: "var(--primary, #6366f1)" }} />
               Rate a Colleague
             </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
                   Select Colleague
                 </label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 pointer-events-none">
-                    <Search size={16} />
-                  </span>
+                <div style={{ position: "relative" }}>
                   <input
                     type="text"
                     placeholder="Search colleague name..."
                     value={searchEmployee}
+                    className="input"
                     onChange={(e) => {
                       setSearchEmployee(e.target.value);
                       if (selectedEmpId) setSelectedEmpId("");
                     }}
-                    className="w-full pl-9 pr-4 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                    style={{ width: "100%" }}
                   />
                 </div>
                 {searchEmployee && !selectedEmpId && (
-                  <div className="absolute mt-1 max-h-40 overflow-y-auto bg-slate-950 border border-slate-800 rounded-lg divide-y divide-slate-900 z-25 w-[calc(100%-2.5rem)] lg:w-[calc(33.33%-2.5rem)] shadow-xl shadow-black/80">
+                  <div style={{
+                    position: "absolute",
+                    marginTop: 4,
+                    maxHeight: 180,
+                    overflowY: "auto",
+                    background: "var(--surface, #1e293b)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
+                    zIndex: 99,
+                    width: "calc(100% - 48px)",
+                    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.5)"
+                  }}>
                     {filteredEmployees.length > 0 ? (
                       filteredEmployees.map((emp) => (
                         <button
@@ -245,47 +271,59 @@ export default function PeerRatingsPage() {
                             setSelectedEmpId(emp.id);
                             setSearchEmployee(emp.name);
                           }}
-                          className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-slate-900 ${
-                            selectedEmpId === emp.id ? "bg-indigo-500/10 text-indigo-300" : "text-slate-300"
-                          }`}
+                          style={{
+                            width: "100%",
+                            textAlign: "left",
+                            padding: "8px 12px",
+                            background: "transparent",
+                            border: "none",
+                            borderBottom: "1px solid rgba(255,255,255,0.05)",
+                            color: "inherit",
+                            cursor: "pointer",
+                            transition: "background 0.15s ease"
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                         >
-                          <div className="font-semibold">{emp.name} (@{emp.username})</div>
-                          <div className="text-[10px] text-slate-500">{emp.department} · {emp.job_title}</div>
+                          <div style={{ fontWeight: 600, fontSize: 12 }}>{emp.name} (@{emp.username})</div>
+                          <div style={{ fontSize: 10, color: "var(--muted)" }}>{emp.department} · {emp.job_title}</div>
                         </button>
                       ))
                     ) : (
-                      <div className="px-3 py-2 text-xs text-slate-500">No active colleagues found</div>
+                      <div style={{ padding: "8px 12px", fontSize: 12, color: "var(--muted)" }}>No active colleagues found</div>
                     )}
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
                   Rating
                 </label>
-                <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-3">
+                <div style={{ background: "rgba(0,0,0,0.2)", border: "1px solid var(--border)", borderRadius: 8, padding: 12 }}>
                   <StarRow value={rating} onChange={setRating} size={24} />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
                   Anonymous Feedback / Comments
                 </label>
                 <textarea
                   rows={4}
                   placeholder="Tell them what they are doing great or how they can improve..."
                   value={feedback}
+                  className="input"
                   onChange={(e) => setFeedback(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none"
+                  style={{ width: "100%", resize: "none" }}
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={submitLoading || !selectedEmpId}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-medium py-2 rounded-lg transition-all shadow-lg shadow-indigo-950/20 active:scale-[0.98]"
+                className="btn-primary"
+                style={{ width: "100%", padding: 10, fontWeight: 700 }}
               >
                 {submitLoading ? "Submitting..." : "Submit Rating"}
               </button>
@@ -293,36 +331,36 @@ export default function PeerRatingsPage() {
           </div>
 
           {/* Ratings Given */}
-          <div className="lg:col-span-2 bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-xl p-5 md:p-6 space-y-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <MessageSquare className="text-indigo-400" size={20} />
+          <div className="card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16, flexGrow: 2 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <MessageSquare size={20} style={{ color: "var(--primary, #6366f1)" }} />
               Ratings Submitted by Me
             </h2>
             {givenRatings.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
+              <div style={{ overflowX: "auto" }}>
+                <table className="table" style={{ width: "100%", fontSize: 12 }}>
                   <thead>
-                    <tr className="border-b border-slate-800 text-slate-400 font-semibold">
-                      <th className="pb-3">Colleague</th>
-                      <th className="pb-3">Rating</th>
-                      <th className="pb-3">Comments</th>
-                      <th className="pb-3">Date</th>
+                    <tr style={{ textAlign: "left", color: "var(--muted)" }}>
+                      <th style={{ padding: 8 }}>Colleague</th>
+                      <th style={{ padding: 8 }}>Rating</th>
+                      <th style={{ padding: 8 }}>Comments</th>
+                      <th style={{ padding: 8 }}>Date</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody>
                     {givenRatings.map((r) => (
-                      <tr key={r.id} className="text-slate-300 hover:bg-slate-900/20">
-                        <td className="py-3 font-semibold text-slate-200">
+                      <tr key={r.id} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                        <td style={{ padding: 12, fontWeight: 600 }}>
                           {r.ratee_name}
-                          <span className="block text-[10px] text-slate-500">@{r.ratee_username}</span>
+                          <span style={{ display: "block", fontSize: 10, color: "var(--muted)", fontWeight: 400 }}>@{r.ratee_username}</span>
                         </td>
-                        <td className="py-3">
+                        <td style={{ padding: 12 }}>
                           <StarRow value={r.rating} readOnly size={14} />
                         </td>
-                        <td className="py-3 max-w-xs truncate text-slate-400" title={r.feedback}>
+                        <td style={{ padding: 12, color: "var(--muted)", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.feedback}>
                           {r.feedback || "—"}
                         </td>
-                        <td className="py-3 text-slate-500">
+                        <td style={{ padding: 12, color: "var(--muted)" }}>
                           {new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(new Date(r.created_at))}
                         </td>
                       </tr>
@@ -331,8 +369,8 @@ export default function PeerRatingsPage() {
                 </table>
               </div>
             ) : (
-              <div className="text-center py-10 border border-dashed border-slate-800 rounded-xl">
-                <p className="text-slate-500 text-sm">You haven't rated any colleagues yet.</p>
+              <div style={{ textAlign: "center", padding: "40px 20px", border: "1px dashed var(--border)", borderRadius: 12 }}>
+                <p style={{ color: "var(--muted)", fontSize: 14, margin: 0 }}>You haven't rated any colleagues yet.</p>
               </div>
             )}
           </div>
@@ -341,57 +379,64 @@ export default function PeerRatingsPage() {
 
       {/* TAB 2: My Received Ratings */}
       {activeTab === "my" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24 }}>
           {/* Aggregates */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-xl p-5 md:p-6 space-y-5 text-center">
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div className="card" style={{ padding: 24, textAlign: "center", display: "flex", flexDirection: "column", gap: 16 }}>
+              <h2 style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", margin: 0 }}>
                 My Average Rating
               </h2>
-              <div className="space-y-2">
-                <div className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-200">
-                  {receivedStats.average_rating}
-                </div>
-                <div className="flex justify-center">
-                  <StarRow value={receivedStats.average_rating} readOnly size={22} />
-                </div>
-                <p className="text-slate-500 text-xs">
-                  Based on {receivedStats.ratings_count} anonymous peer ratings
-                </p>
+              <div style={{ fontSize: 48, fontWeight: 800, color: "#f59e0b" }}>
+                {receivedStats.average_rating}
               </div>
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <StarRow value={receivedStats.average_rating} readOnly size={22} />
+              </div>
+              <p style={{ color: "var(--muted)", fontSize: 12, margin: 0 }}>
+                Based on {receivedStats.ratings_count} anonymous peer ratings
+              </p>
             </div>
 
-            <div className="bg-slate-900/60 backdrop-blur-md border border-red-900/20 rounded-xl p-5 md:p-6 space-y-3">
-              <h3 className="text-sm font-semibold text-red-400 flex items-center gap-2">
+            <div className="card" style={{ padding: 20, borderLeft: "4px solid rgba(239,68,68,0.5)" }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#ef4444", display: "flex", alignItems: "center", gap: 8, margin: "0 0 8px 0" }}>
                 <ShieldAlert size={16} />
                 Anonymity Guarantee
               </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <p style={{ fontSize: 12, color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>
                 To promote honest feedback, the identities of your raters are entirely hidden. Rater names, usernames, profile IDs, and submission timestamps are scrubbed from employee performance views.
               </p>
             </div>
           </div>
 
           {/* Anonymous Feedback Comments */}
-          <div className="lg:col-span-2 bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-xl p-5 md:p-6 space-y-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <MessageSquare className="text-indigo-400" size={20} />
+          <div className="card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16, flexGrow: 2 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <MessageSquare size={20} style={{ color: "var(--primary, #6366f1)" }} />
               Anonymous Peer Comments
             </h2>
             {receivedStats.feedback_list.length > 0 ? (
-              <div className="space-y-3">
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {receivedStats.feedback_list.map((comment, index) => (
                   <div
                     key={index}
-                    className="p-4 bg-slate-950/60 border border-slate-800/80 rounded-lg text-slate-300 text-sm leading-relaxed"
+                    style={{
+                      padding: 16,
+                      background: "rgba(255,255,255,0.02)",
+                      border: "1px solid rgba(255,255,255,0.05)",
+                      borderRadius: 8,
+                      color: "inherit",
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                      fontStyle: "italic"
+                    }}
                   >
                     "{comment}"
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 border border-dashed border-slate-800 rounded-xl">
-                <p className="text-slate-500 text-sm">No feedback comments received yet.</p>
+              <div style={{ textAlign: "center", padding: "60px 20px", border: "1px dashed var(--border)", borderRadius: 12 }}>
+                <p style={{ color: "var(--muted)", fontSize: 14, margin: 0 }}>No feedback comments received yet.</p>
               </div>
             )}
           </div>
@@ -400,111 +445,105 @@ export default function PeerRatingsPage() {
 
       {/* TAB 3: Admin/HOD/HR Dashboard */}
       {activeTab === "admin" && isPrivileged && (
-        <div className="space-y-6">
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           {/* Summary Grid */}
-          <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-xl p-5 md:p-6 space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Users className="text-indigo-400" size={20} />
+          <div className="card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                <Users size={20} style={{ color: "var(--primary, #6366f1)" }} />
                 Employee Peer Rating Summaries
               </h2>
-              <div className="relative max-w-xs">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 pointer-events-none">
-                  <Search size={16} />
-                </span>
+              <div>
                 <input
                   type="text"
                   placeholder="Search employees..."
                   value={searchSummary}
+                  className="input"
                   onChange={(e) => setSearchSummary(e.target.value)}
-                  className="pl-9 pr-4 py-1.5 bg-slate-950/80 border border-slate-800 rounded-lg text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                  style={{ width: 200, padding: "4px 8px", fontSize: 12 }}
                 />
               </div>
             </div>
 
             {filteredSummary.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
+              <div style={{ overflowX: "auto" }}>
+                <table className="table" style={{ width: "100%", fontSize: 12 }}>
                   <thead>
-                    <tr className="border-b border-slate-800 text-slate-400 font-semibold">
-                      <th className="pb-3">Employee</th>
-                      <th className="pb-3">Department</th>
-                      <th className="pb-3">Average Rating</th>
-                      <th className="pb-3">Ratings Received</th>
-                      <th className="pb-3">Ratings Given</th>
+                    <tr style={{ textAlign: "left", color: "var(--muted)" }}>
+                      <th style={{ padding: 8 }}>Employee</th>
+                      <th style={{ padding: 8 }}>Department</th>
+                      <th style={{ padding: 8 }}>Average Rating</th>
+                      <th style={{ padding: 8 }}>Ratings Received</th>
+                      <th style={{ padding: 8 }}>Ratings Given</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody>
                     {filteredSummary.map((emp) => (
-                      <tr key={emp.user_id} className="text-slate-300 hover:bg-slate-900/20">
-                        <td className="py-3 font-semibold text-slate-200">
+                      <tr key={emp.user_id} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                        <td style={{ padding: 12, fontWeight: 600 }}>
                           {emp.employee_name}
-                          <span className="block text-[10px] text-slate-500">@{emp.username}</span>
+                          <span style={{ display: "block", fontSize: 10, color: "var(--muted)", fontWeight: 400 }}>@{emp.username}</span>
                         </td>
-                        <td className="py-3 text-slate-400">
+                        <td style={{ padding: 12, color: "var(--muted)" }}>
                           {emp.department}
-                          <span className="block text-[10px] text-slate-500">{emp.job_title}</span>
+                          <span style={{ display: "block", fontSize: 10, color: "var(--muted)" }}>{emp.job_title}</span>
                         </td>
-                        <td className="py-3">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-amber-400">{emp.avg_rating_received}</span>
+                        <td style={{ padding: 12 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontWeight: 700, color: "#f59e0b" }}>{emp.avg_rating_received}</span>
                             <StarRow value={emp.avg_rating_received} readOnly size={12} />
                           </div>
                         </td>
-                        <td className="py-3 font-medium text-slate-200">
-                          {emp.ratings_received_count}
-                        </td>
-                        <td className="py-3 font-medium text-slate-200">
-                          {emp.ratings_given_count}
-                        </td>
+                        <td style={{ padding: 12, fontWeight: 600 }}>{emp.ratings_received_count}</td>
+                        <td style={{ padding: 12, fontWeight: 600 }}>{emp.ratings_given_count}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <div className="text-center py-10">
-                <p className="text-slate-500 text-sm">No rating summaries found.</p>
+              <div style={{ textAlign: "center", padding: 20 }}>
+                <p style={{ color: "var(--muted)", fontSize: 14, margin: 0 }}>No rating summaries found.</p>
               </div>
             )}
           </div>
 
           {/* Audit Logs / Transaction Details */}
-          <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-xl p-5 md:p-6 space-y-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <TrendingUp className="text-indigo-400" size={20} />
+          <div className="card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <TrendingUp size={20} style={{ color: "var(--primary, #6366f1)" }} />
               Detailed Transaction Log (Privileged View)
             </h2>
             {allRatings.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
+              <div style={{ overflowX: "auto" }}>
+                <table className="table" style={{ width: "100%", fontSize: 12 }}>
                   <thead>
-                    <tr className="border-b border-slate-800 text-slate-400 font-semibold">
-                      <th className="pb-3">Rater</th>
-                      <th className="pb-3">Ratee</th>
-                      <th className="pb-3">Score</th>
-                      <th className="pb-3">Feedback / Comments</th>
-                      <th className="pb-3">Date</th>
+                    <tr style={{ textAlign: "left", color: "var(--muted)" }}>
+                      <th style={{ padding: 8 }}>Rater</th>
+                      <th style={{ padding: 8 }}>Ratee</th>
+                      <th className="pb-3" style={{ padding: 8 }}>Score</th>
+                      <th className="pb-3" style={{ padding: 8 }}>Feedback / Comments</th>
+                      <th className="pb-3" style={{ padding: 8 }}>Date</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody>
                     {allRatings.map((r) => (
-                      <tr key={r.id} className="text-slate-300 hover:bg-slate-900/20">
-                        <td className="py-3 text-slate-200 font-medium">
+                      <tr key={r.id} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                        <td style={{ padding: 12, fontWeight: 600 }}>
                           {r.rater_name}
-                          <span className="block text-[10px] text-slate-500">@{r.rater_username}</span>
+                          <span style={{ display: "block", fontSize: 10, color: "var(--muted)", fontWeight: 400 }}>@{r.rater_username}</span>
                         </td>
-                        <td className="py-3 text-slate-200 font-medium">
+                        <td style={{ padding: 12, fontWeight: 600 }}>
                           {r.ratee_name}
-                          <span className="block text-[10px] text-slate-500">@{r.ratee_username}</span>
+                          <span style={{ display: "block", fontSize: 10, color: "var(--muted)", fontWeight: 400 }}>@{r.ratee_username}</span>
                         </td>
-                        <td className="py-3">
+                        <td style={{ padding: 12 }}>
                           <StarRow value={r.rating} readOnly size={12} />
                         </td>
-                        <td className="py-3 text-slate-400 max-w-sm whitespace-pre-wrap leading-relaxed">
-                          {r.feedback || <span className="italic text-slate-600">No comment</span>}
+                        <td style={{ padding: 12, color: "var(--muted)", maxWidth: 250, whiteSpace: "pre-wrap", lineHeight: 1.4 }}>
+                          {r.feedback || <span style={{ fontStyle: "italic", opacity: 0.5 }}>No comment</span>}
                         </td>
-                        <td className="py-3 text-slate-500">
+                        <td style={{ padding: 12, color: "var(--muted)" }}>
                           {new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(new Date(r.created_at))}
                         </td>
                       </tr>
@@ -513,8 +552,8 @@ export default function PeerRatingsPage() {
                 </table>
               </div>
             ) : (
-              <div className="text-center py-10 border border-dashed border-slate-800 rounded-xl">
-                <p className="text-slate-500 text-sm">No peer ratings submitted yet.</p>
+              <div style={{ textAlign: "center", padding: "40px 20px", border: "1px dashed var(--border)", borderRadius: 12 }}>
+                <p style={{ color: "var(--muted)", fontSize: 14, margin: 0 }}>No peer ratings submitted yet.</p>
               </div>
             )}
           </div>

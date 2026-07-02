@@ -31,7 +31,7 @@ function roleForEmployee(emp) {
 }
 
 function resolveMode(raterRole, targetRole) {
-  if (targetRole === "accounts") return null;
+  if (targetRole === "accounts") return raterRole === "admin" ? "detailed" : null;
   if (raterRole === "admin") return targetRole === "admin" ? null : "detailed";
   if (raterRole === "hr") return targetRole === "employee" ? "detailed" : "single";
   if (raterRole === "hod") return targetRole === "employee" ? "detailed" : "single";

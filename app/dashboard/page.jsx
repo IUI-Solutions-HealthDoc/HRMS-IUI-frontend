@@ -291,13 +291,30 @@ function AdminDashboard({ showToast }) {
     load();
   }, []);
 
-  const employees = Array.isArray(stats?.employees) ? stats.employees : [];
+  const allRawEmployees = Array.isArray(stats?.employees) ? stats.employees : [];
+  // Filter out deactivated employees (is_active === false or status === 'Inactive')
+  const employees = allRawEmployees.filter((emp) => emp.is_active !== false && emp.status !== "Inactive");
   const attendance = Array.isArray(stats?.attendance) ? stats.attendance : [];
   const departments = Array.isArray(stats?.departments) ? stats.departments : [];
+
+  const activeEmpUserIds = new Set(employees.map((e) => e.user_id || e.id));
+  const activeEmpIds = new Set(employees.map((e) => e.emp_id).filter(Boolean));
+
   const totalEmployees = employees.length;
-  const presentCount = attendance.filter((item) =>
-    ["present", "late", "half_day", "early_leave"].includes((item.status || "").toLowerCase())
-  ).length;
+
+  const presentCount = attendance.filter((item) => {
+    const isEmpActive =
+      (item.employee_profile_id && activeEmpUserIds.has(item.employee_profile_id)) ||
+      (item.emp_id && activeEmpIds.has(item.emp_id)) ||
+      (item.user_id && activeEmpUserIds.has(item.user_id));
+    return (
+      (isEmpActive || !item.emp_id) &&
+      ["present", "late", "half_day", "early_leave"].includes((item.status || "").toLowerCase())
+    );
+  }).length;
+
+  const absentCount = totalEmployees > presentCount ? totalEmployees - presentCount : 0;
+
   const departmentCounts = departments.length
     ? departments.map((dept) => ({
         name: dept.name,
@@ -314,6 +331,7 @@ function AdminDashboard({ showToast }) {
   const performanceBase = Number(stats?.perf?.total_employees || totalEmployees || 0);
   const quickActions = [
     ["Approve Increments", "💹", "#10b981", "/dashboard/appraisal"],
+    ["Absent / Not Punched Today", "⏱", "#ef4444", "/dashboard/attendance-hr?tab=not_punched"],
     ["View All Grievances", "⚠", "#ef4444", "/dashboard/grievances-hr"],
     ["Export Reports", "⬇", "#00C896", "/dashboard/exports"],
     ["Notice Board", "📢", "#f59e0b", "/dashboard/notices"],
@@ -328,8 +346,16 @@ function AdminDashboard({ showToast }) {
       {loading ? <Loader /> : (
         <>
           <div className="grid-stats" style={{ marginBottom: 28 }}>
-            <StatCard icon="👥" label="Total Employees" value={totalEmployees} accent="#00C896" />
+            <StatCard icon="👥" label="Total Active Employees" value={totalEmployees} accent="#00C896" onClick={() => router.push("/dashboard/staff")} style={{ cursor: "pointer" }} />
             <StatCard icon="✅" label="Present Today" value={`${presentCount}/${totalEmployees || 0}`} accent="#10b981" />
+            <StatCard
+              icon="✗"
+              label="Absent / Not Punched Today"
+              value={absentCount}
+              accent="#ef4444"
+              onClick={() => router.push("/dashboard/attendance-hr?tab=not_punched")}
+              style={{ cursor: "pointer", border: "1px solid rgba(239,68,68,0.3)" }}
+            />
             <StatCard icon="🏢" label="Departments" value={departmentCounts.length} accent="#00A87E" />
             <StatCard icon="⭐" label="Avg Performance" value={avgPerformance} accent="#f59e0b" sub={ratedCount > 0 ? "/ 5.0" : "No ratings yet"} />
           </div>

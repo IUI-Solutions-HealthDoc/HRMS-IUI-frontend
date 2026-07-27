@@ -38,6 +38,8 @@ export default function StaffPage() {
     hod_user_ids: [], tl_user_ids: [],
   });
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all"); // "all", "active", "deactivated"
+  const [bioFilter, setBioFilter] = useState("all"); // "all", "synced", "not_synced"
   const [showToast, toastNode] = useToast();
   const latestLoadIdRef = useRef(0);
 
@@ -502,9 +504,26 @@ export default function StaffPage() {
     }
   }
 
-  const filtered = staff.filter(
-    (s) => !search || `${s.first_name} ${s.last_name} ${s.emp_id} ${s.department}`.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = staff.filter((s) => {
+    // Status Filter (Active vs Deactivated)
+    if (statusFilter === "active" && s.is_active === false) return false;
+    if (statusFilter === "deactivated" && s.is_active !== false) return false;
+
+    // Biometric Sync Filter
+    const isBioSynced = Boolean(s.fingerprint_registered || s.face_registered);
+    if (bioFilter === "synced" && !isBioSynced) return false;
+    if (bioFilter === "not_synced" && isBioSynced) return false;
+
+    // Search term
+    if (search) {
+      const term = search.toLowerCase();
+      const nameMatch = `${s.first_name || ""} ${s.last_name || ""}`.toLowerCase().includes(term);
+      const empIdMatch = (s.emp_id || "").toLowerCase().includes(term);
+      const deptMatch = (s.department || "").toLowerCase().includes(term);
+      return nameMatch || empIdMatch || deptMatch;
+    }
+    return true;
+  });
   const hodOptions = useMemo(
     () => staff.filter((employee) => employee.is_hod || employee.is_superuser),
     [staff]
@@ -663,6 +682,131 @@ export default function StaffPage() {
           )}
         </div>
       )}
+
+      {/* Quick Filters for Staff Table */}
+      <div className="card" style={{ marginBottom: 16, padding: "14px 18px", display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+          {/* Status Filter */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginRight: 4 }}>Status:</span>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setStatusFilter("all")}
+              style={{
+                padding: "6px 12px",
+                fontSize: 12,
+                fontWeight: 600,
+                borderRadius: 8,
+                background: statusFilter === "all" ? "var(--hover-bg)" : "transparent",
+                color: statusFilter === "all" ? "var(--text)" : "var(--muted)",
+                border: statusFilter === "all" ? "1px solid var(--accent)" : "1px solid transparent",
+              }}
+            >
+              All ({staff.length})
+            </button>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setStatusFilter("active")}
+              style={{
+                padding: "6px 12px",
+                fontSize: 12,
+                fontWeight: 600,
+                borderRadius: 8,
+                background: statusFilter === "active" ? "rgba(16,185,129,0.15)" : "transparent",
+                color: statusFilter === "active" ? "#10b981" : "var(--muted)",
+                border: statusFilter === "active" ? "1px solid #10b981" : "1px solid transparent",
+              }}
+            >
+              Active ({staff.filter((s) => s.is_active !== false).length})
+            </button>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setStatusFilter("deactivated")}
+              style={{
+                padding: "6px 12px",
+                fontSize: 12,
+                fontWeight: 600,
+                borderRadius: 8,
+                background: statusFilter === "deactivated" ? "rgba(239,68,68,0.15)" : "transparent",
+                color: statusFilter === "deactivated" ? "#ef4444" : "var(--muted)",
+                border: statusFilter === "deactivated" ? "1px solid #ef4444" : "1px solid transparent",
+              }}
+            >
+              Deactivated ({staff.filter((s) => s.is_active === false).length})
+            </button>
+          </div>
+
+          {/* Biometric Sync Filter */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginRight: 4 }}>Biometrics:</span>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setBioFilter("all")}
+              style={{
+                padding: "6px 12px",
+                fontSize: 12,
+                fontWeight: 600,
+                borderRadius: 8,
+                background: bioFilter === "all" ? "var(--hover-bg)" : "transparent",
+                color: bioFilter === "all" ? "var(--text)" : "var(--muted)",
+                border: bioFilter === "all" ? "1px solid var(--accent)" : "1px solid transparent",
+              }}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setBioFilter("synced")}
+              style={{
+                padding: "6px 12px",
+                fontSize: 12,
+                fontWeight: 600,
+                borderRadius: 8,
+                background: bioFilter === "synced" ? "rgba(0,200,150,0.15)" : "transparent",
+                color: bioFilter === "synced" ? "#00C896" : "var(--muted)",
+                border: bioFilter === "synced" ? "1px solid #00C896" : "1px solid transparent",
+              }}
+            >
+              Synced ({staff.filter((s) => s.fingerprint_registered || s.face_registered).length})
+            </button>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setBioFilter("not_synced")}
+              style={{
+                padding: "6px 12px",
+                fontSize: 12,
+                fontWeight: 600,
+                borderRadius: 8,
+                background: bioFilter === "not_synced" ? "rgba(245,158,11,0.15)" : "transparent",
+                color: bioFilter === "not_synced" ? "#f59e0b" : "var(--muted)",
+                border: bioFilter === "not_synced" ? "1px solid #f59e0b" : "1px solid transparent",
+              }}
+            >
+              Not Synced ({staff.filter((s) => !s.fingerprint_registered && !s.face_registered).length})
+            </button>
+          </div>
+        </div>
+
+        {(statusFilter !== "all" || bioFilter !== "all") && (
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => {
+              setStatusFilter("all");
+              setBioFilter("all");
+            }}
+            style={{ padding: "5px 10px", fontSize: 12, color: "var(--muted)" }}
+          >
+            Reset Filters
+          </button>
+        )}
+      </div>
 
       {/* Table */}
       <div className="card">

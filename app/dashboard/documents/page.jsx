@@ -441,6 +441,9 @@ export default function DocumentsPage() {
                   ? "Accounts can upload their own passbook, and can switch to team passbook audit when needed."
                   : "Upload your documents one by one or submit multiple documents together for HR review."}
           </p>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 8, background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: 8, padding: "6px 12px", fontSize: 12, color: "#60a5fa" }}>
+            ℹ️ <b>Allowed File Types:</b> PDF, DOCX, PNG, JPG &nbsp;·&nbsp; <b>Max File Size:</b> 5 MB per document
+          </div>
         </div>
         {selectedEmp?.emp_id && documentData ? (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>

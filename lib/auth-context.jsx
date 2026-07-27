@@ -108,6 +108,32 @@ export function AuthProvider({ children }) {
     router.push("/login");
   }, [router]);
 
+  // Session Inactivity Auto Logout (30 minutes)
+  useEffect(() => {
+    if (!isAuthed) return undefined;
+    let timer;
+    const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 mins
+
+    const resetInactivityTimer = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        logout();
+        if (typeof window !== "undefined") {
+          alert("Your session expired due to 30 minutes of inactivity. Please log in again.");
+        }
+      }, INACTIVITY_LIMIT);
+    };
+
+    const events = ["mousedown", "mousemove", "keypress", "scroll", "touchstart"];
+    events.forEach((ev) => window.addEventListener(ev, resetInactivityTimer));
+    resetInactivityTimer();
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      events.forEach((ev) => window.removeEventListener(ev, resetInactivityTimer));
+    };
+  }, [isAuthed, logout]);
+
   // Called after profile update so the sidebar reflects new name immediately
   const refreshUser = useCallback(async () => {
     try {

@@ -22,14 +22,39 @@ export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
 
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [isLocked, setIsLocked] = useState(false);
+
+  useEffect(() => {
+    if (err) {
+      const timer = setTimeout(() => setErr(""), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [err]);
+
   async function handleSubmit(e) {
     e.preventDefault();
+    if (isLocked) {
+      setErr("Account locked due to 5 failed login attempts. Please try again after 5 minutes.");
+      return;
+    }
     setLoading(true);
     setErr("");
     try {
       await login(form);
+      setFailedAttempts(0);
     } catch (e) {
-      setErr(e.message);
+      setErr(e.message || "Invalid username or password");
+      const nextCount = failedAttempts + 1;
+      setFailedAttempts(nextCount);
+      if (nextCount >= 5) {
+        setIsLocked(true);
+        setErr("Account temporarily locked due to 5 failed attempts. Please try again in 5 minutes.");
+        setTimeout(() => {
+          setIsLocked(false);
+          setFailedAttempts(0);
+        }, 5 * 60 * 1000);
+      }
     } finally {
       setLoading(false);
     }
@@ -121,6 +146,24 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit}>
+              {err && (
+                <div
+                  style={{
+                    background: "rgba(239,68,68,0.18)",
+                    border: "1px solid #ef4444",
+                    borderRadius: 10,
+                    padding: "12px 16px",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#f87171",
+                    marginBottom: 20,
+                    textAlign: "center",
+                    boxShadow: "0 0 20px rgba(239,68,68,0.25)"
+                  }}
+                >
+                  ⚠️ {err}
+                </div>
+              )}
               <div className="form-group">
                 <label className="label">Username or Email</label>
                 <div style={{ position: "relative" }}>
@@ -157,17 +200,6 @@ export default function LoginPage() {
                   </Link>
                 </div>
               </div>
-
-              {err && (
-                <div
-                  style={{
-                    background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.28)", borderRadius: 10,
-                    padding: "10px 14px", fontSize: 13, color: "#fca5a5", marginBottom: 16,
-                  }}
-                >
-                  ✕ {err}
-                </div>
-              )}
 
               <button
                 className="btn-primary" type="submit" disabled={loading}

@@ -34,9 +34,27 @@ export default function HolidaysPage() {
   }, [load]);
 
   async function addHoliday() {
+    if (!form.date) {
+      showToast("Please select a date", "error");
+      return;
+    }
+    if (!form.name.trim()) {
+      showToast("Please enter a holiday name", "error");
+      return;
+    }
+    const holidayYear = new Date(form.date).getFullYear();
+    const currentYear = new Date().getFullYear();
+    if (holidayYear < currentYear) {
+      showToast("Cannot add holidays for previous years", "error");
+      return;
+    }
+    if (holidays.some((h) => h.date === form.date || (h.name || "").toLowerCase().trim() === form.name.toLowerCase().trim())) {
+      showToast("A holiday with this date or name already exists in the calendar", "error");
+      return;
+    }
     try {
       await apiFetch("/attendance/holidays", { method: "POST", body: JSON.stringify(form) });
-      showToast("Holiday added");
+      showToast("Holiday added successfully!");
       setForm({ date: "", name: "" });
       load();
     } catch (error) {

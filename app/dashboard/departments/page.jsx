@@ -33,6 +33,14 @@ export default function DepartmentsPage() {
   useEffect(() => { load(); }, [load]);
 
   async function createDepartment() {
+    if (!form.name.trim()) {
+      showToast("Department name is required", "error");
+      return;
+    }
+    if ((form.description || "").length > 250) {
+      showToast("Please enter a short description (max 250 characters)", "error");
+      return;
+    }
     try {
       await apiFetch("/departments/", { method: "POST", body: JSON.stringify(form) });
       showToast("Department created!");
@@ -43,6 +51,14 @@ export default function DepartmentsPage() {
   }
 
   async function updateDepartment() {
+    if (!editItem.name.trim()) {
+      showToast("Department name is required", "error");
+      return;
+    }
+    if ((editItem.description || "").length > 250) {
+      showToast("Please enter a short description (max 250 characters)", "error");
+      return;
+    }
     try {
       await apiFetch(`/departments/${editItem.id}`, { method: "PUT", body: JSON.stringify(editItem) });
       showToast("Department updated!");
@@ -67,7 +83,7 @@ export default function DepartmentsPage() {
           <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>Departments</h1>
           <p style={{ color: "var(--muted)", marginTop: 4 }}>Manage company departments and team structure</p>
         </div>
-        {canManage && <button className="btn-primary" onClick={() => setShowAdd(true)}>+ Add Department</button>}
+        {canManage && <button className="btn-primary" onClick={() => { setForm({ name: "", description: "" }); setShowAdd(true); }}>+ Add Department</button>}
       </div>
       <div className="card">
         {loading ? <Loader /> : departments.length === 0 ? <EmptyState icon="🏢" title="No departments yet" /> : (
@@ -88,10 +104,10 @@ export default function DepartmentsPage() {
         )}
       </div>
       {showAdd && (
-        <Modal title="Add Department" onClose={() => setShowAdd(false)}
-          footer={<><button className="btn-ghost" onClick={() => setShowAdd(false)}>Cancel</button><button className="btn-primary" onClick={createDepartment}>Create</button></>}>
-          <div className="form-group"><label className="label">Name</label><input className="input" value={form.name} onChange={(e) => setForm((item) => ({ ...item, name: e.target.value }))} /></div>
-          <div className="form-group"><label className="label">Description</label><input className="input" value={form.description} onChange={(e) => setForm((item) => ({ ...item, description: e.target.value }))} /></div>
+        <Modal title="Add Department" onClose={() => { setShowAdd(false); setForm({ name: "", description: "" }); }}
+          footer={<><button className="btn-ghost" onClick={() => { setShowAdd(false); setForm({ name: "", description: "" }); }}>Cancel</button><button className="btn-primary" onClick={createDepartment}>Create</button></>}>
+          <div className="form-group"><label className="label">Name</label><input className="input" placeholder="e.g. Quality Assurance" value={form.name} onChange={(e) => setForm((item) => ({ ...item, name: e.target.value }))} /></div>
+          <div className="form-group"><label className="label">Description (max 250 chars)</label><input className="input" maxLength={250} placeholder="e.g. Software Testing and Quality Control" value={form.description} onChange={(e) => setForm((item) => ({ ...item, description: e.target.value }))} /></div>
         </Modal>
       )}
       {editItem && (

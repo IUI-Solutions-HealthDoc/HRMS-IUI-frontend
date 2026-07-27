@@ -35,6 +35,13 @@ export default function AttendanceSettingsPage() {
 
   async function saveRules() {
     if (!settings) return;
+    const requiredFields = ["shift_start", "late_after", "half_day_in_after", "absent_in_after", "early_leave_before", "half_day_out_before", "absent_out_before", "shift_end"];
+    for (const f of requiredFields) {
+      if (!settings[f] || !String(settings[f]).trim()) {
+        showToast(`Please specify a valid time for ${f.replace(/_/g, " ")}`, "error");
+        return;
+      }
+    }
     setSavingRules(true);
     try {
       const payload = {
@@ -167,30 +174,40 @@ export default function AttendanceSettingsPage() {
         <div className="form-row">
           {["shift_start", "late_after", "half_day_in_after", "absent_in_after", "early_leave_before", "half_day_out_before", "absent_out_before", "shift_end", "lunch_start", "lunch_end"].map((field) => (
             <div className="form-group" key={field}>
-              <label className="label">{field.replace(/_/g, " ")}</label>
+              <label className="label" style={{ fontWeight: 700, textTransform: "capitalize", color: "var(--text)" }}>
+                {field.replace(/_/g, " ")} <span style={{ color: "#ef4444" }}>*</span>
+              </label>
               <input
                 className="input"
+                type="time"
+                step="1"
+                style={{ background: "var(--surface)", color: "var(--text)" }}
                 value={settings?.[field] || ""}
                 onChange={(e) => setSettings((item) => ({ ...item, [field]: e.target.value }))}
+                required
               />
             </div>
           ))}
           <div className="form-group">
-            <label className="label">Lates Per Half-Day Deduction</label>
+            <label className="label" style={{ fontWeight: 700, color: "var(--text)" }}>Lates Per Half-Day Deduction</label>
             <input
               className="input"
               type="number"
-              value={settings?.lates_per_half_day_deduction || 0}
-              onChange={(e) => setSettings((item) => ({ ...item, lates_per_half_day_deduction: +e.target.value }))}
+              min={0}
+              style={{ background: "var(--surface)", color: "var(--text)" }}
+              value={settings?.lates_per_half_day_deduction ?? 0}
+              onChange={(e) => setSettings((item) => ({ ...item, lates_per_half_day_deduction: Math.max(0, +e.target.value) }))}
             />
           </div>
           <div className="form-group">
-            <label className="label">Early Leaves Per Half-Day</label>
+            <label className="label" style={{ fontWeight: 700, color: "var(--text)" }}>Early Leaves Per Half-Day</label>
             <input
               className="input"
               type="number"
-              value={settings?.early_leaves_per_half_day || 0}
-              onChange={(e) => setSettings((item) => ({ ...item, early_leaves_per_half_day: +e.target.value }))}
+              min={0}
+              style={{ background: "var(--surface)", color: "var(--text)" }}
+              value={settings?.early_leaves_per_half_day ?? 0}
+              onChange={(e) => setSettings((item) => ({ ...item, early_leaves_per_half_day: Math.max(0, +e.target.value) }))}
             />
           </div>
         </div>

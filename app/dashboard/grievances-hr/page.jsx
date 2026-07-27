@@ -47,11 +47,18 @@ export default function GrievancesHRPage() {
               <div style={{ fontSize: 22, fontWeight: 900, color: "#ef4444", minWidth: 40 }}>#{g.id || i+1}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                  <span style={{ fontWeight: 700 }}>{g.subject}</span><span className="chip">{g.category}</span><StatusBadge status={g.is_resolved ? "resolved" : "open"} />
+                  <span style={{ fontWeight: 700 }}>{g.subject}</span>
+                  <span className="chip">{g.category}</span>
+                  {g.is_anonymous || !g.submitted_by_name || g.submitted_by_name === "Anonymous" ? (
+                    <span className="chip" style={{ background: "rgba(239,68,68,0.15)", color: "#ef4444", fontWeight: 700 }}>🕵️ Anonymous Grievance</span>
+                  ) : null}
+                  <StatusBadge status={g.is_resolved ? "resolved" : "open"} />
                 </div>
-                <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>👤 {g.submitted_by_name || "Anonymous"} · {fmtDate(g.submitted_on)}</div>
+                <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>
+                  👤 {g.is_anonymous ? "Anonymous Employee" : (g.submitted_by_name || "Anonymous")} · {fmtDate(g.submitted_on)}
+                </div>
                 <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.6 }}>{g.description}</div>
-                {g.admin_notes && <div style={{ marginTop: 10, padding: "10px 14px", background: "rgba(16,185,129,0.1)", borderRadius: 8, fontSize: 13, color: "#10b981" }}>💬 HR Response: {g.admin_notes}</div>}
+                {g.admin_notes && <div style={{ marginTop: 10, padding: "10px 14px", background: "rgba(16,185,129,0.1)", borderRadius: 8, fontSize: 13, color: "#10b981" }}>💬 Admin Response: {g.admin_notes}</div>}
               </div>
               <button className="btn-ghost" style={{ padding: "8px 16px", fontSize: 13, flexShrink: 0 }} onClick={() => { setRespondModal(g); setResponseForm({ admin_notes: g.admin_notes || "", is_resolved: g.is_resolved }); }}>Respond</button>
             </div>

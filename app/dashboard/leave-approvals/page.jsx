@@ -18,7 +18,7 @@ const FILTERS = [
 ];
 
 export default function LeaveApprovalsPage() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const isAdmin = role === "admin";
   const [pending, setPending] = useState([]);
   const [history, setHistory] = useState([]);
@@ -62,6 +62,20 @@ export default function LeaveApprovalsPage() {
     }
   }
 
+  const filteredPending = pending.filter((item) => {
+    if (!user) return true;
+    if (item.employee_id && user.id && String(item.employee_id) === String(user.id)) return false;
+    if (item.emp_id && user.emp_id && item.emp_id === user.emp_id) return false;
+    return true;
+  });
+
+  const filteredHistory = history.filter((item) => {
+    if (!user) return true;
+    if (item.employee_id && user.id && String(item.employee_id) === String(user.id)) return false;
+    if (item.emp_id && user.emp_id && item.emp_id === user.emp_id) return false;
+    return true;
+  });
+
   return (
     <div>
       <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
@@ -84,10 +98,10 @@ export default function LeaveApprovalsPage() {
         </div>
       </div>
 
-      {pending.length > 0 && (
+      {filteredPending.length > 0 && (
         <div className="card" style={{ marginBottom: 24 }}>
           <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
-            <h2 className="syne" style={{ fontSize: 16, fontWeight: 700 }}>Pending Approvals ({pending.length})</h2>
+            <h2 className="syne" style={{ fontSize: 16, fontWeight: 700 }}>Pending Approvals ({filteredPending.length})</h2>
           </div>
           <div className="table-wrap">
             <table>
@@ -102,7 +116,7 @@ export default function LeaveApprovalsPage() {
                 </tr>
               </thead>
               <tbody>
-                {pending.map((item) => (
+                {filteredPending.map((item) => (
                   <tr key={item.id}>
                     <td><b>{item.name || item.emp_id}</b></td>
                     <td><span className="chip">{item.subject}</span></td>
@@ -128,7 +142,7 @@ export default function LeaveApprovalsPage() {
         <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
           <h2 className="syne" style={{ fontSize: 16, fontWeight: 700 }}>All Leave History</h2>
         </div>
-        {loading ? <Loader /> : history.length === 0 ? (
+        {loading ? <Loader /> : filteredHistory.length === 0 ? (
           <EmptyState icon="📅" title="No leave records" />
         ) : (
           <div className="table-wrap">
@@ -144,7 +158,7 @@ export default function LeaveApprovalsPage() {
                 </tr>
               </thead>
               <tbody>
-                {history.map((item) => (
+                {filteredHistory.map((item) => (
                   <tr key={item.id}>
                     <td><b>{item.name || item.emp_id}</b></td>
                     <td>{item.status === "Approved" ? (item.is_paid ? "Paid" : "Unpaid") : "—"}</td>

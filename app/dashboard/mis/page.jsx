@@ -230,13 +230,41 @@ function HODMISView() {
           <p style={{ color: "var(--muted)", marginTop: 4 }}>Create daily team MIS entries and submit the weekly report to HR/Admin.</p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <button
+            type="button"
+            className="btn-ghost"
+            style={{ padding: "6px 12px", fontSize: 13 }}
+            onClick={() => {
+              const dt = parseInputDate(weekStart);
+              if (dt) {
+                dt.setDate(dt.getDate() - 7);
+                setWeekStart(weekStartFor(formatInputDate(dt)));
+              }
+            }}
+          >
+            ◀ Prev Week
+          </button>
           <input
             className="input"
             type="date"
             value={weekStart}
             onChange={(e) => setWeekStart(weekStartFor(e.target.value))}
-            style={{ minWidth: 190 }}
+            style={{ minWidth: 160 }}
           />
+          <button
+            type="button"
+            className="btn-ghost"
+            style={{ padding: "6px 12px", fontSize: 13 }}
+            onClick={() => {
+              const dt = parseInputDate(weekStart);
+              if (dt) {
+                dt.setDate(dt.getDate() + 7);
+                setWeekStart(weekStartFor(formatInputDate(dt)));
+              }
+            }}
+          >
+            Next Week ▶
+          </button>
           <button className="btn-ghost" onClick={load}>Refresh</button>
           <button className="btn-primary" onClick={openNewEntry} disabled={misData.is_submitted}>+ Daily Entry</button>
           <button className="btn-primary" onClick={() => setSubmitModal(true)} disabled={misData.is_submitted || !misData.entries.length}>

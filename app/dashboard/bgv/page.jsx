@@ -78,13 +78,34 @@ export default function BGVPage() {
     loadBGV(selectedEmpId);
   }, [canManageOthers, selectedEmpId]);
 
+  function removeDependent(i) {
+    setForm((f) => ({
+      ...f,
+      dependents: f.dependents.filter((_, idx) => idx !== i),
+    }));
+  }
+
   async function submit(e) {
     e.preventDefault();
+    if (!form.ref_name.trim()) {
+      showToast("Reference Name is required", "error");
+      return;
+    }
+    if (!form.ref_organization.trim()) {
+      showToast("Reference Organization is required", "error");
+      return;
+    }
+    const cleanPhone = (form.ref_phone || "").replace(/\D/g, "");
+    if (cleanPhone.length !== 10) {
+      showToast("Reference Phone must be a 10-digit numeric number", "error");
+      return;
+    }
+
     const dependents = (form.dependents || [])
       .map((dep) => ({
         name: (dep.name || "").trim(),
         relation: (dep.relation || "").trim(),
-        phone: (dep.phone || "").trim(),
+        phone: (dep.phone || "").replace(/\D/g, "").slice(0, 10),
         dob: dep.dob || null,
       }))
       .filter((dep) => dep.name || dep.relation || dep.phone || dep.dob)
@@ -94,14 +115,14 @@ export default function BGVPage() {
       ref_name: (form.ref_name || "").trim(),
       ref_post: (form.ref_post || "").trim(),
       ref_organization: (form.ref_organization || "").trim(),
-      ref_phone: (form.ref_phone || "").trim(),
+      ref_phone: cleanPhone,
       dependents,
     };
 
     const query = canManageOthers && selectedEmpId ? `?emp_id=${encodeURIComponent(selectedEmpId)}` : "";
     try {
       await apiFetch(`/bgv/submit${query}`, { method: "POST", body: JSON.stringify(payload) });
-      showToast("BGV submitted!");
+      showToast("BGV submitted successfully!");
       setShowModal(false);
       await loadBGV(selectedEmpId);
     } catch (error) {
@@ -215,25 +236,65 @@ export default function BGVPage() {
       )}
       {showModal && (
         <Modal title="BGV Submission" onClose={() => setShowModal(false)}
-          footer={<><button className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button><button className="btn-primary" onClick={submit}>Submit</button></>}>
-          <h4 style={{ fontWeight: 700, marginBottom: 12, fontSize: 14 }}>Reference Contact</h4>
-          <div className="form-row">
-            <div className="form-group"><label className="label">Name</label><input className="input" value={form.ref_name} onChange={(e) => setForm((f) => ({ ...f, ref_name: e.target.value }))} /></div>
-            <div className="form-group"><label className="label">Designation</label><input className="input" value={form.ref_post} onChange={(e) => setForm((f) => ({ ...f, ref_post: e.target.value }))} /></div>
-            <div className="form-group"><label className="label">Organization</label><input className="input" value={form.ref_organization} onChange={(e) => setForm((f) => ({ ...f, ref_organization: e.target.value }))} /></div>
-            <div className="form-group"><label className="label">Phone</label><input className="input" value={form.ref_phone} onChange={(e) => setForm((f) => ({ ...f, ref_phone: e.target.value }))} /></div>
-          </div>
-          <h4 style={{ fontWeight: 700, margin: "16px 0 12px", fontSize: 14 }}>Dependents (max 3)</h4>
-          {form.dependents.map((d, i) => (
-            <div key={i} style={{ padding: 12, background: "rgba(255,255,255,0.03)", borderRadius: 8, marginBottom: 8 }}>
-              <div className="form-row">
-                <div className="form-group"><label className="label">Name</label><input className="input" value={d.name} onChange={(e) => updateDep(i, "name", e.target.value)} /></div>
-                <div className="form-group"><label className="label">Relation</label><input className="input" value={d.relation} onChange={(e) => updateDep(i, "relation", e.target.value)} /></div>
-                <div className="form-group"><label className="label">Phone Number</label><input className="input" type="tel" value={d.phone} onChange={(e) => updateDep(i, "phone", e.target.value)} /></div>
+          footer={<><button className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button><button className="btn-primary" onClick={submit}>Submit BGV</button></>}>
+          <div className="card" style={{ padding: 16, marginBottom: 16, background: "rgba(255,255,255,0.02)" }}>
+            <h4 style={{ fontWeight: 700, marginBottom: 12, fontSize: 14, color: "var(--text)" }}>📋 Reference Contact</h4>
+            <div className="form-row">
+              <div className="form-group">
+                <label className="label" style={{ fontWeight: 700, color: "var(--text)" }}>Name <span style={{ color: "#ef4444" }}>*</span></label>
+                <input className="input" placeholder="e.g. Rahul Sharma" value={form.ref_name} onChange={(e) => setForm((f) => ({ ...f, ref_name: e.target.value }))} />
+              </div>
+              <div className="form-group">
+                <label className="label" style={{ fontWeight: 700, color: "var(--text)" }}>Designation</label>
+                <input className="input" placeholder="e.g. Engineering Manager" value={form.ref_post} onChange={(e) => setForm((f) => ({ ...f, ref_post: e.target.value }))} />
+              </div>
+              <div className="form-group">
+                <label className="label" style={{ fontWeight: 700, color: "var(--text)" }}>Organization <span style={{ color: "#ef4444" }}>*</span></label>
+                <input className="input" placeholder="e.g. Tech Corp" value={form.ref_organization} onChange={(e) => setForm((f) => ({ ...f, ref_organization: e.target.value }))} />
+              </div>
+              <div className="form-group">
+                <label className="label" style={{ fontWeight: 700, color: "var(--text)" }}>Phone Number (10 digits) <span style={{ color: "#ef4444" }}>*</span></label>
+                <input className="input" maxLength={10} placeholder="e.g. 9876543210" value={form.ref_phone} onChange={(e) => setForm((f) => ({ ...f, ref_phone: e.target.value.replace(/\D/g, "") }))} />
               </div>
             </div>
-          ))}
-          {form.dependents.length < 3 && <button className="btn-ghost" onClick={addDependent} style={{ fontSize: 13 }}>+ Add Dependent</button>}
+          </div>
+
+          <div className="card" style={{ padding: 16, background: "rgba(255,255,255,0.02)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <h4 style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", margin: 0 }}>👨‍👩‍👧 Dependents (max 3)</h4>
+              {form.dependents.length < 3 && (
+                <button type="button" className="btn-ghost" onClick={addDependent} style={{ fontSize: 12, padding: "4px 10px" }}>
+                  + Add Dependent
+                </button>
+              )}
+            </div>
+            {form.dependents.map((d, i) => (
+              <div key={i} style={{ padding: 12, background: "rgba(255,255,255,0.03)", borderRadius: 8, marginBottom: 10, border: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)" }}>Dependent #{i + 1}</span>
+                  {form.dependents.length > 1 && (
+                    <button type="button" className="btn-danger" onClick={() => removeDependent(i)} style={{ fontSize: 11, padding: "2px 8px" }}>
+                      - Remove
+                    </button>
+                  )}
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="label" style={{ fontWeight: 700, color: "var(--text)" }}>Name</label>
+                    <input className="input" placeholder="e.g. Sunita Devi" value={d.name} onChange={(e) => updateDep(i, "name", e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label className="label" style={{ fontWeight: 700, color: "var(--text)" }}>Relation</label>
+                    <input className="input" placeholder="e.g. Mother / Spouse" value={d.relation} onChange={(e) => updateDep(i, "relation", e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label className="label" style={{ fontWeight: 700, color: "var(--text)" }}>Phone Number</label>
+                    <input className="input" type="tel" maxLength={10} placeholder="e.g. 9876543210" value={d.phone} onChange={(e) => updateDep(i, "phone", e.target.value.replace(/\D/g, ""))} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </Modal>
       )}
       {toastNode}

@@ -78,7 +78,9 @@ export default function PoliciesPage() {
             <div onClick={() => setOpen(open === i ? null : i)} style={{ padding: "18px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 15 }}>{tab === "posh" ? "🚨 " : "📄 "}{p.title}</div>
-                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>Updated: {fmtDate(p.updated_at)}</div>
+                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
+                  👤 Added By: {p.created_by_name || "HR Admin"} ({p.created_by_role || "Admin/HR"}) · 📅 Published: {fmtDate(p.created_at || p.updated_at)}
+                </div>
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 {isHROrAdmin && <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: 12 }} onClick={(e) => { e.stopPropagation(); setEditItem(p); }}>Edit</button>}

@@ -267,32 +267,37 @@ function HRDashboard({ showToast }) {
 function AdminDashboard({ showToast }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [filterType, setFilterType] = useState("all");
   const router = useRouter();
 
+  const presentStatuses = new Set(["present", "late", "half_day", "early_leave"]);
+
+  const loadStats = async () => {
+    try {
+      const [emp, att, perf, departments] = await Promise.all([
+        apiFetch("/employees/").catch(() => []),
+        apiFetch("/attendance/today").catch(() => ({})),
+        apiFetch("/performance/dashboard").catch(() => null),
+        apiFetch("/departments/").catch(() => []),
+      ]);
+      const attRecs = att?.records || att;
+      setStats({
+        employees: Array.isArray(emp) ? emp : [],
+        attendance: Array.isArray(attRecs) ? attRecs : [],
+        perf,
+        departments: Array.isArray(departments) ? departments : [],
+      });
+    } catch {}
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const load = async () => {
-      try {
-        const [emp, att, perf, departments] = await Promise.all([
-          apiFetch("/employees/").catch(() => []),
-          apiFetch("/attendance/today").catch(() => ({})),
-          apiFetch("/performance/dashboard").catch(() => null),
-          apiFetch("/departments/").catch(() => []),
-        ]);
-        const attRecs = att?.records || att;
-        setStats({
-          employees: Array.isArray(emp) ? emp : [],
-          attendance: Array.isArray(attRecs) ? attRecs : [],
-          perf,
-          departments: Array.isArray(departments) ? departments : [],
-        });
-      } catch {}
-      setLoading(false);
-    };
-    load();
+    loadStats();
+    const interval = setInterval(loadStats, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   const allRawEmployees = Array.isArray(stats?.employees) ? stats.employees : [];
-  // Filter out deactivated employees (is_active === false or status === 'Inactive')
   const employees = allRawEmployees.filter((emp) => emp.is_active !== false && emp.status !== "Inactive");
   const attendance = Array.isArray(stats?.attendance) ? stats.attendance : [];
   const departments = Array.isArray(stats?.departments) ? stats.departments : [];
@@ -302,18 +307,27 @@ function AdminDashboard({ showToast }) {
 
   const totalEmployees = employees.length;
 
-  const presentCount = attendance.filter((item) => {
-    const isEmpActive =
+  const activeAttendance = attendance.filter((item) => {
+    if (!item.emp_id && !item.employee_profile_id && !item.user_id) return true;
+    return (
       (item.employee_profile_id && activeEmpUserIds.has(item.employee_profile_id)) ||
       (item.emp_id && activeEmpIds.has(item.emp_id)) ||
-      (item.user_id && activeEmpUserIds.has(item.user_id));
-    return (
-      (isEmpActive || !item.emp_id) &&
-      ["present", "late", "half_day", "early_leave"].includes((item.status || "").toLowerCase())
+      (item.user_id && activeEmpUserIds.has(item.user_id))
     );
-  }).length;
+  });
+
+  const presentCount = activeAttendance.filter((item) =>
+    presentStatuses.has((item.status || "").toLowerCase()) || Boolean(item.punch_in)
+  ).length;
 
   const absentCount = totalEmployees > presentCount ? totalEmployees - presentCount : 0;
+
+  const filteredAttendance = activeAttendance.filter((item) => {
+    const isPresent = presentStatuses.has((item.status || "").toLowerCase()) || Boolean(item.punch_in);
+    if (filterType === "present") return isPresent;
+    if (filterType === "absent") return !isPresent;
+    return true;
+  });
 
   const departmentCounts = departments.length
     ? departments.map((dept) => ({
@@ -324,11 +338,12 @@ function AdminDashboard({ showToast }) {
         name: dept,
         count: employees.filter((item) => item.department === dept).length,
       }));
+
   const avgPerformance = typeof stats?.perf?.company_avg_score === "number"
     ? stats.perf.company_avg_score.toFixed(1)
     : "—";
   const ratedCount = Number(stats?.perf?.employees_rated || 0);
-  const performanceBase = Number(stats?.perf?.total_employees || totalEmployees || 0);
+
   const quickActions = [
     ["Approve Increments", "💹", "#10b981", "/dashboard/appraisal"],
     ["Absent / Not Punched Today", "⏱", "#ef4444", "/dashboard/attendance-hr?tab=not_punched"],
@@ -341,25 +356,55 @@ function AdminDashboard({ showToast }) {
     <div>
       <div className="page-header">
         <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>Admin Overview</h1>
-        <p style={{ color: "var(--muted)", marginTop: 4 }}>System-wide metrics and controls</p>
+        <p style={{ color: "var(--muted)", marginTop: 4 }}>System-wide metrics and real-time attendance monitoring</p>
       </div>
       {loading ? <Loader /> : (
         <>
           <div className="grid-stats" style={{ marginBottom: 28 }}>
-            <StatCard icon="👥" label="Total Active Employees" value={totalEmployees} accent="#00C896" onClick={() => router.push("/dashboard/staff")} style={{ cursor: "pointer" }} />
-            <StatCard icon="✅" label="Present Today" value={`${presentCount}/${totalEmployees || 0}`} accent="#10b981" />
+            <StatCard
+              icon="👥"
+              label="Total Active Employees"
+              value={totalEmployees}
+              accent="#00C896"
+              onClick={() => setFilterType("all")}
+              style={{
+                cursor: "pointer",
+                border: filterType === "all" ? "1px solid #00C896" : "1px solid var(--border)",
+                boxShadow: filterType === "all" ? "0 0 16px rgba(0, 200, 150, 0.25)" : "none",
+                transition: "all 0.2s ease",
+              }}
+            />
+            <StatCard
+              icon="✅"
+              label="Present Today"
+              value={`${presentCount}/${totalEmployees || 0}`}
+              accent="#10b981"
+              onClick={() => setFilterType("present")}
+              style={{
+                cursor: "pointer",
+                border: filterType === "present" ? "1px solid #10b981" : "1px solid var(--border)",
+                boxShadow: filterType === "present" ? "0 0 16px rgba(16, 185, 129, 0.25)" : "none",
+                transition: "all 0.2s ease",
+              }}
+            />
             <StatCard
               icon="✗"
               label="Absent / Not Punched Today"
               value={absentCount}
               accent="#ef4444"
-              onClick={() => router.push("/dashboard/attendance-hr?tab=not_punched")}
-              style={{ cursor: "pointer", border: "1px solid rgba(239,68,68,0.3)" }}
+              onClick={() => setFilterType("absent")}
+              style={{
+                cursor: "pointer",
+                border: filterType === "absent" ? "1px solid #ef4444" : "1px solid var(--border)",
+                boxShadow: filterType === "absent" ? "0 0 16px rgba(239, 68, 68, 0.25)" : "none",
+                transition: "all 0.2s ease",
+              }}
             />
             <StatCard icon="🏢" label="Departments" value={departmentCounts.length} accent="#00A87E" />
             <StatCard icon="⭐" label="Avg Performance" value={avgPerformance} accent="#f59e0b" sub={ratedCount > 0 ? "/ 5.0" : "No ratings yet"} />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 20 }}>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 20, marginBottom: 32 }}>
             <div className="card">
               <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
                 <h3 className="syne" style={{ fontSize: 15, fontWeight: 700 }}>👥 Departments</h3>
@@ -372,7 +417,9 @@ function AdminDashboard({ showToast }) {
               </div>
             </div>
             <div className="card">
-              <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}><h3 className="syne" style={{ fontSize: 15, fontWeight: 700 }}>⚡ Quick Actions</h3></div>
+              <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
+                <h3 className="syne" style={{ fontSize: 15, fontWeight: 700 }}>⚡ Quick Actions</h3>
+              </div>
               {quickActions.map(([label, icon, color, href], i) => (
                 <button
                   key={i}
@@ -410,6 +457,95 @@ function AdminDashboard({ showToast }) {
                   <span style={{ color, fontWeight: 700 }}>→</span>
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* ── LIVE MONITORING REAL-TIME ATTENDANCE OVERVIEW FOR ADMIN ── */}
+          <div>
+            <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
+              <div>
+                <h2 className="syne" style={{ fontSize: 22, fontWeight: 800 }}>LIVE MONITORING</h2>
+                <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>Today&apos;s real-time attendance overview</p>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  className={filterType === "all" ? "btn-primary" : "btn-ghost"}
+                  style={{ padding: "6px 14px", fontSize: 12, fontWeight: 600 }}
+                  onClick={() => setFilterType("all")}
+                >
+                  All ({activeAttendance.length})
+                </button>
+                <button
+                  type="button"
+                  className={filterType === "present" ? "btn-primary" : "btn-ghost"}
+                  style={{ padding: "6px 14px", fontSize: 12, fontWeight: 600, color: filterType === "present" ? "#fff" : "#10b981" }}
+                  onClick={() => setFilterType("present")}
+                >
+                  Present ({presentCount})
+                </button>
+                <button
+                  type="button"
+                  className={filterType === "absent" ? "btn-primary" : "btn-ghost"}
+                  style={{ padding: "6px 14px", fontSize: 12, fontWeight: 600, color: filterType === "absent" ? "#fff" : "#ef4444" }}
+                  onClick={() => setFilterType("absent")}
+                >
+                  Absent / Not Punched ({absentCount})
+                </button>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "6px 14px", borderRadius: 999,
+                  background: "rgba(16,185,129,0.08)",
+                  border: "1px solid rgba(16,185,129,0.25)",
+                }}>
+                  <span style={{
+                    width: 8, height: 8, borderRadius: "50%",
+                    background: "#10B981",
+                    boxShadow: "0 0 6px #10B981, 0 0 12px rgba(16,185,129,0.5)",
+                    animation: "pulse 2s infinite",
+                    display: "inline-block",
+                  }} />
+                  <span style={{ fontSize: 12, color: "#10B981", fontWeight: 700 }} className="syne">LIVE</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>EMPLOYEE</th>
+                      <th>DEPARTMENT</th>
+                      <th>PUNCH IN</th>
+                      <th>PUNCH OUT</th>
+                      <th>STATUS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAttendance.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} style={{ textAlign: "center", padding: 32, color: "var(--muted)" }}>
+                          No attendance records found matching filter &quot;{filterType}&quot;
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredAttendance.map((e, i) => (
+                        <tr key={i}>
+                          <td>
+                            <div style={{ fontWeight: 600 }}>{e.employee_name || `${e.first_name || ""} ${e.last_name || ""}`}</div>
+                            <div style={{ fontSize: 11, color: "var(--muted)" }}>{e.emp_id}</div>
+                          </td>
+                          <td>{e.department || "—"}</td>
+                          <td>{e.punch_in ? <span style={{ color: "#10b981", fontWeight: 600 }}>{fmtTime(e.punch_in)}</span> : <span style={{ color: "var(--muted)" }}>—</span>}</td>
+                          <td>{e.punch_out ? <span style={{ color: "var(--text)" }}>{fmtTime(e.punch_out)}</span> : <span style={{ color: "var(--muted)" }}>—</span>}</td>
+                          <td><StatusBadge status={e.status || (e.punch_in ? "present" : "absent")} /></td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </>

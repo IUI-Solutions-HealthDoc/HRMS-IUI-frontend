@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/useToast";
 import Loader from "@/components/ui/Loader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import Modal from "@/components/ui/Modal";
+import { fmtTime } from "@/lib/formatters";
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -240,7 +241,7 @@ export default function AttendanceHRPage() {
   const isAdmin = role === "admin";
   const isHR = role === "hr";
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("edited");
+  const [tab, setTab] = useState("all_logs");
   const [year, setYear] = useState(new Date().getFullYear());
   const [holidays, setHolidays] = useState([]);
   const [machineLogs, setMachineLogs] = useState([]);
@@ -249,6 +250,13 @@ export default function AttendanceHRPage() {
   const [machineMonth, setMachineMonth] = useState(new Date().getMonth() + 1);
   const [machineDay, setMachineDay] = useState(todayIsoDate());
   const [machineEmpId, setMachineEmpId] = useState("");
+  const [allLogs, setAllLogs] = useState([]);
+  const [allLogsMode, setAllLogsMode] = useState("monthly");
+  const [allLogsMonth, setAllLogsMonth] = useState(new Date().getMonth() + 1);
+  const [allLogsDay, setAllLogsDay] = useState(todayIsoDate());
+  const [allLogsEmpId, setAllLogsEmpId] = useState("");
+  const [allLogsStatus, setAllLogsStatus] = useState("");
+  const [allLogsPage, setAllLogsPage] = useState(1);
   const [editedRecords, setEditedRecords] = useState([]);
   const [notPunchedRecords, setNotPunchedRecords] = useState([]);
   const [editedPage, setEditedPage] = useState(1);
@@ -288,11 +296,22 @@ export default function AttendanceHRPage() {
         machineParams.set("year", String(year));
       }
 
+      const allLogsParams = new URLSearchParams();
+      if (allLogsEmpId) allLogsParams.set("emp_id", allLogsEmpId);
+      if (allLogsStatus) allLogsParams.set("status", allLogsStatus);
+      if (allLogsMode === "daily" && allLogsDay) {
+        allLogsParams.set("day", allLogsDay);
+      } else if (allLogsMode === "monthly") {
+        allLogsParams.set("month", String(allLogsMonth));
+        allLogsParams.set("year", String(year));
+      }
+
       const requests = [
         apiFetch(`/attendance/holidays?year=${year}`),
         apiFetch(`/attendance/machine-logs?${machineParams.toString()}`),
         apiFetch("/employees/").catch(() => []),
         apiFetch("/employees/me").catch(() => null),
+        apiFetch(`/attendance/all?${allLogsParams.toString()}`).catch(() => []),
       ];
       if (isAdmin || isHR) {
         requests.push(apiFetch(`/attendance/edited-records?year=${year}&source=manual`));
@@ -303,11 +322,12 @@ export default function AttendanceHRPage() {
       const machineRes = responses[1] || {};
       const employeeRes = responses[2] || [];
       const meRes = responses[3] || null;
+      const allLogsRes = responses[4] || [];
       let editedRes = [];
       let notPunchedRes = [];
       if (isAdmin || isHR) {
-        editedRes = responses[4] || [];
-        notPunchedRes = responses[5] || [];
+        editedRes = responses[5] || [];
+        notPunchedRes = responses[6] || [];
       }
       const loadedHolidays = Array.isArray(holidayRes.holidays) ? holidayRes.holidays : [];
       setHolidays(loadedHolidays);
@@ -315,6 +335,7 @@ export default function AttendanceHRPage() {
         loadedHolidays.some((item) => item.name === "Saturday Week-Off" && isSaturdayIso(item.date))
       );
       setMachineLogs(machineRes.logs || []);
+      setAllLogs(Array.isArray(allLogsRes) ? allLogsRes : []);
       const baseEmployees = Array.isArray(employeeRes) ? employeeRes : [];
       const mergedEmployees = [...baseEmployees];
       if (meRes?.emp_id && !mergedEmployees.some((employee) => employee.emp_id === meRes.emp_id)) {
@@ -339,7 +360,7 @@ export default function AttendanceHRPage() {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, isHR, machineDay, machineEmpId, machineMode, machineMonth, showToast, year]);
+  }, [allLogsDay, allLogsEmpId, allLogsMode, allLogsMonth, allLogsStatus, isAdmin, isHR, machineDay, machineEmpId, machineMode, machineMonth, showToast, year]);
 
   useEffect(() => {
     load();
@@ -638,6 +659,44 @@ export default function AttendanceHRPage() {
     () => employees.filter((employee) => manualForm.employee_emp_ids.includes(employee.emp_id)),
     [employees, manualForm.employee_emp_ids]
   );
+  const paginatedAllLogs = useMemo(
+    () => paginateItems(allLogs, allLogsPage),
+    [allLogs, allLogsPage]
+  );
+
+  async function exportAllLogsXlsx() {
+    try {
+      const allLogsParams = new URLSearchParams();
+      if (allLogsEmpId) allLogsParams.set("emp_id", allLogsEmpId);
+      if (allLogsStatus) allLogsParams.set("status", allLogsStatus);
+      if (allLogsMode === "daily" && allLogsDay) {
+        allLogsParams.set("day", allLogsDay);
+      } else if (allLogsMode === "monthly") {
+        allLogsParams.set("month", String(allLogsMonth));
+        allLogsParams.set("year", String(year));
+      }
+
+      const token = getToken();
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/attendance/all?${allLogsParams.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error("Failed to export attendance logs");
+      const blob = await response.blob();
+      const fileName = `Attendance_Logs_${allLogsMode === "daily" ? allLogsDay : `${MONTH_NAMES[allLogsMonth - 1]}_${year}`}.xlsx`;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast(`Exported: ${fileName}`);
+    } catch (error) {
+      showToast(error.message, "error");
+    }
+  }
+
   const paginatedEditedRecords = useMemo(
     () => paginateItems(editedRecords, editedPage),
     [editedPage, editedRecords]
@@ -669,7 +728,7 @@ export default function AttendanceHRPage() {
         <div>
           <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>Attendance Management</h1>
           <p style={{ color: "var(--muted)", marginTop: 4 }}>
-            {isAdmin ? "Admin reviews manual attendance edits and manages the yearly holiday calendar." : "HR handles manual attendance edits and can review device logs."}
+            {isAdmin ? "Admin reviews system-wide attendance, manual edits, and manages holidays." : "HR handles system attendance, manual edits, and device logs."}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -678,6 +737,7 @@ export default function AttendanceHRPage() {
           </select>
           {isHR ? <button className="btn-primary" onClick={openManualModal}>Manual Entry</button> : null}
           <div style={{ display: "flex", background: "var(--hover-bg)", padding: 4, borderRadius: 10, flexWrap: "wrap" }}>
+            {(isAdmin || isHR) ? <button className="btn-ghost" onClick={() => setTab("all_logs")} style={{ padding: "6px 14px", fontSize: 13, background: tab === "all_logs" ? "var(--surface2)" : "transparent" }}>All Attendance Logs</button> : null}
             {(isAdmin || isHR) ? <button className="btn-ghost" onClick={() => setTab("edited")} style={{ padding: "6px 14px", fontSize: 13, background: tab === "edited" ? "var(--surface2)" : "transparent" }}>Manual Edit Records</button> : null}
             {(isAdmin || isHR) ? <button className="btn-ghost" onClick={() => setTab("not_punched")} style={{ padding: "6px 14px", fontSize: 13, background: tab === "not_punched" ? "var(--surface2)" : "transparent" }}>Not Punched</button> : null}
             <button className="btn-ghost" onClick={() => setTab("calendar")} style={{ padding: "6px 14px", fontSize: 13, background: tab === "calendar" ? "var(--surface2)" : "transparent" }}>Holiday Calendar</button>
@@ -685,6 +745,95 @@ export default function AttendanceHRPage() {
           </div>
         </div>
       </div>
+
+      {tab === "all_logs" && (isAdmin || isHR) ? (
+        <div className="card">
+          <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+            <div>
+              <h2 className="syne" style={{ fontSize: 16, fontWeight: 700 }}>SYSTEM-WIDE ATTENDANCE LOGS</h2>
+              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
+                Complete attendance history across Web, Mobile App, Biometric Machine & Manual Entries
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", background: "var(--hover-bg)", padding: 3, borderRadius: 8 }}>
+                <button className="btn-ghost" style={{ padding: "4px 10px", fontSize: 12, background: allLogsMode === "monthly" ? "var(--surface2)" : "transparent" }} onClick={() => setAllLogsMode("monthly")}>Monthly</button>
+                <button className="btn-ghost" style={{ padding: "4px 10px", fontSize: 12, background: allLogsMode === "daily" ? "var(--surface2)" : "transparent" }} onClick={() => setAllLogsMode("daily")}>Daily</button>
+                <button className="btn-ghost" style={{ padding: "4px 10px", fontSize: 12, background: allLogsMode === "all" ? "var(--surface2)" : "transparent" }} onClick={() => setAllLogsMode("all")}>All</button>
+              </div>
+
+              {allLogsMode === "monthly" ? (
+                <select className="input" style={{ width: "auto" }} value={allLogsMonth} onChange={(e) => setAllLogsMonth(+e.target.value)}>
+                  {MONTH_NAMES.map((m, idx) => <option key={m} value={idx + 1}>{m}</option>)}
+                </select>
+              ) : null}
+
+              {allLogsMode === "daily" ? (
+                <input type="date" className="input" style={{ width: "auto" }} value={allLogsDay} onChange={(e) => setAllLogsDay(e.target.value)} />
+              ) : null}
+
+              <select className="input" style={{ width: "auto" }} value={allLogsEmpId} onChange={(e) => setAllLogsEmpId(e.target.value)}>
+                <option value="">All Employees</option>
+                {machineEmployees.map((emp) => (
+                  <option key={emp.emp_id} value={emp.emp_id}>{emp.first_name} {emp.last_name} ({emp.emp_id})</option>
+                ))}
+              </select>
+
+              <select className="input" style={{ width: "auto" }} value={allLogsStatus} onChange={(e) => setAllLogsStatus(e.target.value)}>
+                <option value="">All Statuses</option>
+                <option value="present">Present</option>
+                <option value="late">Late</option>
+                <option value="half_day">Half Day</option>
+                <option value="absent">Absent</option>
+                <option value="paid_leave">Paid Leave</option>
+              </select>
+
+              <button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 12 }} onClick={load}>Refresh</button>
+            </div>
+          </div>
+
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>DATE</th>
+                  <th>EMPLOYEE</th>
+                  <th>DEPARTMENT</th>
+                  <th>PUNCH IN</th>
+                  <th>PUNCH OUT</th>
+                  <th>PUNCH METHOD</th>
+                  <th>STATUS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedAllLogs.map((record) => (
+                  <tr key={record.id} onClick={() => setDetailRecord(record)} style={{ cursor: "pointer" }}>
+                    <td><b>{record.date}</b></td>
+                    <td><b>{record.employee_name || record.emp_id}</b><div style={{ fontSize: 12, color: "var(--muted)" }}>{record.emp_id}</div></td>
+                    <td>{record.department || "—"}</td>
+                    <td>{record.punch_in ? <span style={{ color: "#10b981", fontWeight: 600 }}>{fmtTime(record.punch_in)}</span> : <span style={{ color: "var(--muted)" }}>—</span>}</td>
+                    <td>{record.punch_out ? <span>{fmtTime(record.punch_out)}</span> : <span style={{ color: "var(--muted)" }}>—</span>}</td>
+                    <td>
+                      <span className="badge" style={methodBadgeStyle(record.punch_method || (record.is_machine_punch ? "fingerprint" : "web"))}>
+                        {record.punch_method || (record.is_machine_punch ? "Biometric Machine" : "Web / Portal")}
+                      </span>
+                    </td>
+                    <td><StatusBadge status={record.status} /></td>
+                  </tr>
+                ))}
+                {allLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: "center", padding: 32, color: "var(--muted)" }}>
+                      No attendance records found for the selected filters.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+          <PaginationControls page={allLogsPage} totalItems={allLogs.length} onPageChange={setAllLogsPage} label="attendance records" />
+        </div>
+      ) : null}
 
       {tab === "edited" && (isAdmin || isHR) ? (
         <div className="card">

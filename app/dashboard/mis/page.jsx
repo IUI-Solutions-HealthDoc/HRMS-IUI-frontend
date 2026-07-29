@@ -139,7 +139,9 @@ function HODMISView() {
       mode: "create",
       id: null,
       form: {
+        target_mode: "single",
         employee_emp_id: "",
+        selected_emp_ids: [],
         entry_date: todayInputValue(),
         task_text: "",
         completion_mode: "percent",
@@ -157,7 +159,9 @@ function HODMISView() {
       mode: "edit",
       id: entry.id,
       form: {
+        target_mode: "single",
         employee_emp_id: entry.employee_emp_id || "",
+        selected_emp_ids: entry.employee_emp_id ? [entry.employee_emp_id] : [],
         entry_date: entry.entry_date || todayInputValue(),
         task_text: entry.task_text || "",
         completion_mode: entry.completion_mode || (entry.is_completed ? "completed" : "percent"),
@@ -172,28 +176,45 @@ function HODMISView() {
 
   async function saveEntry() {
     if (!entryModal) return;
-    const payload = buildEntryPayload(entryModal.form);
-    if (!payload.employee_emp_id || !payload.task_text) {
-      showToast("Employee and task are required", "error");
+
+    let targetEmpIds = [];
+    if (entryModal.form.target_mode === "all") {
+      targetEmpIds = employees.map((emp) => emp.emp_id);
+    } else if (entryModal.form.target_mode === "multiple") {
+      targetEmpIds = entryModal.form.selected_emp_ids;
+    } else {
+      if (entryModal.form.employee_emp_id) {
+        targetEmpIds = [entryModal.form.employee_emp_id];
+      }
+    }
+
+    if (targetEmpIds.length === 0 || !entryModal.form.task_text.trim()) {
+      showToast("Please select employee(s) and provide a task description", "error");
       return;
     }
 
     setSaving(true);
     try {
       if (entryModal.mode === "edit" && entryModal.id) {
+        const payload = buildEntryPayload({ ...entryModal.form, employee_emp_id: targetEmpIds[0] });
         await apiFetch(`/mis/daily/${entryModal.id}`, {
           method: "PUT",
           body: JSON.stringify(payload),
         });
       } else {
-        await apiFetch("/mis/daily", {
-          method: "POST",
-          body: JSON.stringify(payload),
-        });
+        await Promise.all(
+          targetEmpIds.map((empId) => {
+            const payload = buildEntryPayload({ ...entryModal.form, employee_emp_id: empId });
+            return apiFetch("/mis/daily", {
+              method: "POST",
+              body: JSON.stringify(payload),
+            });
+          })
+        );
       }
       setEntryModal(null);
       await load();
-      showToast("MIS entry saved");
+      showToast(`MIS entry saved for ${targetEmpIds.length} employee(s)`);
     } catch (e) {
       showToast(e.message, "error");
     } finally {
@@ -222,6 +243,8 @@ function HODMISView() {
     }
   }
 
+  const isCurrentOrFutureWeek = weekStart >= weekStartFor(todayInputValue());
+
   return (
     <div>
       <div className="page-header" style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -247,19 +270,28 @@ function HODMISView() {
           <input
             className="input"
             type="date"
+            max={todayInputValue()}
             value={weekStart}
-            onChange={(e) => setWeekStart(weekStartFor(e.target.value))}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val > todayInputValue()) return;
+              setWeekStart(weekStartFor(val));
+            }}
             style={{ minWidth: 160 }}
           />
           <button
             type="button"
             className="btn-ghost"
             style={{ padding: "6px 12px", fontSize: 13 }}
+            disabled={isCurrentOrFutureWeek}
             onClick={() => {
               const dt = parseInputDate(weekStart);
               if (dt) {
                 dt.setDate(dt.getDate() + 7);
-                setWeekStart(weekStartFor(formatInputDate(dt)));
+                const nextStr = formatInputDate(dt);
+                if (nextStr <= todayInputValue()) {
+                  setWeekStart(weekStartFor(nextStr));
+                }
               }
             }}
           >
@@ -417,7 +449,50 @@ function HODMISView() {
         >
           <div className="form-row">
             <div className="form-group">
-              <label className="label">Employee</label>
+              <label className="label">Entry Mode / Employee Selection</label>
+              <select
+                className="input"
+                value={entryModal.form.target_mode}
+                onChange={(e) => {
+                  const mode = e.target.value;
+                  setEntryModal((current) => ({
+                    ...current,
+                    form: {
+                      ...current.form,
+                      target_mode: mode,
+                      employee_emp_id: mode === "all" ? "ALL" : (mode === "single" ? (employees[0]?.emp_id || "") : ""),
+                      selected_emp_ids: mode === "all" ? employees.map((emp) => emp.emp_id) : (mode === "single" && current.form.employee_emp_id ? [current.form.employee_emp_id] : []),
+                    },
+                  }));
+                }}
+              >
+                <option value="single">Single Employee</option>
+                <option value="all">All Managed Employees ({employees.length})</option>
+                <option value="multiple">Multiple Employees Select</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="label">Date</label>
+              <input
+                className="input"
+                type="date"
+                max={todayInputValue()}
+                value={entryModal.form.entry_date}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val > todayInputValue()) return;
+                  setEntryModal((current) => ({
+                    ...current,
+                    form: { ...current.form, entry_date: val },
+                  }));
+                }}
+              />
+            </div>
+          </div>
+
+          {entryModal.form.target_mode === "single" ? (
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label className="label">Select Employee</label>
               <select
                 className="input"
                 value={entryModal.form.employee_emp_id}
@@ -426,7 +501,7 @@ function HODMISView() {
                   form: {
                     ...current.form,
                     employee_emp_id: e.target.value,
-                    entry_date: current.form.entry_date || todayInputValue(),
+                    selected_emp_ids: [e.target.value],
                   },
                 }))}
               >
@@ -442,34 +517,61 @@ function HODMISView() {
                 ))}
               </select>
             </div>
-            <div className="form-group">
-              <label className="label">Date</label>
-              <input
-                className="input"
-                type="date"
-                value={entryModal.form.entry_date}
-                onChange={(e) => setEntryModal((current) => ({
-                  ...current,
-                  form: { ...current.form, entry_date: e.target.value },
-                }))}
-              />
-            </div>
-          </div>
+          ) : null}
 
-          <div className="form-row">
-            <div className="form-group">
-              <label className="label">Auto-fetched Name</label>
-              <div className="input" style={{ minHeight: 46, display: "flex", alignItems: "center" }}>
-                {selectedEmployee?.name || "Select an employee"}
+          {entryModal.form.target_mode === "all" ? (
+            <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)", marginBottom: 16, fontSize: 13, color: "var(--text)" }}>
+              👥 <b>Bulk Action:</b> Entry will be created for all <b>{employees.length} managed employees</b> simultaneously.
+            </div>
+          ) : null}
+
+          {entryModal.form.target_mode === "multiple" ? (
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label className="label">Select Multiple Employees ({entryModal.form.selected_emp_ids.length} selected)</label>
+              <div style={{ maxHeight: 150, overflowY: "auto", padding: "10px 14px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--hover-bg)" }}>
+                {employees.map((emp) => {
+                  const checked = entryModal.form.selected_emp_ids.includes(emp.emp_id);
+                  return (
+                    <label key={emp.emp_id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0", cursor: "pointer", fontSize: 13 }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const isChecked = e.target.checked;
+                          setEntryModal((current) => {
+                            const prev = current.form.selected_emp_ids;
+                            const next = isChecked ? [...prev, emp.emp_id] : prev.filter((id) => id !== emp.emp_id);
+                            return {
+                              ...current,
+                              form: { ...current.form, selected_emp_ids: next },
+                            };
+                          });
+                        }}
+                      />
+                      <span><b>{emp.emp_id}</b> - {emp.name} ({emp.department_name || "Dept"})</span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
-            <div className="form-group">
-              <label className="label">Auto-fetched Employee ID</label>
-              <div className="input" style={{ minHeight: 46, display: "flex", alignItems: "center" }}>
-                {selectedEmployee?.emp_id || "Select an employee"}
+          ) : null}
+
+          {entryModal.form.target_mode === "single" ? (
+            <div className="form-row">
+              <div className="form-group">
+                <label className="label">Auto-fetched Name</label>
+                <div className="input" style={{ minHeight: 46, display: "flex", alignItems: "center" }}>
+                  {selectedEmployee?.name || "Select an employee"}
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="label">Auto-fetched Employee ID</label>
+                <div className="input" style={{ minHeight: 46, display: "flex", alignItems: "center" }}>
+                  {selectedEmployee?.emp_id || "Select an employee"}
+                </div>
               </div>
             </div>
-          </div>
+          ) : null}
 
           <div className="form-group">
             <label className="label">Task</label>
@@ -581,7 +683,7 @@ function HODMISView() {
 
       {submitModal ? (
         <Modal
-          title="Submit Weekly MIS"
+          title="Submit Weekly MIS Report"
           onClose={() => setSubmitModal(false)}
           footer={(
             <>
@@ -602,9 +704,17 @@ function HODMISView() {
             <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>Week</div>
             <div style={{ fontWeight: 700 }}>{misData.week_label || weekStart}</div>
           </div>
+
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label className="label">Employee Scope for Report Submission</label>
+            <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", fontSize: 13, color: "var(--text)" }}>
+              👥 Submitting report for <b>All {assignmentOptions.total_employees || employees.length} Managed Employees</b> ({misData.entries.length} daily entries recorded).
+            </div>
+          </div>
+
           <div className="form-group">
             <label className="label">Weekly Remarks</label>
-            <textarea className="input" rows={4} value={submissionRemarks} onChange={(e) => setSubmissionRemarks(e.target.value)} />
+            <textarea className="input" rows={4} value={submissionRemarks} onChange={(e) => setSubmissionRemarks(e.target.value)} placeholder="Summary of achievements, blockers or department notes..." />
           </div>
         </Modal>
       ) : null}

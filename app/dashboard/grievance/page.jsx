@@ -39,12 +39,20 @@ export default function GrievancePage() {
         {loading ? <Loader /> : grievances.length === 0 ? <EmptyState icon="🛡" title="No grievances" sub="Submit a grievance to get started" /> : (
           <div>{grievances.map((g, i) => (
             <div key={i} style={{ padding: 24, borderBottom: "1px solid var(--border)", display: "flex", gap: 16, alignItems: "flex-start" }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: "#ef4444", minWidth: 40 }}>#{g.id || i+1}</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#ef4444", minWidth: 40 }}>#{g.id || (grievances.length - i)}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                   <span style={{ fontWeight: 700 }}>{g.subject}</span>
                   <span className="chip">{g.category}</span>
+                  {g.is_anonymous ? (
+                    <span className="chip" style={{ background: "rgba(239,68,68,0.15)", color: "#ef4444", fontWeight: 700, border: "1px solid rgba(239,68,68,0.3)" }}>
+                      🕵️ ANONYMOUS GRIEVANCE 🔒
+                    </span>
+                  ) : null}
                   <StatusBadge status={g.is_resolved ? "resolved" : "open"} />
+                </div>
+                <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>
+                  👤 {g.is_anonymous ? "Anonymous Employee" : "Submitted by You"} · 📅 {fmtDate(g.submitted_on)}
                 </div>
                 <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.6 }}>{g.description}</div>
                 {g.admin_notes && <div style={{ marginTop: 10, padding: "10px 14px", background: "rgba(16,185,129,0.1)", borderRadius: 8, fontSize: 13, color: "#10b981" }}>💬 HR Response: {g.admin_notes}</div>}

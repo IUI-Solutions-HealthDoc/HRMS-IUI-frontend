@@ -39,7 +39,7 @@ export default function GrievancePage() {
         {loading ? <Loader /> : grievances.length === 0 ? <EmptyState icon="🛡" title="No grievances" sub="Submit a grievance to get started" /> : (
           <div>{grievances.map((g, i) => (
             <div key={i} style={{ padding: 24, borderBottom: "1px solid var(--border)", display: "flex", gap: 16, alignItems: "flex-start" }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: "#ef4444", minWidth: 40 }}>#{g.id || (grievances.length - i)}</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#ef4444", minWidth: 40 }}>#{grievances.length - i}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                   <span style={{ fontWeight: 700 }}>{g.subject}</span>

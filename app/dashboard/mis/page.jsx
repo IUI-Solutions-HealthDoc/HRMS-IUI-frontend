@@ -449,9 +449,10 @@ function HODMISView() {
         >
           <div className="form-row">
             <div className="form-group">
-              <label className="label">Entry Mode / Employee Selection</label>
+              <label className="label">Entry Mode / Employee Selection {entryModal.mode === "edit" ? "(Locked)" : ""}</label>
               <select
                 className="input"
+                disabled={entryModal.mode === "edit"}
                 value={entryModal.form.target_mode}
                 onChange={(e) => {
                   const mode = e.target.value;
@@ -492,9 +493,10 @@ function HODMISView() {
 
           {entryModal.form.target_mode === "single" ? (
             <div className="form-group" style={{ marginBottom: 16 }}>
-              <label className="label">Select Employee</label>
+              <label className="label">Select Employee {entryModal.mode === "edit" ? "(Locked for Edit)" : ""}</label>
               <select
                 className="input"
+                disabled={entryModal.mode === "edit"}
                 value={entryModal.form.employee_emp_id}
                 onChange={(e) => setEntryModal((current) => ({
                   ...current,

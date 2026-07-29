@@ -11,16 +11,23 @@ import Loader from "@/components/ui/Loader";
 
 export default function LeavesPage() {
   const [leaves, setLeaves] = useState([]);
+  const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  // FIX 1: Changed form fields to match backend schema (subject/description instead of leave_type/reason)
-  const [form, setForm] = useState({ subject: "", description: "", start_date: "", end_date: "", leave_type: "paid" });
+  const [form, setForm] = useState({ subject: "", description: "", start_date: "", end_date: "", leave_type: "Casual Leave" });
   const [submitting, setSubmitting] = useState(false);
   const [showToast, toastNode] = useToast();
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { const d = await apiFetch("/leave/my"); setLeaves(Array.isArray(d) ? d : []); } catch {}
+    try {
+      const [d, b] = await Promise.all([
+        apiFetch("/leave/my"),
+        apiFetch("/leave/balance").catch(() => null),
+      ]);
+      setLeaves(Array.isArray(d) ? d : []);
+      if (b) setBalance(b);
+    } catch {}
     setLoading(false);
   }, []);
 
@@ -29,11 +36,11 @@ export default function LeavesPage() {
   async function applyLeave(e) {
     e.preventDefault(); setSubmitting(true);
     try {
-      // FIX 1: Send subject/description to match backend ApplyLeaveRequest schema
       await apiFetch("/leave/apply", {
         method: "POST",
         body: JSON.stringify({
-          subject:     form.subject || `${form.leave_type} leave request`,
+          subject:     form.subject || `${form.leave_type} request`,
+          leave_type:  form.leave_type,
           description: form.description || "Leave requested",
           start_date:  form.start_date,
           end_date:    form.end_date,
@@ -41,20 +48,47 @@ export default function LeavesPage() {
       });
       showToast("Leave application submitted!");
       setShowModal(false);
-      setForm({ subject: "", description: "", start_date: "", end_date: "", leave_type: "paid" });
+      setForm({ subject: "", description: "", start_date: "", end_date: "", leave_type: "Casual Leave" });
       load();
     } catch (e) { showToast(e.message, "error"); } finally { setSubmitting(false); }
   }
+
+  const quotas = balance?.annual_quotas;
 
   return (
     <div>
       <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>My Leaves</h1>
-          <p style={{ color: "var(--muted)", marginTop: 4 }}>Apply and track leave requests</p>
+          <p style={{ color: "var(--muted)", marginTop: 4 }}>Annual Quotas: 10 Casual Leaves, 12 Sick Leaves & 15 Privileged Leaves per year</p>
         </div>
         <button className="btn-primary" onClick={() => setShowModal(true)}>+ Apply Leave</button>
       </div>
+
+      <div className="grid-stats" style={{ marginBottom: 24 }}>
+        <div className="card" style={{ padding: "18px 20px" }}>
+          <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>CASUAL LEAVE (CL)</div>
+          <div className="syne" style={{ fontSize: 24, fontWeight: 800, color: "#10b981", marginTop: 4 }}>
+            {quotas?.casual?.remaining ?? 10} <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 500 }}>/ 10 days left</span>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Used: {quotas?.casual?.used ?? 0} days</div>
+        </div>
+        <div className="card" style={{ padding: "18px 20px" }}>
+          <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>SICK LEAVE (SL)</div>
+          <div className="syne" style={{ fontSize: 24, fontWeight: 800, color: "#6366f1", marginTop: 4 }}>
+            {quotas?.sick?.remaining ?? 12} <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 500 }}>/ 12 days left</span>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Used: {quotas?.sick?.used ?? 0} days</div>
+        </div>
+        <div className="card" style={{ padding: "18px 20px" }}>
+          <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>PRIVILEGED LEAVE (PL)</div>
+          <div className="syne" style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b", marginTop: 4 }}>
+            {quotas?.privileged?.remaining ?? 15} <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 500 }}>/ 15 days left</span>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Used: {quotas?.privileged?.used ?? 0} days</div>
+        </div>
+      </div>
+
       <div className="card">
         <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
           <h2 className="syne" style={{ fontSize: 16, fontWeight: 700 }}>Leave History</h2>
@@ -62,11 +96,12 @@ export default function LeavesPage() {
         {loading ? <Loader /> : leaves.length === 0 ? <EmptyState icon="📅" title="No leaves yet" sub="Apply for your first leave" /> : (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>From</th><th>To</th><th>Subject</th><th>Description</th><th>Status</th></tr></thead>
+              <thead><tr><th>From</th><th>To</th><th>Category</th><th>Subject</th><th>Description</th><th>Status</th></tr></thead>
               <tbody>
                 {leaves.map((l, i) => (
                   <tr key={i}>
                     <td>{fmtDate(l.start_date)}</td><td>{fmtDate(l.end_date)}</td>
+                    <td><span className="chip" style={{ fontWeight: 600 }}>{l.leave_type || "Casual Leave"}</span></td>
                     <td><span className="chip">{l.subject}</span></td>
                     <td style={{ maxWidth: 200 }}>{l.description}</td>
                     <td><StatusBadge status={l.status} /></td>
@@ -79,7 +114,14 @@ export default function LeavesPage() {
       </div>
       {showModal && (
         <Modal title="Apply for Leave" onClose={() => setShowModal(false)}
-          footer={<><button className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button><button className="btn-primary" onClick={applyLeave} disabled={submitting}>{submitting ? "Submitting…" : "Apply"}</button></>}>
+          footer={<><button className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button><button className="btn-primary" onClick={applyLeave} disabled={submitting}>{submitting ? "Submitting…" : "Apply Leave"}</button></>}>
+          <div className="form-group"><label className="label">Leave Category</label>
+            <select className="input" value={form.leave_type} onChange={(e) => setForm((f) => ({ ...f, leave_type: e.target.value }))}>
+              <option value="Casual Leave">Casual Leave (CL - 10/yr)</option>
+              <option value="Sick Leave">Sick Leave (SL - 12/yr)</option>
+              <option value="Privileged Leave">Privileged Leave (PL - 15/yr)</option>
+            </select>
+          </div>
           <div className="form-group"><label className="label">Subject</label><input className="input" placeholder="e.g. Family function, Medical, etc." value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} required /></div>
           <div className="form-row">
             <div className="form-group"><label className="label">Start Date</label><input className="input" type="date" value={form.start_date} onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))} required /></div>

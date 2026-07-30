@@ -22,6 +22,8 @@ export default function StaffPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editModal, setEditModal] = useState(null);
+  const [quotaModal, setQuotaModal] = useState(null);
+  const [quotaForm, setQuotaForm] = useState({ cl_quota: 10, sl_quota: 12, pl_quota: 15 });
   const [form, setForm] = useState({
     username: "", password: "", first_name: "", last_name: "", email: "",
     emp_id: "", department_id: "", is_hr: false, is_accounts: false, is_hod: false, is_tl: false,
@@ -491,6 +493,36 @@ export default function StaffPage() {
     });
   }
 
+  function openQuotaEdit(emp) {
+    setQuotaModal(emp);
+    setQuotaForm({
+      cl_quota: emp.cl_quota ?? 10,
+      sl_quota: emp.sl_quota ?? 12,
+      pl_quota: emp.pl_quota ?? 15,
+    });
+  }
+
+  async function updateQuotas(e) {
+    e.preventDefault();
+    if (!quotaModal) return;
+    try {
+      const payload = {
+        cl_quota: quotaForm.cl_quota !== "" && quotaForm.cl_quota !== null ? Number(quotaForm.cl_quota) : 10,
+        sl_quota: quotaForm.sl_quota !== "" && quotaForm.sl_quota !== null ? Number(quotaForm.sl_quota) : 12,
+        pl_quota: quotaForm.pl_quota !== "" && quotaForm.pl_quota !== null ? Number(quotaForm.pl_quota) : 15,
+      };
+      const result = await apiFetch(`/leave/quota/${quotaModal.emp_id}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+      showToast(result?.message || "Leave quotas updated!");
+      setQuotaModal(null);
+      await load();
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  }
+
   async function deactivate(empId) {
     if (!confirm("Deactivate this employee?")) return;
     try {
@@ -862,10 +894,15 @@ export default function StaffPage() {
                       </span>
                     </td>
                     <td>
-                      <div style={{ display: "flex", gap: 6 }}>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         {isAdmin && (
                           <button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => openEdit(e)}>
                             ✏️ Edit
+                          </button>
+                        )}
+                        {!isAdmin && (
+                          <button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 12, color: "var(--primary)" }} onClick={() => openQuotaEdit(e)}>
+                            🌴 Edit Quotas
                           </button>
                         )}
                         {e.is_active && (
@@ -1277,6 +1314,37 @@ export default function StaffPage() {
               </div>
             </div>
           )}
+        </Modal>
+      )}
+
+      {/* ── HR Edit Leave Quotas Modal ── */}
+      {quotaModal && (
+        <Modal title={`Edit Leave Quotas: ${quotaModal.first_name} ${quotaModal.last_name} (${quotaModal.emp_id})`}
+          onClose={() => setQuotaModal(null)}
+          footer={<>
+            <button className="btn-ghost" onClick={() => setQuotaModal(null)}>Cancel</button>
+            <button className="btn-primary" onClick={updateQuotas}>Save Quotas</button>
+          </>}>
+          <div style={{ padding: "10px 14px", background: "rgba(16,185,129,0.08)", borderRadius: 8, marginBottom: 16, fontSize: 13, color: "#6ee7b7" }}>
+            🌴 Set the annual leave allocation for this employee. Changes take effect immediately.
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 16 }}>
+            <div className="form-group">
+              <label className="label">Casual Leave (CL)</label>
+              <input className="input" type="number" min="0" value={quotaForm.cl_quota} onChange={(e) => setQuotaForm((f) => ({ ...f, cl_quota: e.target.value }))} />
+            </div>
+            <div className="form-group">
+              <label className="label">Sick Leave (SL)</label>
+              <input className="input" type="number" min="0" value={quotaForm.sl_quota} onChange={(e) => setQuotaForm((f) => ({ ...f, sl_quota: e.target.value }))} />
+            </div>
+            <div className="form-group">
+              <label className="label">Privileged Leave (PL)</label>
+              <input className="input" type="number" min="0" value={quotaForm.pl_quota} onChange={(e) => setQuotaForm((f) => ({ ...f, pl_quota: e.target.value }))} />
+            </div>
+          </div>
+          <div style={{ marginTop: 12, fontSize: 12, color: "var(--muted)" }}>
+            Default quotas — CL: 10, SL: 12, PL: 15. Adjust per employee based on company policy or consumed leaves.
+          </div>
         </Modal>
       )}
 

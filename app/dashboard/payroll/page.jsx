@@ -106,7 +106,8 @@ export default function PayrollPage() {
     }
   }
 
-  const totalPayroll = payroll.reduce((sum, row) => sum + (row.net_salary || 0), 0);
+  const paidEmployees = payroll.filter((row) => (row.base_salary || 0) > 0);
+  const totalPayroll = paidEmployees.reduce((sum, row) => sum + (row.net_salary || 0), 0);
 
   return (
     <div>
@@ -194,7 +195,7 @@ export default function PayrollPage() {
       <div className="grid-stats" style={{ marginBottom: 24 }}>
         <StatCard icon="👥" label="Employees" value={payroll.length} />
         {showSalary && <StatCard icon="💰" label="Total Payroll" value={fmtINR(totalPayroll)} accent="#f59e0b" />}
-        {showSalary && <StatCard icon="📊" label="Avg Salary" value={payroll.length ? fmtINR(Math.round(totalPayroll / payroll.length)) : "—"} />}
+        {showSalary && <StatCard icon="📊" label="Avg Salary" value={paidEmployees.length ? fmtINR(Math.round(totalPayroll / paidEmployees.length)) : "—"} />}
       </div>
 
       <div className="card">
@@ -273,7 +274,7 @@ export default function PayrollPage() {
           </div>
           <div className="form-group">
             <label className="label">Bank Account</label>
-            <input className="input" value={salaryForm.bank_account} onChange={(e) => setSalaryForm((current) => ({ ...current, bank_account: e.target.value }))} />
+            <input className="input" inputMode="numeric" pattern="[0-9]*" placeholder="Enter account number (digits only)" value={salaryForm.bank_account} onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ""); setSalaryForm((current) => ({ ...current, bank_account: v })); }} />
           </div>
           <div className="form-group">
             <label className="label">IFSC Code</label>

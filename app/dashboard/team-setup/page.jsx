@@ -162,7 +162,9 @@ export default function TeamSetupPage() {
                             className="input"
                             value={draft.tl_user_id || ""}
                             onChange={(e) => setDraft(member.emp_id, { tl_user_id: e.target.value })}
-                            style={{ minWidth: 180 }}
+                            style={{ minWidth: 180, ...(member.is_tl ? { opacity: 0.5, cursor: "not-allowed" } : {}) }}
+                            disabled={member.is_tl}
+                            title={member.is_tl ? "This employee is already a Team Lead" : ""}
                           >
                             <option value="">No TL</option>
                             {tlOptions
@@ -173,6 +175,7 @@ export default function TeamSetupPage() {
                                 </option>
                               ))}
                           </select>
+                          {member.is_tl && <div style={{ fontSize: 11, color: "#f59e0b", marginTop: 4, fontWeight: 600 }}>⭐ Already a TL</div>}
                         </td>
                       ) : null}
                       <td>

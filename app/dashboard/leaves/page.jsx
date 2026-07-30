@@ -35,6 +35,10 @@ export default function LeavesPage() {
 
   async function applyLeave(e) {
     e.preventDefault(); setSubmitting(true);
+    if (!form.start_date || !form.end_date) { showToast("Please select both start and end dates", "error"); setSubmitting(false); return; }
+    if (form.end_date < form.start_date) { showToast("End date cannot be before start date", "error"); setSubmitting(false); return; }
+    const today = new Date().toISOString().split("T")[0];
+    if (form.start_date < today) { showToast("Start date cannot be in the past", "error"); setSubmitting(false); return; }
     try {
       await apiFetch("/leave/apply", {
         method: "POST",

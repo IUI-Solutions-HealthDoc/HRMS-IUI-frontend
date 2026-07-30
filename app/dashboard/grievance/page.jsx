@@ -26,7 +26,7 @@ export default function GrievancePage() {
 
   async function submit(e) {
     e.preventDefault();
-    try { await apiFetch("/grievances/submit", { method: "POST", body: JSON.stringify(form) }); showToast("Grievance submitted confidentially"); setShowModal(false); load(); } catch (e) { showToast(e.message, "error"); }
+    try { await apiFetch("/grievances/submit", { method: "POST", body: JSON.stringify(form) }); showToast("Grievance submitted confidentially"); setShowModal(false); setForm({ subject: "", description: "", category: "General", is_anonymous: false }); load(); } catch (e) { showToast(e.message, "error"); }
   }
 
   return (

@@ -71,21 +71,27 @@ export default function LeavesPage() {
           <div className="syne" style={{ fontSize: 24, fontWeight: 800, color: "#10b981", marginTop: 4 }}>
             {quotas?.casual?.remaining ?? 10} <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 500 }}>/ {quotas?.casual?.total ?? 10} days left</span>
           </div>
-          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Used: {quotas?.casual?.used ?? 0} days</div>
+          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+            Used: {quotas?.casual?.used ?? 0} days{(quotas?.casual?.deduction ?? 0) > 0 && <span> · HR Adjusted: −{quotas.casual.deduction}</span>}
+          </div>
         </div>
         <div className="card" style={{ padding: "18px 20px" }}>
           <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>SICK LEAVE (SL)</div>
           <div className="syne" style={{ fontSize: 24, fontWeight: 800, color: "#6366f1", marginTop: 4 }}>
             {quotas?.sick?.remaining ?? 12} <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 500 }}>/ {quotas?.sick?.total ?? 12} days left</span>
           </div>
-          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Used: {quotas?.sick?.used ?? 0} days</div>
+          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+            Used: {quotas?.sick?.used ?? 0} days{(quotas?.sick?.deduction ?? 0) > 0 && <span> · HR Adjusted: −{quotas.sick.deduction}</span>}
+          </div>
         </div>
         <div className="card" style={{ padding: "18px 20px" }}>
           <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>PRIVILEGED LEAVE (PL)</div>
           <div className="syne" style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b", marginTop: 4 }}>
             {quotas?.privileged?.remaining ?? 15} <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 500 }}>/ {quotas?.privileged?.total ?? 15} days left</span>
           </div>
-          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Used: {quotas?.privileged?.used ?? 0} days</div>
+          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+            Used: {quotas?.privileged?.used ?? 0} days{(quotas?.privileged?.deduction ?? 0) > 0 && <span> · HR Adjusted: −{quotas.privileged.deduction}</span>}
+          </div>
         </div>
       </div>
 

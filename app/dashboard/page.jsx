@@ -16,6 +16,7 @@ import Modal from "@/components/ui/Modal";
 // ─── Employee Dashboard ───────────────────────────────────────
 function EmployeeDashboard({ user, showToast }) {
   const [attendance, setAttendance] = useState([]);
+  const [holidays, setHolidays] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,12 +26,14 @@ function EmployeeDashboard({ user, showToast }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const [a, t, n] = await Promise.all([
+        const [a, h, t, n] = await Promise.all([
           apiFetch("/attendance/me").catch(() => []),
+          apiFetch("/attendance/holidays").catch(() => []),
           apiFetch("/tasks/my").catch(() => []),
           apiFetch("/notifications/").catch(() => []),
         ]);
         setAttendance(Array.isArray(a?.records) ? a.records : Array.isArray(a) ? a : []);
+        setHolidays(Array.isArray(h) ? h : []);
         setTasks(Array.isArray(t) ? t : []);
         setNotifications(Array.isArray(n?.notifications) ? n.notifications : Array.isArray(n) ? n : []);
       } catch {}
@@ -120,6 +123,7 @@ function EmployeeDashboard({ user, showToast }) {
           <div className="card" style={{ gridColumn: "1 / -1" }}>
             <AttendanceCalendar
               attendance={attendance}
+              holidays={holidays}
               onDayClick={(dateStr) => {
                 setLeaveForm((form) => ({ ...form, start_date: dateStr, end_date: dateStr }));
                 setLeaveModal(true);

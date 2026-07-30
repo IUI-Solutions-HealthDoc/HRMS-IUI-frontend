@@ -60,7 +60,7 @@ export default function LeavesPage() {
       <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>My Leaves</h1>
-          <p style={{ color: "var(--muted)", marginTop: 4 }}>Annual Quotas: 10 Casual Leaves, 12 Sick Leaves & 15 Privileged Leaves per year</p>
+          <p style={{ color: "var(--muted)", marginTop: 4 }}>Annual Quotas: {quotas?.casual?.total ?? 10} Casual Leaves, {quotas?.sick?.total ?? 12} Sick Leaves & {quotas?.privileged?.total ?? 15} Privileged Leaves per year</p>
         </div>
         <button className="btn-primary" onClick={() => setShowModal(true)}>+ Apply Leave</button>
       </div>
@@ -69,21 +69,21 @@ export default function LeavesPage() {
         <div className="card" style={{ padding: "18px 20px" }}>
           <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>CASUAL LEAVE (CL)</div>
           <div className="syne" style={{ fontSize: 24, fontWeight: 800, color: "#10b981", marginTop: 4 }}>
-            {quotas?.casual?.remaining ?? 10} <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 500 }}>/ 10 days left</span>
+            {quotas?.casual?.remaining ?? 10} <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 500 }}>/ {quotas?.casual?.total ?? 10} days left</span>
           </div>
           <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Used: {quotas?.casual?.used ?? 0} days</div>
         </div>
         <div className="card" style={{ padding: "18px 20px" }}>
           <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>SICK LEAVE (SL)</div>
           <div className="syne" style={{ fontSize: 24, fontWeight: 800, color: "#6366f1", marginTop: 4 }}>
-            {quotas?.sick?.remaining ?? 12} <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 500 }}>/ 12 days left</span>
+            {quotas?.sick?.remaining ?? 12} <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 500 }}>/ {quotas?.sick?.total ?? 12} days left</span>
           </div>
           <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Used: {quotas?.sick?.used ?? 0} days</div>
         </div>
         <div className="card" style={{ padding: "18px 20px" }}>
           <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>PRIVILEGED LEAVE (PL)</div>
           <div className="syne" style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b", marginTop: 4 }}>
-            {quotas?.privileged?.remaining ?? 15} <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 500 }}>/ 15 days left</span>
+            {quotas?.privileged?.remaining ?? 15} <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 500 }}>/ {quotas?.privileged?.total ?? 15} days left</span>
           </div>
           <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Used: {quotas?.privileged?.used ?? 0} days</div>
         </div>

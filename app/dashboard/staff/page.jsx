@@ -27,7 +27,7 @@ export default function StaffPage() {
     emp_id: "", department_id: "", is_hr: false, is_accounts: false, is_hod: false, is_tl: false,
     machine_user_id: "", base_salary: "", hod_department_ids: [],
     hod_user_id: "", tl_user_id: "", system_no: "", is_night_shift: false,
-    hod_user_ids: [], tl_user_ids: [],
+    hod_user_ids: [], tl_user_ids: [], cl_quota: 10, sl_quota: 12, pl_quota: 15,
   });
   const [editForm, setEditForm] = useState({
     first_name: "", last_name: "", email: "", department: "", department_id: "",
@@ -35,7 +35,7 @@ export default function StaffPage() {
     machine_user_id: "", base_salary: "", bank_account: "", ifsc_code: "",
     new_password: "", is_active: true, hod_department_ids: [],
     hod_user_id: "", tl_user_id: "", system_no: "", is_night_shift: false,
-    hod_user_ids: [], tl_user_ids: [],
+    hod_user_ids: [], tl_user_ids: [], cl_quota: 10, sl_quota: 12, pl_quota: 15,
   });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); // "all", "active", "deactivated"
@@ -212,6 +212,9 @@ export default function StaffPage() {
         is_night_shift: !!form.is_night_shift,
         system_no: form.system_no.trim() || undefined,
         base_salary: +form.base_salary || 0,
+        cl_quota: form.cl_quota !== "" && form.cl_quota !== null && form.cl_quota !== undefined ? Number(form.cl_quota) : 10,
+        sl_quota: form.sl_quota !== "" && form.sl_quota !== null && form.sl_quota !== undefined ? Number(form.sl_quota) : 12,
+        pl_quota: form.pl_quota !== "" && form.pl_quota !== null && form.pl_quota !== undefined ? Number(form.pl_quota) : 15,
       };
       await apiFetch("/employees/", {
         method: "POST",
@@ -224,7 +227,7 @@ export default function StaffPage() {
         emp_id: "", department_id: "", is_hr: false, is_accounts: false, is_hod: false, is_tl: false,
         machine_user_id: "", base_salary: "", hod_department_ids: [],
         hod_user_id: "", tl_user_id: "", system_no: "", is_night_shift: false,
-        hod_user_ids: [], tl_user_ids: [],
+        hod_user_ids: [], tl_user_ids: [], cl_quota: 10, sl_quota: 12, pl_quota: 15,
       });
       await load();
     } catch (e) {
@@ -269,6 +272,9 @@ export default function StaffPage() {
         base_salary: Number.isFinite(parsedBaseSalary) ? parsedBaseSalary : undefined,
         bank_account: (editForm.bank_account ?? "").trim(),
         ifsc_code: (editForm.ifsc_code ?? "").trim(),
+        cl_quota: editForm.cl_quota !== "" && editForm.cl_quota !== null && editForm.cl_quota !== undefined ? Number(editForm.cl_quota) : 10,
+        sl_quota: editForm.sl_quota !== "" && editForm.sl_quota !== null && editForm.sl_quota !== undefined ? Number(editForm.sl_quota) : 12,
+        pl_quota: editForm.pl_quota !== "" && editForm.pl_quota !== null && editForm.pl_quota !== undefined ? Number(editForm.pl_quota) : 15,
         new_password: editForm.new_password?.trim() || undefined,
         is_active: !!editForm.is_active,
       };
@@ -474,6 +480,9 @@ export default function StaffPage() {
       base_salary:  emp.base_salary || "",
       bank_account: emp.bank_account || "",
       ifsc_code:    emp.ifsc_code   || "",
+      cl_quota:     emp.cl_quota    ?? 10,
+      sl_quota:     emp.sl_quota    ?? 12,
+      pl_quota:     emp.pl_quota    ?? 15,
       fingerprint_registered: emp.fingerprint_registered || false,
       face_registered: emp.face_registered || false,
       card_number: emp.card_number || "",
@@ -974,6 +983,15 @@ export default function StaffPage() {
             </div>
             <div className="form-group"><label className="label">System No.</label><input className="input" placeholder="System number" value={form.system_no} onChange={(e) => setForm((f) => ({ ...f, system_no: e.target.value }))} /></div>
             {isAdmin && <div className="form-group"><label className="label">Base Salary (₹)</label><input className="input" type="number" value={form.base_salary} onChange={(e) => setForm((f) => ({ ...f, base_salary: e.target.value }))} /></div>}
+
+            <div style={{ gridColumn: "1 / -1", marginTop: 8, padding: "10px 12px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: 8 }}>
+              <div className="label" style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: "var(--primary)" }}>🌴 Annual Leave Quotas</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
+                <div className="form-group"><label className="label">Casual Leave (CL)</label><input className="input" type="number" min="0" value={form.cl_quota} onChange={(e) => setForm((f) => ({ ...f, cl_quota: e.target.value }))} /></div>
+                <div className="form-group"><label className="label">Sick Leave (SL)</label><input className="input" type="number" min="0" value={form.sl_quota} onChange={(e) => setForm((f) => ({ ...f, sl_quota: e.target.value }))} /></div>
+                <div className="form-group"><label className="label">Privileged Leave (PL)</label><input className="input" type="number" min="0" value={form.pl_quota} onChange={(e) => setForm((f) => ({ ...f, pl_quota: e.target.value }))} /></div>
+              </div>
+            </div>
           </div>
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 4 }}>
             {/* Only admin can create HR */}
@@ -1131,6 +1149,15 @@ export default function StaffPage() {
             <div className="form-group"><label className="label">Bank Account</label><input className="input" value={editForm.bank_account} onChange={(e) => setEditForm((f) => ({ ...f, bank_account: e.target.value }))} /></div>
             <div className="form-group"><label className="label">IFSC Code</label><input className="input" value={editForm.ifsc_code} onChange={(e) => setEditForm((f) => ({ ...f, ifsc_code: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Reset Password (leave blank to keep)</label><PasswordInput autoComplete="new-password" name="staff_reset_password_no_autofill" minLength={6} placeholder="New password…" value={editForm.new_password} onChange={(e) => setEditForm((f) => ({ ...f, new_password: e.target.value }))} /></div>
+
+            <div style={{ gridColumn: "1 / -1", marginTop: 8, padding: "10px 12px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: 8 }}>
+              <div className="label" style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: "var(--primary)" }}>🌴 Annual Leave Quotas (Editable by HR / Admin)</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
+                <div className="form-group"><label className="label">Casual Leave (CL)</label><input className="input" type="number" min="0" value={editForm.cl_quota} onChange={(e) => setEditForm((f) => ({ ...f, cl_quota: e.target.value }))} /></div>
+                <div className="form-group"><label className="label">Sick Leave (SL)</label><input className="input" type="number" min="0" value={editForm.sl_quota} onChange={(e) => setEditForm((f) => ({ ...f, sl_quota: e.target.value }))} /></div>
+                <div className="form-group"><label className="label">Privileged Leave (PL)</label><input className="input" type="number" min="0" value={editForm.pl_quota} onChange={(e) => setEditForm((f) => ({ ...f, pl_quota: e.target.value }))} /></div>
+              </div>
+            </div>
           </div>
 
           <div style={{ height: 1, background: "var(--border)", margin: "20px 0" }} />

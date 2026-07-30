@@ -117,7 +117,26 @@ export default function GhostEmployeesPage() {
     }
   }
 
-  const departments = ["all", ...new Set(employees.map(e => e.department || "Unknown"))];
+  const DEFAULT_COMPANY_DEPARTMENTS = [
+    "Software Developer",
+    "HOD",
+    "HR",
+    "Administration",
+    "Social Media & Creatives",
+    "QA",
+    "Video Editor",
+    "Accounts & Finance",
+    "Marketing",
+    "Creatives",
+    "Information Security Engineer"
+  ];
+
+  const availableDepartments = Array.from(new Set([
+    ...DEFAULT_COMPANY_DEPARTMENTS,
+    ...employees.map(e => (e.department || "").trim()).filter(Boolean)
+  ])).sort();
+
+  const departments = ["all", ...availableDepartments];
   
   const filteredEmployees = employees.filter(e => {
     const matchesDept = filterDept === "all" || (e.department || "Unknown") === filterDept;
@@ -553,19 +572,19 @@ export default function GhostEmployeesPage() {
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>Department</label>
-                    <input
-                      type="text"
+                    <select
                       value={editForm.department}
                       onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
-                      list="ghost-dept-list"
                       required
                       style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }}
-                    />
-                    <datalist id="ghost-dept-list">
-                      {departments.filter(d => d !== "all").map(d => (
-                        <option key={d} value={d} />
+                    >
+                      <option value="">Select Department...</option>
+                      {availableDepartments.map((deptName) => (
+                        <option key={deptName} value={deptName}>
+                          {deptName}
+                        </option>
                       ))}
-                    </datalist>
+                    </select>
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>Job Title</label>

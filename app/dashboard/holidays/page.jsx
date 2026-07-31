@@ -62,17 +62,19 @@ export default function HolidaysPage() {
     }
   }
 
-  async function addSecondSaturdays() {
+  const [satOccurrence, setSatOccurrence] = useState(2);
+  const satLabels = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th" };
+
+  async function addNthSaturdays() {
     const dates = [];
     for (let m = 0; m < 12; m++) {
-      const firstDay = new Date(year, m, 1);
       let satCount = 0;
       for (let d = 1; d <= 31; d++) {
         const dt = new Date(year, m, d);
         if (dt.getMonth() !== m) break;
         if (dt.getDay() === 6) {
           satCount++;
-          if (satCount === 2) {
+          if (satCount === satOccurrence) {
             const iso = `${year}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
             dates.push(iso);
             break;
@@ -83,14 +85,14 @@ export default function HolidaysPage() {
     const existingDates = new Set(holidays.map((h) => h.date));
     const toAdd = dates.filter((d) => !existingDates.has(d));
     if (toAdd.length === 0) {
-      showToast("All 2nd Saturdays are already in the calendar", "error");
+      showToast(`All ${satLabels[satOccurrence]} Saturdays are already in the calendar`, "error");
       return;
     }
     try {
       for (const d of toAdd) {
-        await apiFetch("/attendance/holidays", { method: "POST", body: JSON.stringify({ date: d, name: "2nd Saturday (WFH)" }) });
+        await apiFetch("/attendance/holidays", { method: "POST", body: JSON.stringify({ date: d, name: `${satLabels[satOccurrence]} Saturday (WFH)` }) });
       }
-      showToast(`Added ${toAdd.length} 2nd Saturday(s) as WFH`);
+      showToast(`Added ${toAdd.length} ${satLabels[satOccurrence]} Saturday(s) as WFH`);
       load();
     } catch (error) {
       showToast(error.message, "error");
@@ -112,7 +114,7 @@ export default function HolidaysPage() {
       <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>Holiday Calendar</h1>
-          <p style={{ color: "var(--muted)", marginTop: 4 }}>{canManage ? "Manage the yearly holiday calendar. Add 2nd Saturdays as WFH to prevent salary deductions." : "View the company holiday calendar for the selected year."}</p>
+          <p style={{ color: "var(--muted)", marginTop: 4 }}>{canManage ? "Manage the yearly holiday calendar. Mark Saturdays as WFH to prevent salary deductions." : "View the company holiday calendar for the selected year."}</p>
         </div>
         <select className="input" style={{ width: "auto" }} value={year} onChange={(e) => setYear(+e.target.value)}>
           {[2024, 2025, 2026, 2027].map((item) => <option key={item} value={item}>{item}</option>)}
@@ -127,8 +129,15 @@ export default function HolidaysPage() {
             <div className="form-group" style={{ alignSelf: "end" }}><button className="btn-primary" onClick={addHoliday} disabled={!form.date || !form.name.trim()}>Add Holiday</button></div>
           </div>
           <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <button className="btn-ghost" style={{ border: "1px solid var(--border)" }} onClick={addSecondSaturdays}>📅 Quick Add All 2nd Saturdays ({year}) as WFH</button>
-            <span style={{ fontSize: 12, color: "var(--muted)" }}>Adds 2nd Saturday of each month so employees are not marked absent</span>
+            <select className="input" style={{ width: "auto" }} value={satOccurrence} onChange={(e) => setSatOccurrence(+e.target.value)}>
+              <option value={1}>1st Saturday</option>
+              <option value={2}>2nd Saturday</option>
+              <option value={3}>3rd Saturday</option>
+              <option value={4}>4th Saturday</option>
+              <option value={5}>5th Saturday</option>
+            </select>
+            <button className="btn-ghost" style={{ border: "1px solid var(--border)" }} onClick={addNthSaturdays}>📅 Quick Add All {satLabels[satOccurrence]} Saturdays ({year}) as WFH</button>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>Adds the selected Saturday of each month so employees are not marked absent</span>
           </div>
         </div>
       ) : null}

@@ -86,16 +86,17 @@ export default function PayslipPage() {
           </div>
           <div className="payslip-print-root">
             <div className="card payslip-sheet" style={{ maxWidth: 860, margin: "0 auto", background: "#ffffff", color: "#111827" }}>
-              <div className="payslip-header" style={{ padding: "24px 28px", borderBottom: "2px solid #1f2937", display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}>
+              <div className="payslip-header" style={{ padding: "24px 28px", background: "#0B1A3A", color: "#fff", display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}>
                 <div>
-                  <div className="syne" style={{ fontSize: 24, fontWeight: 800, letterSpacing: "0.03em", color: "#0f172a" }}>IUI Solutions</div>
-                  <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>Official Salary Statement</div>
+                  <div className="syne" style={{ fontSize: 22, fontWeight: 800, letterSpacing: "0.03em" }}>IUI Solutions Pvt. Ltd.</div>
+                  <div style={{ fontSize: 11, color: "#CBD5E1", marginTop: 4 }}>Regd. Office: New Delhi, India</div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em" }}>Payroll Month</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>{months[(data.month || month) - 1]} {data.year || year}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.04em" }}>SALARY SLIP</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>{months[(data.month || month) - 1]} {data.year || year}</div>
                 </div>
               </div>
+              <div style={{ textAlign: "center", fontSize: 10, color: "#64748b", padding: "6px 0", borderBottom: "1px solid #e2e8f0" }}>CONFIDENTIAL — For the addressee only</div>
 
               <div style={{ padding: 28 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 12, marginBottom: 18 }}>

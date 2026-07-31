@@ -15,8 +15,12 @@ export default function LeavesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ subject: "", description: "", start_date: "", end_date: "", leave_type: "Casual Leave" });
+  const [files, setFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [showToast, toastNode] = useToast();
+
+  const ALLOWED_EXT = [".pdf", ".jpg", ".jpeg", ".png", ".webp", ".gif"];
+  const MAX_FILES = 5;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,21 +44,32 @@ export default function LeavesPage() {
     const today = new Date().toISOString().split("T")[0];
     if (form.start_date < today) { showToast("Start date cannot be in the past", "error"); setSubmitting(false); return; }
     try {
-      await apiFetch("/leave/apply", {
-        method: "POST",
-        body: JSON.stringify({
-          subject:     form.subject || `${form.leave_type} request`,
-          leave_type:  form.leave_type,
-          description: form.description || "Leave requested",
-          start_date:  form.start_date,
-          end_date:    form.end_date,
-        }),
-      });
+      const fd = new FormData();
+      fd.append("subject", form.subject || `${form.leave_type} request`);
+      fd.append("leave_type", form.leave_type);
+      fd.append("description", form.description || "Leave requested");
+      fd.append("start_date", form.start_date);
+      fd.append("end_date", form.end_date);
+      files.forEach((f) => fd.append("attachments", f));
+      await apiFetch("/leave/apply", { method: "POST", body: fd });
       showToast("Leave application submitted!");
       setShowModal(false);
       setForm({ subject: "", description: "", start_date: "", end_date: "", leave_type: "Casual Leave" });
+      setFiles([]);
       load();
     } catch (e) { showToast(e.message, "error"); } finally { setSubmitting(false); }
+  }
+
+  function handleFileChange(e) {
+    const selected = Array.from(e.target.files || []);
+    const valid = selected.filter((f) => {
+      const ext = "." + f.name.split(".").pop().toLowerCase();
+      return ALLOWED_EXT.includes(ext);
+    });
+    if (valid.length !== selected.length) showToast("Some files were skipped (only PDF & images allowed)", "error");
+    const combined = [...files, ...valid].slice(0, MAX_FILES);
+    setFiles(combined);
+    e.target.value = "";
   }
 
   const quotas = balance?.annual_quotas;
@@ -106,7 +121,7 @@ export default function LeavesPage() {
         {loading ? <Loader /> : leaves.length === 0 ? <EmptyState icon="📅" title="No leaves yet" sub="Apply for your first leave" /> : (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>From</th><th>To</th><th>Category</th><th>Subject</th><th>Description</th><th>Status</th></tr></thead>
+              <thead><tr><th>From</th><th>To</th><th>Category</th><th>Subject</th><th>Description</th><th>Attachments</th><th>Status</th></tr></thead>
               <tbody>
                 {leaves.map((l, i) => (
                   <tr key={i}>
@@ -114,6 +129,13 @@ export default function LeavesPage() {
                     <td><span className="chip" style={{ fontWeight: 600 }}>{l.leave_type || "Casual Leave"}</span></td>
                     <td><span className="chip">{l.subject}</span></td>
                     <td style={{ maxWidth: 200 }}>{l.description}</td>
+                    <td>
+                      {(l.attachments?.length > 0) ? l.attachments.map((url, j) => (
+                        <a key={j} href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginRight: 6, fontSize: 12, color: "var(--accent)" }}>
+                          📎 File {j + 1}
+                        </a>
+                      )) : <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>}
+                    </td>
                     <td><StatusBadge status={l.status} /></td>
                   </tr>
                 ))}
@@ -138,6 +160,20 @@ export default function LeavesPage() {
             <div className="form-group"><label className="label">End Date</label><input className="input" type="date" value={form.end_date} onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))} required /></div>
           </div>
           <div className="form-group"><label className="label">Description</label><textarea className="input" rows={3} placeholder="Reason for leave…" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} /></div>
+          <div className="form-group">
+            <label className="label">Attachments <span style={{ fontWeight: 400, color: "var(--muted)" }}>(max 5 — PDF, JPG, PNG only)</span></label>
+            <input type="file" className="input" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" onChange={handleFileChange} style={{ padding: 8 }} />
+            {files.length > 0 && (
+              <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {files.map((f, i) => (
+                  <span key={i} className="chip" style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    📎 {f.name}
+                    <button type="button" onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </Modal>
       )}
       {toastNode}

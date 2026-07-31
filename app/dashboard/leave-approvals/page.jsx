@@ -112,6 +112,7 @@ export default function LeaveApprovalsPage() {
                   <th>From</th>
                   <th>To</th>
                   <th>Description</th>
+                  <th>Attachments</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -123,6 +124,13 @@ export default function LeaveApprovalsPage() {
                     <td>{fmtDate(item.start_date)}</td>
                     <td>{fmtDate(item.end_date)}</td>
                     <td style={{ maxWidth: 220 }}>{item.description}</td>
+                    <td>
+                      {(item.attachments?.length > 0) ? item.attachments.map((url, j) => (
+                        <a key={j} href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginRight: 6, fontSize: 12, color: "var(--accent)" }}>
+                          📎 File {j + 1}
+                        </a>
+                      )) : <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>}
+                    </td>
                     <td>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         <button className="btn-primary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => updateLeave(item, "approve_paid")}>Paid</button>
@@ -154,6 +162,7 @@ export default function LeaveApprovalsPage() {
                   <th>From</th>
                   <th>To</th>
                   <th>Subject</th>
+                  <th>Attachments</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -165,6 +174,13 @@ export default function LeaveApprovalsPage() {
                     <td>{fmtDate(item.start_date)}</td>
                     <td>{fmtDate(item.end_date)}</td>
                     <td>{item.subject}</td>
+                    <td>
+                      {(item.attachments?.length > 0) ? item.attachments.map((url, j) => (
+                        <a key={j} href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginRight: 6, fontSize: 12, color: "var(--accent)" }}>
+                          📎 File {j + 1}
+                        </a>
+                      )) : <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>}
+                    </td>
                     <td><StatusBadge status={item.status} /></td>
                   </tr>
                 ))}

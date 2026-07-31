@@ -10,7 +10,7 @@ import Loader from "@/components/ui/Loader";
 
 export default function HolidaysPage() {
   const { role } = useAuth();
-  const isAdmin = role === "admin";
+  const canManage = role === "admin" || role === "hr";
   const [year, setYear] = useState(new Date().getFullYear());
   const [holidays, setHolidays] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +62,41 @@ export default function HolidaysPage() {
     }
   }
 
+  async function addSecondSaturdays() {
+    const dates = [];
+    for (let m = 0; m < 12; m++) {
+      const firstDay = new Date(year, m, 1);
+      let satCount = 0;
+      for (let d = 1; d <= 31; d++) {
+        const dt = new Date(year, m, d);
+        if (dt.getMonth() !== m) break;
+        if (dt.getDay() === 6) {
+          satCount++;
+          if (satCount === 2) {
+            const iso = `${year}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+            dates.push(iso);
+            break;
+          }
+        }
+      }
+    }
+    const existingDates = new Set(holidays.map((h) => h.date));
+    const toAdd = dates.filter((d) => !existingDates.has(d));
+    if (toAdd.length === 0) {
+      showToast("All 2nd Saturdays are already in the calendar", "error");
+      return;
+    }
+    try {
+      for (const d of toAdd) {
+        await apiFetch("/attendance/holidays", { method: "POST", body: JSON.stringify({ date: d, name: "2nd Saturday (WFH)" }) });
+      }
+      showToast(`Added ${toAdd.length} 2nd Saturday(s) as WFH`);
+      load();
+    } catch (error) {
+      showToast(error.message, "error");
+    }
+  }
+
   async function deleteHoliday(id) {
     try {
       await apiFetch(`/attendance/holidays/${id}`, { method: "DELETE" });
@@ -77,19 +112,23 @@ export default function HolidaysPage() {
       <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>Holiday Calendar</h1>
-          <p style={{ color: "var(--muted)", marginTop: 4 }}>{isAdmin ? "Manage the yearly holiday calendar." : "View the company holiday calendar for the selected year."}</p>
+          <p style={{ color: "var(--muted)", marginTop: 4 }}>{canManage ? "Manage the yearly holiday calendar. Add 2nd Saturdays as WFH to prevent salary deductions." : "View the company holiday calendar for the selected year."}</p>
         </div>
         <select className="input" style={{ width: "auto" }} value={year} onChange={(e) => setYear(+e.target.value)}>
           {[2024, 2025, 2026, 2027].map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
       </div>
 
-      {isAdmin ? (
+      {canManage ? (
         <div className="card" style={{ padding: 24, marginBottom: 24 }}>
           <div className="form-row">
             <div className="form-group"><label className="label">Date</label><input className="input" type="date" value={form.date} onChange={(e) => setForm((current) => ({ ...current, date: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Holiday Name</label><input className="input" value={form.name} onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))} /></div>
             <div className="form-group" style={{ alignSelf: "end" }}><button className="btn-primary" onClick={addHoliday} disabled={!form.date || !form.name.trim()}>Add Holiday</button></div>
+          </div>
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <button className="btn-ghost" style={{ border: "1px solid var(--border)" }} onClick={addSecondSaturdays}>📅 Quick Add All 2nd Saturdays ({year}) as WFH</button>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>Adds 2nd Saturday of each month so employees are not marked absent</span>
           </div>
         </div>
       ) : null}
@@ -106,7 +145,7 @@ export default function HolidaysPage() {
                   <tr key={holiday.id}>
                     <td>{fmtDate(holiday.date)}</td>
                     <td>{holiday.name}</td>
-                    <td>{isAdmin ? <button className="btn-danger" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => deleteHoliday(holiday.id)}>Delete</button> : "View only"}</td>
+                    <td>{canManage ? <button className="btn-danger" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => deleteHoliday(holiday.id)}>Delete</button> : "View only"}</td>
                   </tr>
                 ))}
               </tbody>

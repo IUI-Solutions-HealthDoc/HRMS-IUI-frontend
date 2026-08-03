@@ -49,7 +49,7 @@ function StarRow({ value = 0, onChange, readOnly = false, size = 18 }) {
 
 export default function PeerRatingsPage() {
   const { role, user } = useAuth();
-  const { showToast } = useToast();
+  const [showToast, toastNode] = useToast();
   
   const [activeTab, setActiveTab] = useState("give"); // "give" | "my" | "admin"
   const [loading, setLoading] = useState(true);
@@ -142,15 +142,15 @@ export default function PeerRatingsPage() {
   };
 
   const filteredEmployees = employees.filter(emp =>
-    emp.name.toLowerCase().includes(searchEmployee.toLowerCase()) ||
-    emp.username.toLowerCase().includes(searchEmployee.toLowerCase()) ||
-    emp.department.toLowerCase().includes(searchEmployee.toLowerCase())
+    (emp.name || "").toLowerCase().includes(searchEmployee.toLowerCase()) ||
+    (emp.username || "").toLowerCase().includes(searchEmployee.toLowerCase()) ||
+    (emp.department || "").toLowerCase().includes(searchEmployee.toLowerCase())
   );
 
   const filteredSummary = summary.filter(emp =>
-    emp.employee_name.toLowerCase().includes(searchSummary.toLowerCase()) ||
-    emp.username.toLowerCase().includes(searchSummary.toLowerCase()) ||
-    emp.department.toLowerCase().includes(searchSummary.toLowerCase())
+    (emp.employee_name || "").toLowerCase().includes(searchSummary.toLowerCase()) ||
+    (emp.username || "").toLowerCase().includes(searchSummary.toLowerCase()) ||
+    (emp.department || "").toLowerCase().includes(searchSummary.toLowerCase())
   );
 
   if (loading) {
@@ -559,6 +559,7 @@ export default function PeerRatingsPage() {
           </div>
         </div>
       )}
+      {toastNode}
     </div>
   );
 }

@@ -129,6 +129,72 @@ export default function PayrollPage() {
         </div>
       </div>
 
+      {/* Performance to Payroll Workflow Structure */}
+      <div className="card" style={{ padding: 24, marginBottom: 24, background: "linear-gradient(135deg, rgba(30,27,75,0.4) 0%, rgba(15,23,42,0.6) 100%)", border: "1px solid rgba(99,102,241,0.25)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#a78bfa", marginBottom: 4 }}>
+              🔄 Standard HRMS Cycle Pipeline
+            </div>
+            <h2 className="syne" style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>End-to-End Performance & Payroll Workflow</h2>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--muted)", background: "rgba(255,255,255,0.05)", padding: "6px 12px", borderRadius: 20, border: "1px solid var(--border)" }}>
+            14 Total Workflow Phases
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12 }}>
+          {[
+            { step: 1, name: "Employee Performance Data", desc: "Attendance & KPI tracking", link: "/dashboard/performance", icon: "📊" },
+            { step: 2, name: "Self Assessment (Optional)", desc: "Employee self-rating", link: "/dashboard/appraisal", icon: "📝" },
+            { step: 3, name: "Peer Rating", desc: "Anonymous peer feedback", link: "/dashboard/peer-ratings", icon: "⭐" },
+            { step: 4, name: "Manager/TL Review", desc: "Team Lead review & scoring", link: "/dashboard/team-reviews", icon: "👥" },
+            { step: 5, name: "HOD Review", desc: "Department Head sign-off", link: "/dashboard/appraisal", icon: "🏢" },
+            { step: 6, name: "HR Review", desc: "Policy & appraisal audit", link: "/dashboard/appraisal", icon: "👔" },
+            { step: 7, name: "Appraisal Recommendation", desc: "Salary revision proposal", link: "/dashboard/appraisal", icon: "💡" },
+            { step: 8, name: "Management/Super Admin Approval", desc: "Super Admin final approval", link: "/dashboard/payroll", icon: "👑" },
+            { step: 9, name: "Payroll Team (Accountant)", desc: "Accounts processing queue", link: "/dashboard/payroll", icon: "🏦" },
+            { step: 10, name: "Salary Revision Processing", desc: "Base salary & deductions", link: "/dashboard/payroll", icon: "📈" },
+            { step: 11, name: "Payroll Summary Update", desc: "Net salary calculations", link: "/dashboard/payroll", icon: "💵" },
+            { step: 12, name: "Payslip Generation", desc: "PDF document building", link: "/dashboard/payslip", icon: "📄" },
+            { step: 13, name: "Employee Notification", desc: "Email & portal notification", link: "/dashboard/payslip", icon: "🔔" },
+            { step: 14, name: "Completed", desc: "Cycle finalized & locked", link: "/dashboard/payroll", icon: "✅" }
+          ].map((item) => (
+            <a
+              key={item.step}
+              href={item.link}
+              style={{
+                textDecoration: "none",
+                color: "inherit",
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                padding: "12px 14px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                transition: "all 0.2s ease"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "var(--primary, #6366f1)";
+                e.currentTarget.style.background = "rgba(99,102,241,0.1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "var(--border)";
+                e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#818cf8" }}>Step {item.step}</span>
+                <span style={{ fontSize: 14 }}>{item.icon}</span>
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{item.name}</div>
+              <div style={{ fontSize: 11, color: "var(--muted)" }}>{item.desc}</div>
+            </a>
+          ))}
+        </div>
+      </div>
+
       {isAdmin && (
         <div className="card" style={{ padding: 18, marginBottom: 24, background: "rgba(59,130,246,0.08)" }}>
           Payroll is view-only here for Admin. Use the Increments section for approvals and leave salary edits to Accounts.

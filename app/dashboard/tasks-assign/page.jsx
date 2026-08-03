@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import Modal from "@/components/ui/Modal";
@@ -30,6 +30,7 @@ export default function TasksAssignPage() {
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [reviewTarget, setReviewTarget] = useState(null);
   const [reviewReason, setReviewReason] = useState("");
+  const [expandedHistory, setExpandedHistory] = useState(null);
   const [showToast, toastNode] = useToast();
 
   const load = useCallback(async () => {
@@ -106,7 +107,11 @@ export default function TasksAssignPage() {
   async function downloadReport() {
     try {
       const res = await fetch(`/api/proxy/exports/tasks/`, { headers: { Authorization: `Bearer ${getToken()}` } });
-      if (!res.ok) throw new Error("Download failed");
+      if (!res.ok) {
+        let msg = "Download failed";
+        try { const err = await res.json(); msg = err.detail || msg; } catch {}
+        throw new Error(msg);
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
@@ -168,13 +173,16 @@ export default function TasksAssignPage() {
             <table>
               <thead><tr><th>Date</th><th>Name of Employee</th><th>Task Details</th><th>No. Tasks Provided</th><th>Deadline</th><th>Status</th><th>Attachment</th><th>Actions</th></tr></thead>
               <tbody>
-                {tasks.map((t, i) => (
+                {tasks.map((t, i) => {
+                  const revCount = t.revision_count || (t.reverts?.length || 0);
+                  return (
                   <tr key={i}>
                     <td>{t.assigned_date ? new Date(t.assigned_date).toLocaleDateString("en-IN") : "—"}</td>
                     <td>{t.assigned_to_name || t.emp_id}</td>
                     <td>
                       <div style={{ fontWeight: 700 }}>{t.title}</div>
                       <div style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12, color: "var(--muted)" }}>{t.description}</div>
+                      {revCount > 1 && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "rgba(245,158,11,0.15)", color: "#b45309", fontWeight: 600, marginTop: 2, display: "inline-block" }}>Revision {revCount}</span>}
                     </td>
                     <td>{t.task_count || 1}</td>
                     <td>{t.deadline ? new Date(t.deadline).toLocaleString("en-IN") : "—"}</td>
@@ -191,7 +199,8 @@ export default function TasksAssignPage() {
                       </div>
                     )}</td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -207,9 +216,17 @@ export default function TasksAssignPage() {
               <thead><tr><th>Task</th><th>Employee</th><th>Notes</th><th>Attachments</th><th>TL Status</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>{pendingApprovals.map((item) => {
                 const totalAttachments = (item.image_urls?.length || 0) + (item.attachments?.length || 0);
+                const revCount = item.revision_count || (item.reverts?.length || 0);
+                const revHistory = (item.reverts || []).slice(1);
+                const isExpanded = expandedHistory === item.revert_id;
                 return (
-                <tr key={item.revert_id}>
-                  <td>{item.title}{item.task_link ? <div style={{ fontSize: 11 }}><a href={item.task_link} target="_blank" rel="noreferrer">Open link</a></div> : null}</td>
+                <React.Fragment key={item.revert_id}>
+                <tr>
+                  <td>
+                    {item.title}
+                    {revCount > 1 && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "rgba(245,158,11,0.15)", color: "#b45309", fontWeight: 600, marginLeft: 6 }}>Rev {revCount}</span>}
+                    {item.task_link ? <div style={{ fontSize: 11 }}><a href={item.task_link} target="_blank" rel="noreferrer">Open link</a></div> : null}
+                  </td>
                   <td>{item.assigned_to_name}</td>
                   <td style={{ maxWidth: 220 }}>{item.employee_notes || item.remarks || "—"}</td>
                   <td>
@@ -226,8 +243,37 @@ export default function TasksAssignPage() {
                   </td>
                   <td>{item.tl_status && item.tl_status !== "skipped" ? <StatusBadge status={item.tl_status} /> : <span style={{ fontSize: 11, color: "var(--muted)" }}>—</span>}</td>
                   <td><StatusBadge status={item.hod_status || item.status} /></td>
-                  <td><div style={{ display: "flex", gap: 6 }}><button className="btn-primary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => reviewTask(item.revert_id, "Approved")}>Approve</button><button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => setReviewTarget(item.revert_id)}>Needs Revisions</button></div></td>
+                  <td>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      <button className="btn-primary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => reviewTask(item.revert_id, "Approved")}>Approve</button>
+                      <button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => setReviewTarget(item.revert_id)}>Needs Revisions</button>
+                      {revHistory.length > 0 && (
+                        <button style={{ padding: "4px 10px", fontSize: 11, border: "1px solid var(--border)", borderRadius: 8, background: isExpanded ? "rgba(99,102,241,0.08)" : "transparent", color: "var(--text)", cursor: "pointer" }} onClick={() => setExpandedHistory(isExpanded ? null : item.revert_id)}>
+                          {isExpanded ? "▲ Hide" : "▼ History"} ({revHistory.length})
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
+                {isExpanded && revHistory.map((rev) => (
+                  <tr key={`hist-${rev.id}`} style={{ background: "rgba(99,102,241,0.04)" }}>
+                    <td colSpan={7} style={{ padding: "10px 20px" }}>
+                      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
+                        <div>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)" }}>Revision {rev.revision_number || 1}</span>
+                          {rev.submitted_on && <span style={{ fontSize: 11, color: "var(--muted)", marginLeft: 8 }}>{new Date(rev.submitted_on).toLocaleString("en-IN")}</span>}
+                        </div>
+                        <div style={{ fontSize: 12 }}>
+                          <StatusBadge status={rev.hod_status} />
+                          {rev.rejection_reason && <span style={{ color: "#dc2626", marginLeft: 8 }}>— {rev.rejection_reason}</span>}
+                        </div>
+                        {rev.employee_notes && <div style={{ fontSize: 12, color: "var(--text)" }}>Notes: {rev.employee_notes}</div>}
+                        {rev.output_text && <div style={{ fontSize: 12, color: "var(--muted)" }}>Output: {rev.output_text}</div>}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                </React.Fragment>
                 );
               })}</tbody>
             </table>

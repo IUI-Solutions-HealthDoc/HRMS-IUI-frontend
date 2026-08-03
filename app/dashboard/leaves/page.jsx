@@ -73,6 +73,7 @@ export default function LeavesPage() {
   }
 
   const quotas = balance?.annual_quotas;
+  const todayDate = new Date().toISOString().split("T")[0];
 
   return (
     <div>
@@ -156,8 +157,8 @@ export default function LeavesPage() {
           </div>
           <div className="form-group"><label className="label">Subject</label><input className="input" placeholder="e.g. Family function, Medical, etc." value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} required /></div>
           <div className="form-row">
-            <div className="form-group"><label className="label">Start Date</label><input className="input" type="date" value={form.start_date} onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))} required /></div>
-            <div className="form-group"><label className="label">End Date</label><input className="input" type="date" value={form.end_date} onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))} required /></div>
+            <div className="form-group"><label className="label">Start Date</label><input className="input" type="date" min={todayDate} value={form.start_date} onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))} required /></div>
+            <div className="form-group"><label className="label">End Date</label><input className="input" type="date" min={form.start_date || todayDate} value={form.end_date} onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))} required /></div>
           </div>
           <div className="form-group"><label className="label">Description</label><textarea className="input" rows={3} placeholder="Reason for leave…" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} /></div>
           <div className="form-group">

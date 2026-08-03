@@ -842,17 +842,19 @@ export default function AttendanceHRPage() {
           </div>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Employee</th><th>Date</th><th>Status</th><th>Reason</th></tr></thead>
+              <thead><tr><th>Employee</th><th>Date</th><th>Check In</th><th>Check Out</th><th>Status</th><th>Reason</th></tr></thead>
               <tbody>
                 {paginatedEditedRecords.map((record) => (
                   <tr key={record.id} onClick={() => setDetailRecord(record)} style={{ cursor: "pointer" }}>
                     <td><b>{record.employee_name}</b><div style={{ fontSize: 12, color: "var(--muted)" }}>{record.emp_id}</div></td>
                     <td>{record.date}</td>
+                    <td>{record.check_in || "—"}</td>
+                    <td>{record.check_out || "—"}</td>
                     <td><StatusBadge status={record.status} /></td>
                     <td>{record.edit_reason || "—"}</td>
                   </tr>
                 ))}
-                {editedRecords.length === 0 ? <tr><td colSpan={4} style={{ color: "var(--muted)" }}>No manual attendance edits found for {year}.</td></tr> : null}
+                {editedRecords.length === 0 ? <tr><td colSpan={6} style={{ color: "var(--muted)" }}>No manual attendance edits found for {year}.</td></tr> : null}
               </tbody>
             </table>
           </div>

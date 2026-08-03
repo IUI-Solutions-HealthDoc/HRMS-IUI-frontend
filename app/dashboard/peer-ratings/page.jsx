@@ -75,7 +75,7 @@ export default function PeerRatingsPage() {
   const [summary, setSummary] = useState([]);
   const [searchSummary, setSearchSummary] = useState("");
   
-  const isPrivileged = ["admin", "hr", "hod", "tl"].includes(role);
+  const isPrivileged = ["admin", "hr", "hod"].includes(role);
 
   const loadData = async () => {
     setLoading(true);

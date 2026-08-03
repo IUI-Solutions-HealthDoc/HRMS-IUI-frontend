@@ -21,7 +21,7 @@ function EmployeeDashboard({ user, showToast }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [leaveModal, setLeaveModal] = useState(false);
-  const [leaveForm, setLeaveForm] = useState({ subject: "", description: "", start_date: "", end_date: "" });
+  const [leaveForm, setLeaveForm] = useState({ subject: "", description: "", start_date: "", end_date: "", leave_type: "Casual Leave" });
 
   useEffect(() => {
     const load = async () => {
@@ -43,6 +43,10 @@ function EmployeeDashboard({ user, showToast }) {
   }, []);
 
   async function submitQuickLeave() {
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (!leaveForm.start_date || !leaveForm.end_date) { showToast("Please select both start and end dates", "error"); return; }
+    if (leaveForm.end_date < leaveForm.start_date) { showToast("End date cannot be before start date", "error"); return; }
+    if (leaveForm.start_date < todayStr) { showToast("Start date cannot be in the past", "error"); return; }
     try {
       await apiFetch("/leave/apply", {
         method: "POST",
@@ -51,11 +55,12 @@ function EmployeeDashboard({ user, showToast }) {
           description: leaveForm.description || "Leave requested",
           start_date: leaveForm.start_date,
           end_date: leaveForm.end_date,
+          leave_type: leaveForm.leave_type,
         }),
       });
       showToast("Leave applied!");
       setLeaveModal(false);
-      setLeaveForm({ subject: "", description: "", start_date: "", end_date: "" });
+      setLeaveForm({ subject: "", description: "", start_date: "", end_date: "", leave_type: "Casual Leave" });
     } catch (e) {
       showToast(e.message, "error");
     }
@@ -147,10 +152,17 @@ function EmployeeDashboard({ user, showToast }) {
       {leaveModal && (
         <Modal title="Apply for Leave" onClose={() => setLeaveModal(false)}
           footer={<><button className="btn-ghost" onClick={() => setLeaveModal(false)}>Cancel</button><button className="btn-primary" onClick={submitQuickLeave}>Apply</button></>}>
+          <div className="form-group"><label className="label">Leave Category</label>
+            <select className="input" value={leaveForm.leave_type} onChange={(e) => setLeaveForm((form) => ({ ...form, leave_type: e.target.value }))}>
+              <option value="Casual Leave">Casual Leave (CL)</option>
+              <option value="Sick Leave">Sick Leave (SL)</option>
+              <option value="Privileged Leave">Privileged Leave (PL)</option>
+            </select>
+          </div>
           <div className="form-group"><label className="label">Subject</label><input className="input" value={leaveForm.subject} onChange={(e) => setLeaveForm((form) => ({ ...form, subject: e.target.value }))} /></div>
           <div className="form-row">
-            <div className="form-group"><label className="label">Start Date</label><input className="input" type="date" value={leaveForm.start_date} onChange={(e) => setLeaveForm((form) => ({ ...form, start_date: e.target.value }))} /></div>
-            <div className="form-group"><label className="label">End Date</label><input className="input" type="date" value={leaveForm.end_date} onChange={(e) => setLeaveForm((form) => ({ ...form, end_date: e.target.value }))} /></div>
+            <div className="form-group"><label className="label">Start Date</label><input className="input" type="date" min={new Date().toISOString().split("T")[0]} value={leaveForm.start_date} onChange={(e) => setLeaveForm((form) => ({ ...form, start_date: e.target.value }))} /></div>
+            <div className="form-group"><label className="label">End Date</label><input className="input" type="date" min={leaveForm.start_date || new Date().toISOString().split("T")[0]} value={leaveForm.end_date} onChange={(e) => setLeaveForm((form) => ({ ...form, end_date: e.target.value }))} /></div>
           </div>
           <div className="form-group"><label className="label">Description</label><textarea className="input" rows={3} value={leaveForm.description} onChange={(e) => setLeaveForm((form) => ({ ...form, description: e.target.value }))} /></div>
         </Modal>

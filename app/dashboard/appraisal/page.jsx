@@ -171,10 +171,10 @@ export default function AppraisalPage() {
                   {showFinancialColumns ? <td>{fmtINR(r.increment_amount)}</td> : null}
                   {showFinancialColumns ? <td><span style={{ fontWeight: 700, color: "#10b981" }}>{fmtINR(r.proposed_salary)}</span></td> : null}
                   <td>{r.requested_by_name || `ID: ${r.requested_by_id}`}</td>
-                  <td style={{ maxWidth: 220 }}>
-                    <div>{r.justification}</div>
-                    {r.accounts_comments ? <div style={{ marginTop: 6, fontSize: 12, color: "var(--muted)" }}>Accounts: {r.accounts_comments}</div> : null}
-                    {r.admin_comments ? <div style={{ marginTop: 4, fontSize: 12, color: "var(--muted)" }}>Admin: {r.admin_comments}</div> : null}
+                  <td style={{ maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.justification}>
+                    <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.justification}</div>
+                    {r.accounts_comments ? <div style={{ marginTop: 6, fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={`Accounts: ${r.accounts_comments}`}>Accounts: {r.accounts_comments}</div> : null}
+                    {r.admin_comments ? <div style={{ marginTop: 4, fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={`Admin: ${r.admin_comments}`}>Admin: {r.admin_comments}</div> : null}
                   </td>
                   <td><StatusBadge status={r.status} /></td>
                   <td>{(isAccounts && r.status === "pending_accounts") || (isAdmin && r.status === "pending_admin") ? (

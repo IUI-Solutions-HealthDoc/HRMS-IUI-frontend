@@ -102,12 +102,21 @@ export default function TasksPage() {
             <table>
               <thead><tr><th>Date</th><th>Name of Task</th><th>Completed</th><th>Completion %</th><th>Output</th><th>Pictures</th><th>Link</th><th>Issue</th><th>Hours</th><th>Remark</th><th>Actions</th></tr></thead>
               <tbody>
-                {tasks.map((t, i) => (
+                {tasks.map((t, i) => {
+                  const prevRejected = (t.reverts || []).find(r => r.hod_status === "needs revisions" || r.hod_status === "rejected");
+                  const revCount = t.revision_count || (t.reverts?.length || 0);
+                  return (
                   <tr key={i}>
-                    <td>{t.revert ? fmtDate(t.assigned_date || t.deadline) : fmtDate(t.assigned_date || t.deadline)}</td>
+                    <td>{fmtDate(t.assigned_date || t.deadline)}</td>
                     <td>
                       <div style={{ fontWeight: 700 }}>{t.title}</div>
                       <div style={{ fontSize: 11, color: "var(--muted)" }}>{t.description}</div>
+                      {revCount > 1 && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "rgba(245,158,11,0.15)", color: "#b45309", fontWeight: 600 }}>Revision {revCount}</span>}
+                      {prevRejected?.rejection_reason && (
+                        <div style={{ fontSize: 11, color: "#dc2626", marginTop: 4, padding: "4px 8px", background: "rgba(220,38,38,0.06)", borderRadius: 8 }}>
+                          ↩ Revision reason: {prevRejected.rejection_reason}
+                        </div>
+                      )}
                     </td>
                     <td>{t.revert?.completed_flag ? "Yes" : "No"}</td>
                     <td>{t.revert?.completion_percent ?? 0}%</td>
@@ -124,9 +133,10 @@ export default function TasksPage() {
                     <td style={{ maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.revert?.issue_text || "—"}</td>
                     <td>{t.revert?.hours_taken ?? "—"}</td>
                     <td style={{ maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.revert?.remarks || t.revert?.employee_notes || "—"}</td>
-                    <td>{t.status === "pending" && <button className="btn-primary" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => { setWorkModal(t); setWorkForm((current) => ({ ...current, task_name: t.title })); }}>Submit Work</button>}</td>
+                    <td>{t.status === "pending" && <button className="btn-primary" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => { setWorkModal(t); setWorkForm((current) => ({ ...current, task_name: t.title })); }}>{revCount > 0 ? "Submit Revision" : "Submit Work"}</button>}</td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

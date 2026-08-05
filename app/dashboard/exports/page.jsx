@@ -72,10 +72,12 @@ export default function ExportsPage() {
           </div> : null}
           <div className="form-group">
             <label className="label">{isAccounts ? "Employee (optional)" : "Employee"}</label>
-            <select className="input" value={employee} onChange={(e) => setEmployee(e.target.value)}>
+            <input className="input" list="emp-search-list" placeholder="Type to search employees…" value={employee ? `${employee} - ${(employees.find((e) => e.emp_id === employee) || {}).first_name || ""} ${(employees.find((e) => e.emp_id === employee) || {}).last_name || ""}`.trim() : ""} onChange={(e) => { const val = e.target.value; const match = employees.find((emp) => `${emp.emp_id} - ${emp.first_name} ${emp.last_name}` === val); setEmployee(match ? match.emp_id : (val === "" ? "" : employee)); if (val === "") setEmployee(""); }} onBlur={(e) => { if (!e.target.value) setEmployee(""); }} />
+            <datalist id="emp-search-list">
               <option value="">All employees</option>
-              {employees.map((item) => <option key={item.emp_id} value={item.emp_id}>{item.emp_id} - {item.first_name} {item.last_name}</option>)}
-            </select>
+              {employees.map((item) => <option key={item.emp_id} value={`${item.emp_id} - ${item.first_name} ${item.last_name}`} />)}
+            </datalist>
+            {employee && <button type="button" onClick={() => setEmployee("")} style={{ fontSize: 11, color: "#ef4444", background: "none", border: "none", cursor: "pointer", padding: "4px 0", marginTop: 2 }}>✕ Clear</button>}
           </div>
         </div>
       </div>

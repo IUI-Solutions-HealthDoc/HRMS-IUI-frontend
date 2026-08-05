@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [form, setForm] = useState({ identifier: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [ghostMode, setGhostMode] = useState(false);
   const [ghostPassphrase, setGhostPassphrase] = useState("");
   const [ghostLoading, setGhostLoading] = useState(false);
@@ -27,7 +28,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (err) {
-      const timer = setTimeout(() => setErr(""), 5000);
+      const timer = setTimeout(() => setErr(""), 8000);
       return () => clearTimeout(timer);
     }
   }, [err]);
@@ -40,11 +41,12 @@ export default function LoginPage() {
     }
     setLoading(true);
     setErr("");
+    setSuccessMsg("");
     try {
       await login(form);
       setFailedAttempts(0);
+      setSuccessMsg("✓ Login Successful! Redirecting to dashboard...");
     } catch (e) {
-      setErr(e.message || "Invalid username or password");
       const nextCount = failedAttempts + 1;
       setFailedAttempts(nextCount);
       if (nextCount >= 5) {
@@ -54,6 +56,10 @@ export default function LoginPage() {
           setIsLocked(false);
           setFailedAttempts(0);
         }, 5 * 60 * 1000);
+      } else {
+        const remaining = 5 - nextCount;
+        const rawMsg = e.message || "Invalid username/email or password";
+        setErr(`${rawMsg} (${remaining} attempt${remaining > 1 ? "s" : ""} remaining before account lock)`);
       }
     } finally {
       setLoading(false);
@@ -146,6 +152,24 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit}>
+              {successMsg && (
+                <div
+                  style={{
+                    background: "rgba(16,185,129,0.18)",
+                    border: "1px solid #10b981",
+                    borderRadius: 10,
+                    padding: "12px 16px",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#10b981",
+                    marginBottom: 20,
+                    textAlign: "center",
+                    boxShadow: "0 0 20px rgba(16,185,129,0.25)"
+                  }}
+                >
+                  {successMsg}
+                </div>
+              )}
               {err && (
                 <div
                   style={{

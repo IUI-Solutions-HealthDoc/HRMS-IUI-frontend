@@ -7,17 +7,25 @@ import { fmtDate } from "@/lib/formatters";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
-import Loader from "@/components/ui/Loader";
+import Pagination from "@/components/ui/Pagination";
+
+
+const EMPTY_LEAVE_FORM = { subject: "", description: "", start_date: "", end_date: "", leave_type: "Casual Leave" };
 
 export default function LeavesPage() {
   const [leaves, setLeaves] = useState([]);
   const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ subject: "", description: "", start_date: "", end_date: "", leave_type: "Casual Leave" });
+  const [form, setForm] = useState(EMPTY_LEAVE_FORM);
   const [files, setFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PER_PAGE = 10;
   const [showToast, toastNode] = useToast();
+
+  const safePage = Math.min(currentPage, Math.max(1, Math.ceil(leaves.length / PER_PAGE)));
+  const paginatedLeaves = leaves.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
 
   const ALLOWED_EXT = [".pdf", ".jpg", ".jpeg", ".png", ".webp", ".gif"];
   const MAX_FILES = 5;
@@ -54,7 +62,7 @@ export default function LeavesPage() {
       await apiFetch("/leave/apply", { method: "POST", body: fd });
       showToast("Leave application submitted!");
       setShowModal(false);
-      setForm({ subject: "", description: "", start_date: "", end_date: "", leave_type: "Casual Leave" });
+      setForm(EMPTY_LEAVE_FORM);
       setFiles([]);
       load();
     } catch (e) { showToast(e.message, "error"); } finally { setSubmitting(false); }
@@ -72,6 +80,17 @@ export default function LeavesPage() {
     e.target.value = "";
   }
 
+  async function cancelLeave(id) {
+    if (!window.confirm("Are you sure you want to cancel this pending leave request?")) return;
+    try {
+      await apiFetch(`/leave/${id}/cancel`, { method: "POST" });
+      showToast("Leave request cancelled");
+      load();
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  }
+
   const quotas = balance?.annual_quotas;
   const todayDate = new Date().toISOString().split("T")[0];
 
@@ -82,7 +101,7 @@ export default function LeavesPage() {
           <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>My Leaves</h1>
           <p style={{ color: "var(--muted)", marginTop: 4 }}>Annual Quotas: {quotas?.casual?.total ?? 10} Casual Leaves, {quotas?.sick?.total ?? 12} Sick Leaves & {quotas?.privileged?.total ?? 15} Privileged Leaves per year</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>+ Apply Leave</button>
+        <button className="btn-primary" onClick={() => { setForm(EMPTY_LEAVE_FORM); setFiles([]); setShowModal(true); }}>+ Apply Leave</button>
       </div>
 
       <div className="grid-stats" style={{ marginBottom: 24 }}>
@@ -122,9 +141,9 @@ export default function LeavesPage() {
         {loading ? <Loader /> : leaves.length === 0 ? <EmptyState icon="📅" title="No leaves yet" sub="Apply for your first leave" /> : (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>From</th><th>To</th><th>Category</th><th>Subject</th><th>Description</th><th>Attachments</th><th>Status</th></tr></thead>
+              <thead><tr><th>From</th><th>To</th><th>Category</th><th>Subject</th><th>Description</th><th>Attachments</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
-                {leaves.map((l, i) => (
+                {paginatedLeaves.map((l, i) => (
                   <tr key={i}>
                     <td>{fmtDate(l.start_date)}</td><td>{fmtDate(l.end_date)}</td>
                     <td><span className="chip" style={{ fontWeight: 600 }}>{l.leave_type || "Casual Leave"}</span></td>
@@ -137,13 +156,33 @@ export default function LeavesPage() {
                         </a>
                       )) : <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>}
                     </td>
-                    <td><StatusBadge status={l.status} /></td>
+                    <td>
+                      <StatusBadge status={l.status} />
+                      {l.action_by_name && (
+                        <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 2 }}>
+                          by {l.action_by_name} {l.action_by_role ? `(${l.action_by_role})` : ""}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      {l.status === "Pending" ? (
+                        <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: 12, color: "#ef4444" }} onClick={() => cancelLeave(l.id)}>
+                          Cancel
+                        </button>
+                      ) : "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
+        <Pagination
+          currentPage={safePage}
+          totalItems={leaves.length}
+          pageSize={PER_PAGE}
+          onPageChange={(p) => setCurrentPage(p)}
+        />
       </div>
       {showModal && (
         <Modal title="Apply for Leave" onClose={() => setShowModal(false)}
@@ -155,11 +194,17 @@ export default function LeavesPage() {
               <option value="Privileged Leave">Privileged Leave (PL - 15/yr)</option>
             </select>
           </div>
-          <div className="form-group"><label className="label">Subject</label><input className="input" placeholder="e.g. Family function, Medical, etc." value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} required /></div>
+          <div className="form-group"><label className="label">Subject <span style={{ color: "#ef4444" }}>*</span></label><input className="input" placeholder="e.g. Family function, Medical, etc." value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} required /></div>
           <div className="form-row">
-            <div className="form-group"><label className="label">Start Date</label><input className="input" type="date" min={todayDate} value={form.start_date} onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))} required /></div>
-            <div className="form-group"><label className="label">End Date</label><input className="input" type="date" min={form.start_date || todayDate} value={form.end_date} onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))} required /></div>
+            <div className="form-group"><label className="label">Start Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" min={todayDate} value={form.start_date} onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))} required /></div>
+            <div className="form-group"><label className="label">End Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" min={form.start_date || todayDate} value={form.end_date} onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))} required /></div>
           </div>
+          {(() => {
+            const warn = [];
+            if (form.start_date) { const d = new Date(form.start_date + "T00:00:00"); if (d.getDay() === 0) warn.push("Start date is a Sunday"); else if (d.getDay() === 6) warn.push("Start date is a Saturday"); }
+            if (form.end_date) { const d = new Date(form.end_date + "T00:00:00"); if (d.getDay() === 0) warn.push("End date is a Sunday"); else if (d.getDay() === 6) warn.push("End date is a Saturday"); }
+            return warn.length > 0 ? <div style={{ padding: "8px 12px", background: "rgba(245,158,11,0.15)", borderRadius: 8, fontSize: 13, color: "#f59e0b", marginBottom: 8 }}>⚠️ {warn.join(" · ")} — weekends may not count as working days</div> : null;
+          })()}
           <div className="form-group"><label className="label">Description</label><textarea className="input" rows={3} placeholder="Reason for leave…" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} /></div>
           <div className="form-group">
             <label className="label">Attachments <span style={{ fontWeight: 400, color: "var(--muted)" }}>(max 5 — PDF, JPG, PNG only)</span></label>

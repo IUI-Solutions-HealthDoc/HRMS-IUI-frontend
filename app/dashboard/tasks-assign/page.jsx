@@ -7,30 +7,37 @@ import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import Loader from "@/components/ui/Loader";
+import Pagination from "@/components/ui/Pagination";
 import { getToken } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
+
+
+const EMPTY_ASSIGN_FORM = {
+  assignment_scope: "all",
+  assigned_to_user_id: "",
+  assigned_department_id: "",
+  title: "",
+  description: "",
+  task_link: "",
+  due_date: "",
+};
 
 export default function TasksAssignPage() {
+  const { role, user } = useAuth();
+  const isTL = role === "tl" || Boolean(user?.profile?.is_tl && !user?.profile?.is_hod && !user?.profile?.is_hr && !user?.is_superuser);
   const [tasks, setTasks] = useState([]);
   const [assignees, setAssignees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [teamMemberCount, setTeamMemberCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showAssign, setShowAssign] = useState(false);
-  const [assignForm, setAssignForm] = useState({
-    assignment_scope: "all",
-    emp_id: "",
-    department_id: "",
-    title: "",
-    employee_name: "",
-    description: "",
-    task_count: 1,
-    deadline: "",
-    file: null,
-  });
+  const [assignForm, setAssignForm] = useState(EMPTY_ASSIGN_FORM);
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [reviewTarget, setReviewTarget] = useState(null);
   const [reviewReason, setReviewReason] = useState("");
   const [expandedHistory, setExpandedHistory] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PER_PAGE = 10;
   const [showToast, toastNode] = useToast();
 
   const load = useCallback(async () => {
@@ -83,17 +90,7 @@ export default function TasksAssignPage() {
       });
       showToast("Task assigned!");
       setShowAssign(false);
-      setAssignForm({
-        assignment_scope: "all",
-        emp_id: "",
-        department_id: "",
-        title: "",
-        employee_name: "",
-        description: "",
-        task_count: 1,
-        deadline: "",
-        file: null,
-      });
+      setAssignForm(EMPTY_ASSIGN_FORM);
       load();
     } catch (e) {
       showToast(e.message, "error");
@@ -106,7 +103,7 @@ export default function TasksAssignPage() {
 
   async function downloadReport() {
     try {
-      const res = await fetch(`/api/proxy/exports/tasks/`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      const res = await fetch(`/api/proxy/exports/tasks`, { headers: { Authorization: `Bearer ${getToken()}` } });
       if (!res.ok) {
         let msg = "Download failed";
         try { const err = await res.json(); msg = err.detail || msg; } catch {}
@@ -141,8 +138,8 @@ export default function TasksAssignPage() {
           <p style={{ color: "var(--muted)", marginTop: 4 }}>Assign tasks to your full team, one department, or an individual employee</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button className="btn-ghost" onClick={downloadReport}>⬇ Download Report</button>
-          <button className="btn-primary" onClick={() => setShowAssign(true)}>+ Assign Task</button>
+          {!isTL && <button className="btn-ghost" onClick={downloadReport}>⬇ Download Report</button>}
+          <button className="btn-primary" onClick={() => { setAssignForm(EMPTY_ASSIGN_FORM); setShowAssign(true); }}>+ Assign Task</button>
         </div>
       </div>
       <div className="grid-stats" style={{ marginBottom: 20 }}>
@@ -173,38 +170,48 @@ export default function TasksAssignPage() {
             <table>
               <thead><tr><th>Date</th><th>Name of Employee</th><th>Task Details</th><th>No. Tasks Provided</th><th>Deadline</th><th>Status</th><th>Attachment</th><th>Actions</th></tr></thead>
               <tbody>
-                {tasks.map((t, i) => {
-                  const revCount = t.revision_count || (t.reverts?.length || 0);
-                  return (
-                  <tr key={i}>
-                    <td>{t.assigned_date ? new Date(t.assigned_date).toLocaleDateString("en-IN") : "—"}</td>
-                    <td>{t.assigned_to_name || t.emp_id}</td>
-                    <td>
-                      <div style={{ fontWeight: 700 }}>{t.title}</div>
-                      <div style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12, color: "var(--muted)" }}>{t.description}</div>
-                      {revCount > 1 && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "rgba(245,158,11,0.15)", color: "#b45309", fontWeight: 600, marginTop: 2, display: "inline-block" }}>Revision {revCount}</span>}
-                    </td>
-                    <td>{t.task_count || 1}</td>
-                    <td>{t.deadline ? new Date(t.deadline).toLocaleString("en-IN") : "—"}</td>
-                    <td><StatusBadge status={t.status} /></td>
-                    <td>
-                      {t.attached_file ? (
-                        <a href={t.attached_file} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "var(--accent)", textDecoration: "none" }}>📎 View File</a>
-                      ) : <span style={{ color: "var(--muted)", fontSize: 11 }}>None</span>}
-                    </td>
-                    <td>{t.status === "reviewing" && (
-                      <div style={{ display: "flex", gap: 6 }}>
-                        {t.revert?.id && <button className="btn-primary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => reviewTask(t.revert.id, "Approved")}>✓ Approve</button>}
-                        {t.revert?.id && <button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => setReviewTarget(t.revert.id)}>↩ Revise</button>}
-                      </div>
-                    )}</td>
-                  </tr>
-                  );
-                })}
+                {(() => {
+                  const safePage = Math.min(currentPage, Math.max(1, Math.ceil(tasks.length / PER_PAGE)));
+                  const paginatedTasks = tasks.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+                  return paginatedTasks.map((t, i) => {
+                    const revCount = t.revision_count || (t.reverts?.length || 0);
+                    return (
+                    <tr key={i}>
+                      <td>{t.assigned_date ? new Date(t.assigned_date).toLocaleDateString("en-IN") : "—"}</td>
+                      <td>{t.assigned_to_name || t.emp_id}</td>
+                      <td>
+                        <div style={{ fontWeight: 700 }}>{t.title}</div>
+                        <div style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12, color: "var(--muted)" }}>{t.description}</div>
+                        {revCount > 1 && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "rgba(245,158,11,0.15)", color: "#b45309", fontWeight: 600, marginTop: 2, display: "inline-block" }}>Revision {revCount}</span>}
+                      </td>
+                      <td>{t.task_count || 1}</td>
+                      <td>{t.deadline ? new Date(t.deadline).toLocaleString("en-IN") : "—"}</td>
+                      <td><StatusBadge status={t.status} /></td>
+                      <td>
+                        {t.attached_file ? (
+                          <a href={t.attached_file} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "var(--accent)", textDecoration: "none" }}>📎 View File</a>
+                        ) : <span style={{ color: "var(--muted)", fontSize: 11 }}>None</span>}
+                      </td>
+                      <td>{t.status === "reviewing" && (
+                        <div style={{ display: "flex", gap: 6 }}>
+                          {t.revert?.id && <button className="btn-primary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => reviewTask(t.revert.id, "Approved")}>✓ Approve</button>}
+                          {t.revert?.id && <button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => setReviewTarget(t.revert.id)}>↩ Revise</button>}
+                        </div>
+                      )}</td>
+                    </tr>
+                    );
+                  });
+                })()}
               </tbody>
             </table>
           </div>
         )}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={tasks.length}
+          pageSize={PER_PAGE}
+          onPageChange={(p) => setCurrentPage(p)}
+        />
       </div>
       {pendingApprovals.length > 0 && (
         <div className="card" style={{ marginTop: 20 }}>
@@ -362,10 +369,10 @@ export default function TasksAssignPage() {
                   : "Choose one employee from your managed departments.")}
               </div>
             </div>
-            <div className="form-group"><label className="label">Deadline</label><input className="input" type="datetime-local" value={assignForm.deadline} onChange={(e) => setAssignForm((f) => ({ ...f, deadline: e.target.value }))} /></div>
+            <div className="form-group"><label className="label">Deadline <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="datetime-local" min={new Date().toISOString().slice(0, 16)} value={assignForm.deadline} onChange={(e) => setAssignForm((f) => ({ ...f, deadline: e.target.value }))} /></div>
           </div>
           <div className="form-row">
-            <div className="form-group"><label className="label">Name of Task</label><input className="input" placeholder="Task name…" value={assignForm.title} onChange={(e) => setAssignForm((f) => ({ ...f, title: e.target.value }))} /></div>
+            <div className="form-group"><label className="label">Name of Task <span style={{ color: "#ef4444" }}>*</span></label><input className="input" placeholder="Task name…" value={assignForm.title} onChange={(e) => setAssignForm((f) => ({ ...f, title: e.target.value }))} /></div>
             <div className="form-group"><label className="label">No. Tasks Provided</label><input className="input" type="number" min="1" value={assignForm.task_count} onChange={(e) => setAssignForm((f) => ({ ...f, task_count: e.target.value }))} /></div>
           </div>
           <div className="form-group"><label className="label">Task Details</label><textarea className="input" rows={3} value={assignForm.description} onChange={(e) => setAssignForm((f) => ({ ...f, description: e.target.value }))} /></div>

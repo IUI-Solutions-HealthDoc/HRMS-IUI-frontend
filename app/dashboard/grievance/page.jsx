@@ -9,11 +9,13 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import Loader from "@/components/ui/Loader";
 
+const EMPTY_GRIEVANCE_FORM = { subject: "", description: "", category: "General", is_anonymous: false };
+
 export default function GrievancePage() {
   const [grievances, setGrievances] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ subject: "", description: "", category: "General", is_anonymous: false });
+  const [form, setForm] = useState(EMPTY_GRIEVANCE_FORM);
   const [showToast, toastNode] = useToast();
 
   const load = useCallback(async () => {
@@ -26,14 +28,14 @@ export default function GrievancePage() {
 
   async function submit(e) {
     e.preventDefault();
-    try { await apiFetch("/grievances/submit", { method: "POST", body: JSON.stringify(form) }); showToast("Grievance submitted confidentially"); setShowModal(false); setForm({ subject: "", description: "", category: "General", is_anonymous: false }); load(); } catch (e) { showToast(e.message, "error"); }
+    try { await apiFetch("/grievances/submit", { method: "POST", body: JSON.stringify(form) }); showToast("Grievance submitted confidentially"); setShowModal(false); setForm(EMPTY_GRIEVANCE_FORM); load(); } catch (e) { showToast(e.message, "error"); }
   }
 
   return (
     <div>
       <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div><h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>POSH / Grievance</h1><p style={{ color: "var(--muted)", marginTop: 4 }}>Confidential grievance submission & tracking</p></div>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>+ New Grievance</button>
+        <button className="btn-primary" onClick={() => { setForm(EMPTY_GRIEVANCE_FORM); setShowModal(true); }}>+ New Grievance</button>
       </div>
       <div className="card">
         {loading ? <Loader /> : grievances.length === 0 ? <EmptyState icon="🛡" title="No grievances" sub="Submit a grievance to get started" /> : (
@@ -65,9 +67,9 @@ export default function GrievancePage() {
         <Modal title="Submit Grievance" onClose={() => setShowModal(false)}
           footer={<><button className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button><button className="btn-primary" onClick={submit}>Submit Confidentially</button></>}>
           <div style={{ padding: "12px 16px", background: "rgba(99,102,241,0.1)", borderRadius: 8, marginBottom: 16, fontSize: 13, color: "#a5b4fc" }}>🔒 Your submission is strictly confidential.</div>
-          <div className="form-group"><label className="label">Subject</label><input className="input" placeholder="Brief subject…" value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} /></div>
+          <div className="form-group"><label className="label">Subject <span style={{ color: "#ef4444" }}>*</span></label><input className="input" placeholder="Brief subject…" value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} /></div>
           <div className="form-group"><label className="label">Category</label><select className="input" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}><option>General</option><option>Payroll</option><option>Harassment</option><option>Other</option></select></div>
-          <div className="form-group"><label className="label">Description</label><textarea className="input" rows={4} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} /></div>
+          <div className="form-group"><label className="label">Description <span style={{ color: "#ef4444" }}>*</span></label><textarea className="input" rows={4} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} /></div>
           <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, cursor: "pointer" }}><input type="checkbox" checked={form.is_anonymous} onChange={(e) => setForm((f) => ({ ...f, is_anonymous: e.target.checked }))} /> Submit anonymously</label>
         </Modal>
       )}

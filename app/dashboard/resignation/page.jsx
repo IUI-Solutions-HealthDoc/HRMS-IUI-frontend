@@ -9,12 +9,15 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import Loader from "@/components/ui/Loader";
 
+
+const EMPTY_RESIGN_FORM = { subject: "", description: "", applied_date: "" };
+
 export default function ResignationPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ subject: "", description: "", applied_date: "" });
+  const [form, setForm] = useState(EMPTY_RESIGN_FORM);
   const [attachment, setAttachment] = useState(null);
   const [showToast, toastNode] = useToast();
 
@@ -45,7 +48,7 @@ export default function ResignationPage() {
       await apiFetch("/resignation/submit", { method: "POST", body, headers: {} });
       showToast("Resignation submitted");
       setShowModal(false);
-      setForm({ subject: "", description: "", applied_date: "" });
+      setForm(EMPTY_RESIGN_FORM);
       setAttachment(null);
       load();
     } catch (error) {
@@ -62,7 +65,7 @@ export default function ResignationPage() {
           <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>Resignation</h1>
           <p style={{ color: "var(--muted)", marginTop: 4 }}>Submit a request and track HR notice period updates.</p>
         </div>
-        <button className="btn-danger" onClick={() => setShowModal(true)}>Submit Resignation</button>
+        <button className="btn-danger" onClick={() => { setForm(EMPTY_RESIGN_FORM); setAttachment(null); setShowModal(true); }}>Submit Resignation</button>
       </div>
 
       <div className="card">
@@ -122,19 +125,19 @@ export default function ResignationPage() {
             HR approval will set your notice period end date and the contact email for offboarding.
           </div>
           <div className="form-group">
-            <label className="label">Subject</label>
+            <label className="label">Subject <span style={{ color: "#ef4444" }}>*</span></label>
             <input className="input" value={form.subject} onChange={(e) => setForm((current) => ({ ...current, subject: e.target.value }))} />
           </div>
           <div className="form-group">
-            <label className="label">Applied Date</label>
-            <input className="input" type="date" value={form.applied_date} onChange={(e) => setForm((current) => ({ ...current, applied_date: e.target.value }))} />
+            <label className="label">Applied Date <span style={{ color: "#ef4444" }}>*</span></label>
+            <input className="input" type="date" min={new Date().toISOString().split("T")[0]} value={form.applied_date} onChange={(e) => setForm((current) => ({ ...current, applied_date: e.target.value }))} />
           </div>
           <div className="form-group">
-            <label className="label">Reason / Description</label>
+            <label className="label">Reason / Description <span style={{ color: "#ef4444" }}>*</span></label>
             <textarea className="input" rows={4} value={form.description} onChange={(e) => setForm((current) => ({ ...current, description: e.target.value }))} />
           </div>
           <div className="form-group">
-            <label className="label">Attachment</label>
+            <label className="label">Attachment <span style={{ color: "#ef4444" }}>*</span></label>
             <input className="input" type="file" onChange={(e) => setAttachment(e.target.files?.[0] || null)} />
           </div>
         </Modal>

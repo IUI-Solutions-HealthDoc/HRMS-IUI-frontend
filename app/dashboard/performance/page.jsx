@@ -431,6 +431,14 @@ export default function PerformancePage() {
   }
 
   async function submitRating() {
+    // Duplicate check: prevent rating same employee twice in same week
+    const alreadyRated = ratingsThisWeek.find(
+      (r) => r.emp_id === form.employee_emp_id && r.rated_by_emp_id === user?.emp_id
+    );
+    if (alreadyRated) {
+      showToast("You have already rated this employee this week", "error");
+      return;
+    }
     try {
       await apiFetch("/performance/rate", {
         method: "POST",

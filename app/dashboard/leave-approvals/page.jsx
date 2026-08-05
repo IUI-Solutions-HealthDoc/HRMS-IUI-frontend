@@ -8,6 +8,7 @@ import { fmtDate } from "@/lib/formatters";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import Loader from "@/components/ui/Loader";
+import Pagination from "@/components/ui/Pagination";
 
 const FILTERS = [
   { id: "", label: "All Leaves" },
@@ -24,6 +25,8 @@ export default function LeaveApprovalsPage() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const PER_PAGE = 10;
   const [showToast, toastNode] = useToast();
 
   const load = useCallback(async () => {
@@ -164,30 +167,48 @@ export default function LeaveApprovalsPage() {
                   <th>Subject</th>
                   <th>Attachments</th>
                   <th>Status</th>
+                  <th>Action By</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredHistory.map((item) => (
-                  <tr key={item.id}>
-                    <td><b>{item.name || item.emp_id}</b></td>
-                    <td>{item.status === "Approved" ? (item.is_paid ? "Paid" : "Unpaid") : "—"}</td>
-                    <td>{fmtDate(item.start_date)}</td>
-                    <td>{fmtDate(item.end_date)}</td>
-                    <td>{item.subject}</td>
-                    <td>
-                      {(item.attachments?.length > 0) ? item.attachments.map((url, j) => (
-                        <a key={j} href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginRight: 6, fontSize: 12, color: "var(--accent)" }}>
-                          📎 File {j + 1}
-                        </a>
-                      )) : <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>}
-                    </td>
-                    <td><StatusBadge status={item.status} /></td>
-                  </tr>
-                ))}
+                {(() => {
+                  const safePage = Math.min(currentPage, Math.max(1, Math.ceil(filteredHistory.length / PER_PAGE)));
+                  const paginated = filteredHistory.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+                  return paginated.map((item) => (
+                    <tr key={item.id}>
+                      <td><b>{item.name || item.emp_id}</b></td>
+                      <td>{item.status === "Approved" ? (item.is_paid ? "Paid" : "Unpaid") : "—"}</td>
+                      <td>{fmtDate(item.start_date)}</td>
+                      <td>{fmtDate(item.end_date)}</td>
+                      <td>{item.subject}</td>
+                      <td>
+                        {(item.attachments?.length > 0) ? item.attachments.map((url, j) => (
+                          <a key={j} href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginRight: 6, fontSize: 12, color: "var(--accent)" }}>
+                            📎 File {j + 1}
+                          </a>
+                        )) : <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>}
+                      </td>
+                      <td><StatusBadge status={item.status} /></td>
+                      <td>
+                        {item.action_by_name ? (
+                          <span style={{ fontSize: 12, color: "var(--muted)" }}>
+                            {item.action_by_name} {item.action_by_role ? `(${item.action_by_role})` : ""}
+                          </span>
+                        ) : "—"}
+                      </td>
+                    </tr>
+                  ));
+                })()}
               </tbody>
             </table>
           </div>
         )}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredHistory.length}
+          pageSize={PER_PAGE}
+          onPageChange={(p) => setCurrentPage(p)}
+        />
       </div>
 
       {toastNode}

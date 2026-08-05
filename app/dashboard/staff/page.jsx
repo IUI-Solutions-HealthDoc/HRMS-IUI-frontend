@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
@@ -9,6 +9,8 @@ import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import Loader from "@/components/ui/Loader";
 import PasswordInput from "@/components/ui/PasswordInput";
+import Pagination from "@/components/ui/Pagination";
+import { validateEmail, validateStrongPassword, validateBaseSalary, sanitizeNumericInput } from "@/lib/validators";
 
 export default function StaffPage() {
   const { role } = useAuth();
@@ -42,6 +44,8 @@ export default function StaffPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); // "all", "active", "deactivated"
   const [bioFilter, setBioFilter] = useState("all"); // "all", "synced", "not_synced"
+  const [currentPage, setCurrentPage] = useState(1);
+  const PER_PAGE = 15;
   const [showToast, toastNode] = useToast();
   const latestLoadIdRef = useRef(0);
 
@@ -185,13 +189,37 @@ export default function StaffPage() {
 
   async function addEmployee(e) {
     e.preventDefault();
+    if (!form.first_name.trim()) {
+      showToast("First name is required", "error");
+      return;
+    }
+    if (!form.username.trim()) {
+      showToast("Username is required", "error");
+      return;
+    }
     if (!form.emp_id.trim()) {
       showToast("Employee ID is required", "error");
       return;
     }
-    if ((form.password || "").length < 6) {
-      showToast("Password must be at least 6 characters", "error");
+    if (!form.department_id) {
+      showToast("Department is required", "error");
       return;
+    }
+    const pwdCheck = validateStrongPassword(form.password);
+    if (!pwdCheck.valid) {
+      showToast(pwdCheck.message, "error");
+      return;
+    }
+    if (form.email && !validateEmail(form.email)) {
+      showToast("Please enter a valid email address (e.g. user@organization.com)", "error");
+      return;
+    }
+    if (form.base_salary !== "" && form.base_salary !== null && form.base_salary !== undefined) {
+      const salCheck = validateBaseSalary(form.base_salary);
+      if (!salCheck.valid) {
+        showToast(salCheck.message, "error");
+        return;
+      }
     }
     try {
       const payload = {
@@ -583,14 +611,29 @@ export default function StaffPage() {
     }
     return true;
   });
-  const hodOptions = useMemo(
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedStaff = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+  const rawHodOptions = useMemo(
     () => staff.filter((employee) => employee.is_hod || employee.is_superuser),
     [staff]
   );
-  const tlOptions = useMemo(
+  const rawTlOptions = useMemo(
     () => staff.filter((employee) => employee.is_tl),
     [staff]
   );
+
+  const hodOptions = useMemo(() => {
+    const activeDeptId = showModal ? form.department_id : (editModal ? editForm.department_id : "");
+    if (!activeDeptId) return rawHodOptions;
+    return rawHodOptions.filter((emp) => String(emp.department_id) === String(activeDeptId));
+  }, [rawHodOptions, form.department_id, editForm.department_id, showModal, editModal]);
+
+  const tlOptions = useMemo(() => {
+    const activeDeptId = showModal ? form.department_id : (editModal ? editForm.department_id : "");
+    if (!activeDeptId) return rawTlOptions;
+    return rawTlOptions.filter((emp) => String(emp.department_id) === String(activeDeptId));
+  }, [rawTlOptions, form.department_id, editForm.department_id, showModal, editModal]);
   const pendingBiometricCount = biometricRequests.filter((r) => ["queued", "sent"].includes(r.status)).length;
   const employeeRequestHistory = editModal ? biometricRequests.filter((r) => r.employee_emp_id === editModal.emp_id).slice(0, 4) : [];
 
@@ -645,7 +688,7 @@ export default function StaffPage() {
         <div>
           <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>Employee Management</h1>
           <p style={{ color: "var(--muted)", marginTop: 4 }}>
-            {isAdmin ? "Admin: view, add, edit, and deactivate all employees" : "Add, manage and deactivate employees"}
+            {isAdmin ? "Admin View, Add, Edit, Delete, and Deactivate All Employees" : "Add, Manage, and Deactivate Employees"}
           </p>
         </div>
         <button className="btn-primary" onClick={handleOpenAddModal}>+ Add Employee</button>
@@ -870,6 +913,7 @@ export default function StaffPage() {
       {/* Table */}
       <div className="card">
         {loading ? <Loader /> : filtered.length === 0 ? <EmptyState icon="👥" title="No employees found" /> : (
+          <>
           <div className="table-wrap">
             <table>
               <thead>
@@ -884,7 +928,7 @@ export default function StaffPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((e) => (
+                {paginatedStaff.map((e) => (
                   <tr key={e.emp_id}>
                     <td>
                       <span className="chip">{e.emp_id}</span>
@@ -928,9 +972,9 @@ export default function StaffPage() {
                             Deactivate
                           </button>
                         )}
-                        {!e.is_active && isAdmin && (
+                        {isAdmin && (
                           <button className="btn-danger" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => permanentlyDelete(e.emp_id)}>
-                            Delete Permanently
+                            🗑️ Delete
                           </button>
                         )}
                       </div>
@@ -940,6 +984,13 @@ export default function StaffPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={safePage}
+            totalItems={filtered.length}
+            pageSize={PER_PAGE}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
+          </>
         )}
       </div>
 
@@ -954,14 +1005,14 @@ export default function StaffPage() {
             {/* Dummy inputs to prevent Chrome autofill */}
             <input type="text" name="chrome-autofill-dummy-username" style={{ position: "absolute", top: -1000, left: -1000, width: 1, height: 1, opacity: 0 }} tabIndex={-1} readOnly />
             <input type="password" name="chrome-autofill-dummy-password" style={{ position: "absolute", top: -1000, left: -1000, width: 1, height: 1, opacity: 0 }} tabIndex={-1} readOnly />
-            <div className="form-group"><label className="label">First Name</label><input className="input" value={form.first_name} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} required /></div>
-            <div className="form-group"><label className="label">Last Name</label><input className="input" value={form.last_name} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} /></div>
-            <div className="form-group"><label className="label">Username</label><input className="input" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} required /></div>
-            <div className="form-group"><label className="label">Password</label><PasswordInput autoComplete="new-password" name="staff_create_password_no_autofill" minLength={6} value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required /></div>
-            <div className="form-group"><label className="label">Employee ID</label><input className="input" placeholder="EMP005" value={form.emp_id} onChange={(e) => setForm((f) => ({ ...f, emp_id: e.target.value }))} required /></div>
+            <div className="form-group"><label className="label">First Name <span style={{ color: "#ef4444" }}>*</span></label><input className="input" value={form.first_name} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} required /></div>
+            <div className="form-group"><label className="label">Last Name <span style={{ color: "#ef4444" }}>*</span></label><input className="input" value={form.last_name} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} required /></div>
+            <div className="form-group"><label className="label">Username <span style={{ color: "#ef4444" }}>*</span></label><input className="input" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} required /></div>
+            <div className="form-group"><label className="label">Password <span style={{ color: "#ef4444" }}>*</span> <span style={{ fontWeight: 400, color: "var(--muted)", fontSize: 11 }}>(min 8 chars, 1 uppercase, 1 digit, 1 special)</span></label><PasswordInput autoComplete="new-password" name="staff_create_password_no_autofill" minLength={8} value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required /></div>
+            <div className="form-group"><label className="label">Employee ID <span style={{ color: "#ef4444" }}>*</span></label><input className="input" placeholder="EMP005" value={form.emp_id} onChange={(e) => setForm((f) => ({ ...f, emp_id: e.target.value }))} required /></div>
             <div className="form-group"><label className="label">Machine User ID</label><input className="input" placeholder="Leave blank to use Employee ID for ZKTeco" value={form.machine_user_id} onChange={(e) => setForm((f) => ({ ...f, machine_user_id: e.target.value }))} /></div>
-            <div className="form-group"><label className="label">Department</label><select className="input" value={form.department_id} onChange={(e) => setForm((f) => ({ ...f, department_id: e.target.value, hod_department_ids: f.is_hod ? withPrimaryDepartment(f.hod_department_ids, parseDepartmentId(e.target.value)) : f.hod_department_ids }))} required><option value="">Select department…</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
-            <div className="form-group"><label className="label">Email</label><input className="input" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} /></div>
+            <div className="form-group"><label className="label">Department <span style={{ color: "#ef4444" }}>*</span></label><select className="input" value={form.department_id} onChange={(e) => setForm((f) => ({ ...f, department_id: e.target.value, hod_department_ids: f.is_hod ? withPrimaryDepartment(f.hod_department_ids, parseDepartmentId(e.target.value)) : f.hod_department_ids }))} required><option value="">Select department…</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
+            <div className="form-group"><label className="label">Email <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="email" placeholder="user@organization.com" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required /></div>
             <div className="form-group" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <label className="label">Reports To HODs</label>
               <div style={{
@@ -996,7 +1047,7 @@ export default function StaffPage() {
                     </label>
                   );
                 })}
-                {hodOptions.length === 0 && <span style={{ color: "var(--muted)", fontSize: "12px" }}>No HODs available</span>}
+                {hodOptions.length === 0 && <span style={{ color: "var(--muted)", fontSize: "12px" }}>No HODs available for selected department</span>}
               </div>
             </div>
             <div className="form-group" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -1033,11 +1084,46 @@ export default function StaffPage() {
                     </label>
                   );
                 })}
-                {tlOptions.length === 0 && <span style={{ color: "var(--muted)", fontSize: "12px" }}>No TLs available</span>}
+                {tlOptions.length === 0 && <span style={{ color: "var(--muted)", fontSize: "12px" }}>No TLs available for selected department</span>}
               </div>
             </div>
-            <div className="form-group"><label className="label">System No.</label><input className="input" placeholder="System number" value={form.system_no} onChange={(e) => setForm((f) => ({ ...f, system_no: e.target.value }))} /></div>
-            {isAdmin && <div className="form-group"><label className="label">Base Salary (₹)</label><input className="input" type="number" value={form.base_salary} onChange={(e) => setForm((f) => ({ ...f, base_salary: e.target.value }))} /></div>}
+            <div className="form-group">
+              <label className="label">System No.</label>
+              <input
+                className="input"
+                placeholder="Numeric system number"
+                value={form.system_no}
+                onInput={(e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ""); }}
+                onChange={(e) => setForm((f) => ({ ...f, system_no: e.target.value }))}
+              />
+            </div>
+            {isAdmin && (
+              <div className="form-group">
+                <label className="label">Base Salary (₹)</label>
+                <input
+                  className="input"
+                  type="number"
+                  min="0"
+                  max="10000000"
+                  placeholder="e.g. 35000"
+                  value={form.base_salary}
+                  onInput={(e) => { e.target.value = e.target.value.replace(/[^0-9.]/g, ""); }}
+                  onChange={(e) => setForm((f) => ({ ...f, base_salary: e.target.value }))}
+                />
+              </div>
+            )}
+
+            <div className="form-group">
+              <label className="label">Work Shift</label>
+              <select
+                className="input"
+                value={form.is_night_shift ? "night" : "day"}
+                onChange={(e) => setForm((f) => ({ ...f, is_night_shift: e.target.value === "night" }))}
+              >
+                <option value="day">☀️ Day Shift</option>
+                <option value="night">🌙 Night Shift</option>
+              </select>
+            </div>
 
             <div style={{ gridColumn: "1 / -1", marginTop: 8, padding: "10px 12px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: 8 }}>
               <div className="label" style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: "var(--primary)" }}>🌴 Annual Leave Quotas</div>
@@ -1048,13 +1134,15 @@ export default function StaffPage() {
               </div>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 4 }}>
-            {/* Only admin can create HR */}
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 12 }}>
+            <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}>
+              <input type="checkbox" checked={!form.is_hr && !form.is_accounts && !form.is_hod && !form.is_tl} disabled /> Employee Role
+            </label>
             {isAdmin && <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={form.is_hr} onChange={(e) => setForm((f) => ({ ...f, is_hr: e.target.checked }))} /> HR Role</label>}
             <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={form.is_accounts} onChange={(e) => setForm((f) => ({ ...f, is_accounts: e.target.checked }))} /> Accounts Role</label>
             <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={form.is_hod} onChange={(e) => setForm((f) => ({ ...f, is_hod: e.target.checked, hod_department_ids: e.target.checked ? withPrimaryDepartment(f.hod_department_ids, parseDepartmentId(f.department_id)) : f.hod_department_ids }))} /> HOD Role</label>
             <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={form.is_tl} onChange={(e) => setForm((f) => ({ ...f, is_tl: e.target.checked }))} /> TL Role</label>
-            <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={form.is_night_shift} onChange={(e) => setForm((f) => ({ ...f, is_night_shift: e.target.checked }))} /> Night Shift</label>
+            {isAdmin && <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={form.is_superuser || false} onChange={(e) => setForm((f) => ({ ...f, is_superuser: e.target.checked }))} /> Admin / Manager Role</label>}
           </div>
           {form.is_hod && (
             <div style={{ marginTop: 18 }}>

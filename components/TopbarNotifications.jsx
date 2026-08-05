@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Bell, CheckCheck } from "lucide-react";
 
 import { apiFetch } from "@/lib/api";
+import { fmtDateTime } from "@/lib/formatters";
 
 export default function TopbarNotifications({ role }) {
   const [open, setOpen] = useState(false);
@@ -26,11 +27,10 @@ export default function TopbarNotifications({ role }) {
   }
 
   useEffect(() => {
-    if (role === "accounts") return undefined;
     loadNotifications();
     const timer = setInterval(loadNotifications, 45000);
     return () => clearInterval(timer);
-  }, [role]);
+  }, []);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -62,14 +62,13 @@ export default function TopbarNotifications({ role }) {
     } catch {}
   }
 
-  if (role === "accounts") return null;
-
   return (
     <div className="topbar-notifications" ref={rootRef}>
       <button
         type="button"
         className="notification-trigger"
         aria-label="Notifications"
+        title="Notifications"
         aria-expanded={open}
         onClick={() => {
           setOpen((current) => !current);
@@ -120,7 +119,7 @@ export default function TopbarNotifications({ role }) {
                   <span className="notification-item__dot" style={{ background: item.is_read ? "var(--border)" : "var(--accent)" }} />
                   <span className="notification-item__content">
                     <span className="notification-item__message">{item.message}</span>
-                    <span className="notification-item__time">{item.time || "Now"}</span>
+                    <span className="notification-item__time">{item.created_at ? fmtDateTime(item.created_at) : (item.time || "Now")}</span>
                   </span>
                 </button>
               ))

@@ -73,8 +73,8 @@ export default function PayslipPage() {
       <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div><h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>My Payslip</h1><p style={{ color: "var(--muted)", marginTop: 4 }}>View and download your salary slip</p></div>
         <div style={{ display: "flex", gap: 8 }}>
-          <select className="input" style={{ width: "auto" }} value={month} onChange={(e) => setMonth(+e.target.value)}>{months.map((m, i) => <option key={i} value={i+1}>{m}</option>)}</select>
-          <select className="input" style={{ width: "auto" }} value={year} onChange={(e) => setYear(+e.target.value)}>{[2024,2025,2026].map((y) => <option key={y} value={y}>{y}</option>)}</select>
+          <select className="input" style={{ width: "auto" }} value={month} onChange={(e) => setMonth(+e.target.value)}>{months.map((m, i) => <option key={i} value={i+1} disabled={year === new Date().getFullYear() && i + 1 > new Date().getMonth() + 1}>{m}</option>)}</select>
+          <select className="input" style={{ width: "auto" }} value={year} onChange={(e) => setYear(+e.target.value)}>{[2024,2025,2026].filter((y) => y <= new Date().getFullYear()).map((y) => <option key={y} value={y}>{y}</option>)}</select>
           <button className="btn-primary" onClick={load}>View</button>
         </div>
       </div>

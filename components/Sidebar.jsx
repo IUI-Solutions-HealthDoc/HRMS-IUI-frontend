@@ -24,6 +24,7 @@ import {
   MessagesSquare,
   Settings2,
   ShieldCheck,
+  Star,
   SunMedium,
   TrendingUp,
   UserCog,
@@ -70,6 +71,10 @@ const ICON_MAP = {
   holidays: CalendarRange,
   approvals: ClipboardCheck,
   increments: BriefcaseBusiness,
+  peer_ratings: Star,
+  comp_off: SunMedium,
+  appraisal: TrendingUp,
+  team_setup: Settings2,
 };
 
 export default function Sidebar({ sidebarOpen, onClose }) {

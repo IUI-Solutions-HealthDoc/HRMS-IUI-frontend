@@ -8,14 +8,19 @@ import Modal from "@/components/ui/Modal";
 import StatCard from "@/components/ui/StatCard";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
-import Loader from "@/components/ui/Loader";
+import Pagination from "@/components/ui/Pagination";
 
 export default function GrievancesHRPage() {
   const [grievances, setGrievances] = useState([]);
   const [loading, setLoading] = useState(true);
   const [respondModal, setRespondModal] = useState(null);
   const [responseForm, setResponseForm] = useState({ admin_notes: "", is_resolved: false });
+  const [currentPage, setCurrentPage] = useState(1);
+  const PER_PAGE = 10;
   const [showToast, toastNode] = useToast();
+
+  const safePage = Math.min(currentPage, Math.max(1, Math.ceil(grievances.length / PER_PAGE)));
+  const paginatedGrievances = grievances.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -42,27 +47,35 @@ export default function GrievancesHRPage() {
       </div>
       <div className="card">
         {loading ? <Loader /> : grievances.length === 0 ? <EmptyState icon="🛡" title="No grievances filed yet" /> : (
-          <div>{grievances.map((g, i) => (
-            <div key={i} style={{ padding: 24, borderBottom: "1px solid var(--border)", display: "flex", gap: 16, alignItems: "flex-start" }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: "#ef4444", minWidth: 40 }}>#{grievances.length - i}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                  <span style={{ fontWeight: 700 }}>{g.subject}</span>
-                  <span className="chip">{g.category}</span>
-                  {g.is_anonymous || !g.submitted_by_name || g.submitted_by_name === "Anonymous" ? (
-                    <span className="chip" style={{ background: "rgba(239,68,68,0.15)", color: "#ef4444", fontWeight: 700, border: "1px solid rgba(239,68,68,0.3)" }}>🕵️ ANONYMOUS GRIEVANCE 🔒</span>
-                  ) : null}
-                  <StatusBadge status={g.is_resolved ? "resolved" : "open"} />
+          <div>
+            <div>{paginatedGrievances.map((g, i) => (
+              <div key={i} style={{ padding: 24, borderBottom: "1px solid var(--border)", display: "flex", gap: 16, alignItems: "flex-start" }}>
+                <div style={{ fontSize: 22, fontWeight: 900, color: "#ef4444", minWidth: 40 }}>#{(safePage - 1) * PER_PAGE + i + 1}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                    <span style={{ fontWeight: 700 }}>{g.subject}</span>
+                    <span className="chip">{g.category}</span>
+                    {g.is_anonymous || !g.submitted_by_name || g.submitted_by_name === "Anonymous" ? (
+                      <span className="chip" style={{ background: "rgba(239,68,68,0.15)", color: "#ef4444", fontWeight: 700, border: "1px solid rgba(239,68,68,0.3)" }}>🕵️ ANONYMOUS GRIEVANCE 🔒</span>
+                    ) : null}
+                    <StatusBadge status={g.is_resolved ? "resolved" : "open"} />
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>
+                    👤 {g.is_anonymous || g.submitted_by_name === "Anonymous" ? "Anonymous Employee" : (g.submitted_by_name || "Anonymous")} · 📅 {fmtDate(g.submitted_on)}
+                  </div>
+                  <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.6 }}>{g.description}</div>
+                  {g.admin_notes && <div style={{ marginTop: 10, padding: "10px 14px", background: "rgba(16,185,129,0.1)", borderRadius: 8, fontSize: 13, color: "#10b981" }}>💬 Admin Response: {g.admin_notes}</div>}
                 </div>
-                <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>
-                  👤 {g.is_anonymous || g.submitted_by_name === "Anonymous" ? "Anonymous Employee" : (g.submitted_by_name || "Anonymous")} · 📅 {fmtDate(g.submitted_on)}
-                </div>
-                <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.6 }}>{g.description}</div>
-                {g.admin_notes && <div style={{ marginTop: 10, padding: "10px 14px", background: "rgba(16,185,129,0.1)", borderRadius: 8, fontSize: 13, color: "#10b981" }}>💬 Admin Response: {g.admin_notes}</div>}
+                {!g.is_resolved && <button className="btn-ghost" style={{ padding: "8px 16px", fontSize: 13, flexShrink: 0 }} onClick={() => { setRespondModal(g); setResponseForm({ admin_notes: g.admin_notes || "", is_resolved: false }); }}>Respond</button>}
               </div>
-              <button className="btn-ghost" style={{ padding: "8px 16px", fontSize: 13, flexShrink: 0 }} onClick={() => { setRespondModal(g); setResponseForm({ admin_notes: g.admin_notes || "", is_resolved: g.is_resolved }); }}>Respond</button>
-            </div>
-          ))}</div>
+            ))}</div>
+            <Pagination
+              currentPage={safePage}
+              totalItems={grievances.length}
+              pageSize={PER_PAGE}
+              onPageChange={(p) => setCurrentPage(p)}
+            />
+          </div>
         )}
       </div>
       {respondModal && (

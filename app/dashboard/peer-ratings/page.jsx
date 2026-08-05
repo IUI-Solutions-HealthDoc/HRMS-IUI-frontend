@@ -127,13 +127,8 @@ export default function PeerRatingsPage() {
       setRating(5);
       setFeedback("");
       
-      const givenData = await apiFetch("/peer-ratings/my-given");
-      setGivenRatings(givenData || []);
-      if (isPrivileged) {
-        const allData = await apiFetch("/peer-ratings/all");
-        setAllRatings(allData?.ratings || []);
-        setSummary(allData?.summary || []);
-      }
+      // Full reload so given/received/admin tables all refresh
+      await loadData();
     } catch (err) {
       showToast(err.message || "Failed to submit rating", "error");
     } finally {

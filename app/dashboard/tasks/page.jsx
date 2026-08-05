@@ -8,27 +8,32 @@ import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import Loader from "@/components/ui/Loader";
+import Pagination from "@/components/ui/Pagination";
 
-export default function TasksPage() {
+const EMPTY_WORK_FORM = {
+  task_name: "",
+  completed_flag: false,
+  completion_percent: 0,
+  output_text: "",
+  task_link: "",
+  issue_text: "",
+  hours_taken: "",
+  remarks: "",
+  notes: "",
+  attached_file: null,
+  picture_1: null,
+  picture_2: null,
+  picture_3: null,
+  attachments: [],
+};
+
+export default function MyTasksPage() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [workModal, setWorkModal] = useState(null);
-  const [workForm, setWorkForm] = useState({
-    task_name: "",
-    completed_flag: false,
-    completion_percent: 0,
-    output_text: "",
-    task_link: "",
-    issue_text: "",
-    hours_taken: "",
-    remarks: "",
-    notes: "",
-    attached_file: null,
-    picture_1: null,
-    picture_2: null,
-    picture_3: null,
-    attachments: [],
-  });
+  const [workForm, setWorkForm] = useState(EMPTY_WORK_FORM);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PER_PAGE = 10;
   const [showToast, toastNode] = useToast();
 
   const load = useCallback(async () => {
@@ -68,22 +73,7 @@ export default function TasksPage() {
       });
       showToast("Work submitted for review!");
       setWorkModal(null);
-      setWorkForm({
-        task_name: "",
-        completed_flag: false,
-        completion_percent: 0,
-        output_text: "",
-        task_link: "",
-        issue_text: "",
-        hours_taken: "",
-        remarks: "",
-        notes: "",
-        attached_file: null,
-        picture_1: null,
-        picture_2: null,
-        picture_3: null,
-        attachments: [],
-      });
+      setWorkForm(EMPTY_WORK_FORM);
       load();
     } catch (e) {
       showToast(e.message, "error");
@@ -102,52 +92,62 @@ export default function TasksPage() {
             <table>
               <thead><tr><th>Date</th><th>Name of Task</th><th>Completed</th><th>Completion %</th><th>Output</th><th>Pictures</th><th>Link</th><th>Issue</th><th>Hours</th><th>Remark</th><th>Actions</th></tr></thead>
               <tbody>
-                {tasks.map((t, i) => {
-                  const prevRejected = (t.reverts || []).find(r => r.hod_status === "needs revisions" || r.hod_status === "rejected");
-                  const revCount = t.revision_count || (t.reverts?.length || 0);
-                  return (
-                  <tr key={i}>
-                    <td>{fmtDate(t.assigned_date || t.deadline)}</td>
-                    <td>
-                      <div style={{ fontWeight: 700 }}>{t.title}</div>
-                      <div style={{ fontSize: 11, color: "var(--muted)" }}>{t.description}</div>
-                      {revCount > 1 && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "rgba(245,158,11,0.15)", color: "#b45309", fontWeight: 600 }}>Revision {revCount}</span>}
-                      {prevRejected?.rejection_reason && (
-                        <div style={{ fontSize: 11, color: "#dc2626", marginTop: 4, padding: "4px 8px", background: "rgba(220,38,38,0.06)", borderRadius: 8 }}>
-                          ↩ Revision reason: {prevRejected.rejection_reason}
-                        </div>
-                      )}
-                    </td>
-                    <td>{t.revert?.completed_flag ? "Yes" : "No"}</td>
-                    <td>{t.revert?.completion_percent ?? 0}%</td>
-                    <td style={{ maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.revert?.output_text || "—"}</td>
-                    <td>
-                      {((t.revert?.image_urls?.length || 0) + (t.revert?.attachments?.length || 0)) || "—"}
-                      {t.revert?.tl_status && t.revert.tl_status !== "skipped" ? (
-                        <div style={{ fontSize: 10, color: t.revert.tl_status === "approved" ? "#16a34a" : t.revert.tl_status === "rejected" ? "#dc2626" : "#f59e0b" }}>
-                          TL: {t.revert.tl_status}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td>{t.revert?.task_link ? <a href={t.revert.task_link} target="_blank" rel="noreferrer">Open</a> : "—"}</td>
-                    <td style={{ maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.revert?.issue_text || "—"}</td>
-                    <td>{t.revert?.hours_taken ?? "—"}</td>
-                    <td style={{ maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.revert?.remarks || t.revert?.employee_notes || "—"}</td>
-                    <td>{t.status === "pending" && <button className="btn-primary" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => { setWorkModal(t); setWorkForm((current) => ({ ...current, task_name: t.title })); }}>{revCount > 0 ? "Submit Revision" : "Submit Work"}</button>}</td>
-                  </tr>
-                  );
-                })}
+                {(() => {
+                  const safePage = Math.min(currentPage, Math.max(1, Math.ceil(tasks.length / PER_PAGE)));
+                  const paginatedTasks = tasks.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+                  return paginatedTasks.map((t, i) => {
+                    const revCount = t.revision_count || (t.reverts?.length || 0);
+                    const prevRejected = t.reverts?.find((r) => r.hod_status === "rejected" || r.tl_status === "rejected");
+                    return (
+                    <tr key={i}>
+                      <td>{fmtDate(t.assigned_date || t.deadline)}</td>
+                      <td>
+                        <div style={{ fontWeight: 700 }}>{t.title}</div>
+                        <div style={{ fontSize: 11, color: "var(--muted)" }}>{t.description}</div>
+                        {revCount > 1 && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "rgba(245,158,11,0.15)", color: "#b45309", fontWeight: 600 }}>Revision {revCount}</span>}
+                        {prevRejected?.rejection_reason && (
+                          <div style={{ fontSize: 11, color: "#dc2626", marginTop: 4, padding: "4px 8px", background: "rgba(220,38,38,0.06)", borderRadius: 8 }}>
+                            ↩ Revision reason: {prevRejected.rejection_reason}
+                          </div>
+                        )}
+                      </td>
+                      <td>{t.revert?.completed_flag ? "Yes" : "No"}</td>
+                      <td>{t.revert?.completion_percent ?? 0}%</td>
+                      <td style={{ maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.revert?.output_text || "—"}</td>
+                      <td>
+                        {((t.revert?.image_urls?.length || 0) + (t.revert?.attachments?.length || 0)) || "—"}
+                        {t.revert?.tl_status && t.revert.tl_status !== "skipped" ? (
+                          <div style={{ fontSize: 10, color: t.revert.tl_status === "approved" ? "#16a34a" : t.revert.tl_status === "rejected" ? "#dc2626" : "#f59e0b" }}>
+                            TL: {t.revert.tl_status}
+                          </div>
+                        ) : null}
+                      </td>
+                      <td>{t.revert?.task_link ? <a href={t.revert.task_link} target="_blank" rel="noreferrer">Open</a> : "—"}</td>
+                      <td style={{ maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.revert?.issue_text || "—"}</td>
+                      <td>{t.revert?.hours_taken ?? "—"}</td>
+                      <td style={{ maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.revert?.remarks || t.revert?.employee_notes || "—"}</td>
+                      <td>{t.status === "pending" && <button className="btn-primary" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => { const prev = t.revert || {}; setWorkModal(t); setWorkForm({ ...EMPTY_WORK_FORM, task_name: t.title, completed_flag: prev.completed_flag || false, completion_percent: prev.completion_percent || 0, output_text: prev.output_text || "", task_link: prev.task_link || "", issue_text: prev.issue_text || "", hours_taken: prev.hours_taken || "", remarks: prev.remarks || prev.employee_notes || "", notes: prev.notes || "" }); }}>{revCount > 0 ? "Submit Revision" : "Submit Work"}</button>}</td>
+                    </tr>
+                    );
+                  });
+                })()}
               </tbody>
             </table>
           </div>
         )}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={tasks.length}
+          pageSize={PER_PAGE}
+          onPageChange={(p) => setCurrentPage(p)}
+        />
       </div>
       {workModal && (
         <Modal title={`Submit Work: ${workModal.title}`} onClose={() => setWorkModal(null)}
           footer={<><button className="btn-ghost" onClick={() => setWorkModal(null)}>Cancel</button><button className="btn-primary" onClick={() => submitWork(workModal.id)}>Submit</button></>}>
           <div className="form-row">
             <div className="form-group"><label className="label">Date</label><input className="input" value={new Date().toISOString().slice(0, 10)} disabled /></div>
-            <div className="form-group"><label className="label">Name of Task</label><select className="input" value={workForm.task_name} onChange={(e) => setWorkForm((form) => ({ ...form, task_name: e.target.value }))}><option value={workModal.title}>{workModal.title}</option>{tasks.map((task) => <option key={task.id} value={task.title}>{task.title}</option>)}</select></div>
+            <div className="form-group"><label className="label">Name of Task <span style={{ color: "#ef4444" }}>*</span></label><input className="input" value={workForm.task_name} readOnly style={{ background: "var(--bg-secondary)", cursor: "default" }} /></div>
           </div>
           <div className="form-row">
             <div className="form-group"><label className="label">Completed or Not</label><select className="input" value={workForm.completed_flag ? "yes" : "no"} onChange={(e) => setWorkForm((form) => ({ ...form, completed_flag: e.target.value === "yes" }))}><option value="no">No</option><option value="yes">Yes</option></select></div>

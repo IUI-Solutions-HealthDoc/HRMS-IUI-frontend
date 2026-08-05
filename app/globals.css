@@ -972,6 +972,17 @@ tr:hover td { background: var(--hover-row); }
   .grid-stats { grid-template-columns: 1fr 1fr; }
   .menu-trigger { display: inline-flex; }
   .dashboard-topbar__brand { display: block; }
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 12px;
+  }
+  .table-wrap table {
+    min-width: 620px;
+  }
+  .staff-form-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 @media (max-width: 560px) {
@@ -991,6 +1002,23 @@ tr:hover td { background: var(--hover-row); }
     max-width: none;
     border-radius: 16px;
   }
+  .page-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  .page-header .btn-primary,
+  .page-header .btn-danger,
+  .page-header .btn-ghost {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+  .modal { max-width: 96vw; border-radius: 12px; }
+  .modal-head { padding: 16px 16px 12px; }
+  .modal-body { padding: 16px; }
+  .modal-foot { padding: 10px 16px 16px; }
+  h1 { font-size: 22px !important; }
 }
 
 /* ─── Ghost Admin Layer ─── */

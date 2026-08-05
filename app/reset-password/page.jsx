@@ -16,6 +16,21 @@ function ResetPasswordContent() {
   const [email, setEmail] = useState("");
   const [requestLoading, setRequestLoading] = useState(false);
   const [requestDone, setRequestDone] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return undefined;
+    const timer = setInterval(() => {
+      setCooldownSeconds((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldownSeconds]);
+
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
 
   const [passwordForm, setPasswordForm] = useState({ new_password: "", confirm_password: "" });
   const [resetLoading, setResetLoading] = useState(false);
@@ -59,6 +74,7 @@ function ResetPasswordContent() {
 
   async function handleRequestReset(e) {
     e.preventDefault();
+    if (cooldownSeconds > 0) return;
     setRequestLoading(true);
     setError("");
     setSuccess("");
@@ -68,7 +84,8 @@ function ResetPasswordContent() {
         body: JSON.stringify({ email }),
       });
       setRequestDone(true);
-      setSuccess(data?.message || "If an account exists for that email, a reset link has been sent.");
+      setSuccess(data?.message || "If an account exists for that email, a reset link has been sent (valid for 5 minutes).");
+      setCooldownSeconds(300);
     } catch (err) {
       setError(err.message || "Unable to send reset link");
     } finally {
@@ -150,9 +167,10 @@ function ResetPasswordContent() {
                     placeholder="Enter your account email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    disabled={cooldownSeconds > 0 || requestLoading}
                     autoComplete="off"
                     name="reset_email_no_autofill"
-                    style={{ paddingLeft: 40 }}
+                    style={{ paddingLeft: 40, ...(cooldownSeconds > 0 ? { opacity: 0.6, cursor: "not-allowed" } : {}) }}
                     required
                   />
                 </div>
@@ -193,10 +211,10 @@ function ResetPasswordContent() {
               <button
                 className="btn-primary"
                 type="submit"
-                disabled={requestLoading}
-                style={{ width: "100%", justifyContent: "center", padding: "14px 20px", fontSize: 15 }}
+                disabled={requestLoading || cooldownSeconds > 0}
+                style={{ width: "100%", justifyContent: "center", padding: "14px 20px", fontSize: 15, ...(cooldownSeconds > 0 ? { opacity: 0.6, cursor: "not-allowed" } : {}) }}
               >
-                {requestLoading ? "Sending..." : <><span>Send Reset Link</span><ArrowRight size={16} /></>}
+                {requestLoading ? "Sending..." : cooldownSeconds > 0 ? `Resend Link (${formatTime(cooldownSeconds)})` : <><span>Send Reset Link</span><ArrowRight size={16} /></>}
               </button>
             </form>
           ) : (

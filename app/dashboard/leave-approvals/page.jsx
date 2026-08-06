@@ -33,8 +33,8 @@ export default function LeaveApprovalsPage() {
     setLoading(true);
     try {
       const [pendingData, allData] = await Promise.all([
-        apiFetch("/leave/pending"),
-        apiFetch(filter ? `/leave/all?leave_type=${filter}` : "/leave/all"),
+        apiFetch("/leave/pending").catch(() => []),
+        apiFetch(filter ? `/leave/all?leave_type=${filter}` : "/leave/all").catch(() => []),
       ]);
       setPending(Array.isArray(pendingData) ? pendingData : []);
       setHistory(Array.isArray(allData) ? allData : []);

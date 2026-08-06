@@ -147,7 +147,7 @@ export default function LoginPage() {
                   <AppLogo size={62} showText={false} />
                 </div>
               </div>
-              <h1 className="syne" style={{ fontSize: 30, fontWeight: 800, color: "var(--text)" }}>IUI Solutions</h1>
+              <h1 className="syne" style={{ fontSize: 30, fontWeight: 800, color: "var(--text)" }}>IUI SOLUTIONS</h1>
               <p style={{ color: "var(--text-2)", fontSize: 13, marginTop: 8, letterSpacing: "0.06em", textTransform: "uppercase" }}>Enterprise HR Mission Control</p>
             </div>
 

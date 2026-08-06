@@ -9,6 +9,7 @@ import StatCard from "@/components/ui/StatCard";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import Pagination from "@/components/ui/Pagination";
+import Loader from "@/components/ui/Loader";
 
 export default function GrievancesHRPage() {
   const [grievances, setGrievances] = useState([]);

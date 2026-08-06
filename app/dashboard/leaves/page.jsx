@@ -8,6 +8,7 @@ import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import Pagination from "@/components/ui/Pagination";
+import Loader from "@/components/ui/Loader";
 
 
 const EMPTY_LEAVE_FORM = { subject: "", description: "", start_date: "", end_date: "", leave_type: "Casual Leave" };

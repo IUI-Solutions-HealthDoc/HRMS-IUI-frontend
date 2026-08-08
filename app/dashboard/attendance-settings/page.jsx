@@ -19,6 +19,20 @@ function fmtDateTime(value) {
   });
 }
 
+const CATEGORY_OPTIONS = [
+  "Software Developer",
+  "2D Animator",
+  "3D Animator",
+  "QA",
+  "HR",
+  "Accounts",
+  "Graphic Designer",
+  "Video Editor",
+  "UI/UX Designer",
+  "Information Security Engineer",
+  "HOD",
+];
+
 export default function AttendanceSettingsPage() {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,12 +40,69 @@ export default function AttendanceSettingsPage() {
   const [savingCollector, setSavingCollector] = useState(false);
   const [showToast, toastNode] = useToast();
 
+  const [wfhAssignments, setWfhAssignments] = useState([]);
+  const [wfhForm, setWfhForm] = useState({
+    date: new Date().toISOString().split("T")[0],
+    target_type: "job_title",
+    target_value: "Software Developer",
+    reason: "Work From Home Day",
+  });
+  const [employees, setEmployees] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [savingWfh, setSavingWfh] = useState(false);
+
   useEffect(() => {
     apiFetch("/attendance/settings")
       .then(setSettings)
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    loadWfh();
   }, []);
+
+  const loadWfh = async () => {
+    try {
+      const [w, e, d] = await Promise.all([
+        apiFetch("/attendance/wfh-assignment").catch(() => []),
+        apiFetch("/employees/").catch(() => []),
+        apiFetch("/departments/").catch(() => []),
+      ]);
+      setWfhAssignments(Array.isArray(w) ? w : []);
+      setEmployees(Array.isArray(e) ? e : []);
+      setDepartments(Array.isArray(d) ? d : []);
+    } catch {}
+  };
+
+  async function createWfhAssignment() {
+    if (!wfhForm.date || !wfhForm.target_value) {
+      showToast("Please fill in date and target value", "error");
+      return;
+    }
+    setSavingWfh(true);
+    try {
+      await apiFetch("/attendance/wfh-assignment", {
+        method: "POST",
+        body: JSON.stringify(wfhForm),
+      });
+      showToast("WFH Assignment created successfully!");
+      loadWfh();
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setSavingWfh(false);
+    }
+  }
+
+  async function deleteWfhAssignment(id) {
+    if (!confirm("Are you sure you want to delete this WFH assignment?")) return;
+    try {
+      await apiFetch(`/attendance/wfh-assignment/${id}`, { method: "DELETE" });
+      showToast("WFH assignment deleted");
+      loadWfh();
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  }
 
   async function saveRules() {
     if (!settings) return;
@@ -45,24 +116,25 @@ export default function AttendanceSettingsPage() {
     setSavingRules(true);
     try {
       const payload = {
-        shift_start: settings.shift_start,
-        late_after: settings.late_after,
-        half_day_in_after: settings.half_day_in_after,
-        absent_in_after: settings.absent_in_after,
-        early_leave_before: settings.early_leave_before,
-        half_day_out_before: settings.half_day_out_before,
-        absent_out_before: settings.absent_out_before,
-        shift_end: settings.shift_end,
-        lunch_start: settings.lunch_start,
-        lunch_end: settings.lunch_end,
+        shift_start: (settings.shift_start || "").slice(0, 5),
+        late_after: (settings.late_after || "").slice(0, 5),
+        half_day_in_after: (settings.half_day_in_after || "").slice(0, 5),
+        absent_in_after: (settings.absent_in_after || "").slice(0, 5),
+        early_leave_before: (settings.early_leave_before || "").slice(0, 5),
+        half_day_out_before: (settings.half_day_out_before || "").slice(0, 5),
+        absent_out_before: (settings.absent_out_before || "").slice(0, 5),
+        shift_end: (settings.shift_end || "").slice(0, 5),
+        lunch_start: settings.lunch_start ? (settings.lunch_start || "").slice(0, 5) : null,
+        lunch_end: settings.lunch_end ? (settings.lunch_end || "").slice(0, 5) : null,
         lates_per_half_day_deduction: settings.lates_per_half_day_deduction,
         early_leaves_per_half_day: settings.early_leaves_per_half_day,
         allow_web_punch: settings.allow_web_punch,
       };
-      await apiFetch("/attendance/settings", { method: "PUT", body: JSON.stringify(payload) });
-      const fresh = await apiFetch("/attendance/settings");
-      setSettings(fresh);
-      showToast("Attendance rules updated");
+      await apiFetch("/attendance/settings", {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+      showToast("Attendance rules updated!");
     } catch (e) {
       showToast(e.message, "error");
     } finally {
@@ -76,11 +148,11 @@ export default function AttendanceSettingsPage() {
     try {
       await apiFetch("/attendance/settings", {
         method: "PUT",
-        body: JSON.stringify({ log_collector_enabled: !!settings.log_collector_enabled }),
+        body: JSON.stringify({
+          log_collector_enabled: !!settings.log_collector_enabled,
+        }),
       });
-      const fresh = await apiFetch("/attendance/settings");
-      setSettings(fresh);
-      showToast(`Log collector ${fresh.log_collector_enabled ? "enabled" : "disabled"}`);
+      showToast("Log collector setting updated!");
     } catch (e) {
       showToast(e.message, "error");
     } finally {
@@ -93,11 +165,156 @@ export default function AttendanceSettingsPage() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>Attendance Rules</h1>
-        <p style={{ color: "var(--muted)", marginTop: 4 }}>Control shift timings and machine-log collection from one place.</p>
+        <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>Attendance Settings</h1>
+        <p style={{ color: "var(--muted)", marginTop: 4 }}>
+          Control machine log ingestion, shift rules, and Work From Home (WFH) grants.
+        </p>
       </div>
 
-      <div className="card" style={{ padding: 24, marginBottom: 20 }}>
+      {/* ─── Work From Home (WFH) Management Section ────────────────── */}
+      <div className="card" style={{ padding: 24, marginBottom: 28, border: "1px solid var(--accent-light, #06b6d4)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+          <div>
+            <div className="syne" style={{ fontSize: 18, fontWeight: 800, color: "#06b6d4", display: "flex", alignItems: "center", gap: 8 }}>
+              <span>🏠</span> Work From Home (WFH) Grant Engine
+            </div>
+            <p style={{ color: "var(--muted)", margin: "4px 0 0 0", fontSize: 13 }}>
+              Assign WFH for a specific date to an individual employee or a job category (e.g. 2D Animator, Software Developer, QA, HR, Accounts). Note: 2nd Saturday is automatically set as WFH for all employees.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ background: "var(--hover-bg)", padding: 18, borderRadius: 12, marginBottom: 20, border: "1px solid var(--border)" }}>
+          <div className="form-row" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: 14 }}>
+            <div className="form-group">
+              <label className="label" style={{ fontWeight: 700 }}>Date *</label>
+              <input
+                className="input"
+                type="date"
+                value={wfhForm.date}
+                onChange={(e) => setWfhForm((f) => ({ ...f, date: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="label" style={{ fontWeight: 700 }}>Assign To (Target Type) *</label>
+              <select
+                className="input"
+                value={wfhForm.target_type}
+                onChange={(e) => {
+                  const tt = e.target.value;
+                  let defVal = "Software Developer";
+                  if (tt === "employee" && employees.length) defVal = employees[0].emp_id;
+                  if (tt === "department" && departments.length) defVal = departments[0].name;
+                  if (tt === "all") defVal = "All Employees";
+                  setWfhForm((f) => ({ ...f, target_type: tt, target_value: defVal }));
+                }}
+              >
+                <option value="job_title">Job Category / Role (e.g. 2D Animator, Developer)</option>
+                <option value="employee">Specific Employee</option>
+                <option value="department">Entire Department</option>
+                <option value="all">All Employees</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="label" style={{ fontWeight: 700 }}>Target Value *</label>
+              {wfhForm.target_type === "job_title" ? (
+                <select
+                  className="input"
+                  value={wfhForm.target_value}
+                  onChange={(e) => setWfhForm((f) => ({ ...f, target_value: e.target.value }))}
+                >
+                  {CATEGORY_OPTIONS.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              ) : wfhForm.target_type === "employee" ? (
+                <select
+                  className="input"
+                  value={wfhForm.target_value}
+                  onChange={(e) => setWfhForm((f) => ({ ...f, target_value: e.target.value }))}
+                >
+                  {employees.map((emp) => (
+                    <option key={emp.emp_id} value={emp.emp_id}>
+                      {emp.emp_id} - {emp.user?.first_name} {emp.user?.last_name} ({emp.job_title || emp.department})
+                    </option>
+                  ))}
+                </select>
+              ) : wfhForm.target_type === "department" ? (
+                <select
+                  className="input"
+                  value={wfhForm.target_value}
+                  onChange={(e) => setWfhForm((f) => ({ ...f, target_value: e.target.value }))}
+                >
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.name}>{d.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <input className="input" value="All Employees" disabled />
+              )}
+            </div>
+
+            <div className="form-group">
+              <label className="label" style={{ fontWeight: 700 }}>Reason / Note</label>
+              <input
+                className="input"
+                placeholder="e.g. Special WFH Grant"
+                value={wfhForm.reason}
+                onChange={(e) => setWfhForm((f) => ({ ...f, reason: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+            <button className="btn-primary" onClick={createWfhAssignment} disabled={savingWfh} style={{ background: "#06b6d4", borderColor: "#06b6d4" }}>
+              {savingWfh ? "Assigning..." : "Assign WFH"}
+            </button>
+          </div>
+        </div>
+
+        {/* List of active WFH Assignments */}
+        <div className="syne" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Active & Past WFH Grants</div>
+        {wfhAssignments.length === 0 ? (
+          <div style={{ padding: 16, color: "var(--muted)", textAlign: "center", fontSize: 13, background: "var(--hover-bg)", borderRadius: 8 }}>
+            No custom WFH grants created yet. (2nd Saturdays automatically grant WFH to everyone).
+          </div>
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Target Type</th>
+                  <th>Target Value</th>
+                  <th>Reason</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {wfhAssignments.map((a) => (
+                  <tr key={a.id}>
+                    <td><strong style={{ color: "#06b6d4" }}>{a.date}</strong></td>
+                    <td style={{ textTransform: "capitalize" }}>{a.target_type?.replace("_", " ")}</td>
+                    <td><span className="badge" style={{ background: "rgba(6,182,212,0.12)", color: "#06b6d4" }}>{a.target_value}</span></td>
+                    <td>{a.reason || "Work From Home"}</td>
+                    <td>
+                      <button className="btn-ghost" style={{ color: "#ef4444", padding: "4px 10px", fontSize: 12 }} onClick={() => deleteWfhAssignment(a.id)}>
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ─── Log Collector Card ────────────────────────────── */}
+      <div className="card" style={{ padding: 24, marginBottom: 28 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 18, alignItems: "flex-start", flexWrap: "wrap" }}>
           <div style={{ maxWidth: 680 }}>
             <div className="syne" style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>Log Collector</div>
@@ -163,6 +380,7 @@ export default function AttendanceSettingsPage() {
         </div>
       </div>
 
+      {/* ─── Attendance Rule Engine Card ────────────────────── */}
       <div className="card" style={{ padding: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap", marginBottom: 18 }}>
           <div>
@@ -180,9 +398,9 @@ export default function AttendanceSettingsPage() {
               <input
                 className="input"
                 type="time"
-                step="1"
+                step="60"
                 style={{ background: "var(--surface)", color: "var(--text)" }}
-                value={settings?.[field] || ""}
+                value={(settings?.[field] || "").slice(0, 5)}
                 onChange={(e) => setSettings((item) => ({ ...item, [field]: e.target.value }))}
                 required
               />

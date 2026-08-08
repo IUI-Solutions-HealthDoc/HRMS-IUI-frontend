@@ -25,6 +25,8 @@ export default function StatusBadge({ status, label }) {
     rejected_admin: ["#ef4444", "Rejected by Admin"],
     compoff: ["#06b6d4", "Comp-Off"],
     extra_pay: ["#f59e0b", "Extra Pay"],
+    wfh: ["#06b6d4", "Work From Home"],
+    work_from_home: ["#06b6d4", "Work From Home"],
   };
   const [color, defaultLabel] = map[status?.toLowerCase()] || ["#64748b", status || "—"];
   return (

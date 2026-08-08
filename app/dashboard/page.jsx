@@ -185,13 +185,17 @@ function HRDashboard({ showToast }) {
 
   const presentStatuses = new Set(["present", "late", "half_day", "early_leave"]);
   const present = today.filter((t) => presentStatuses.has((t.status || "").toLowerCase())).length;
-  const absent = today.filter((t) => !presentStatuses.has((t.status || "").toLowerCase())).length;
+  const wfh = today.filter((t) => (t.status || "").toLowerCase() === "wfh" || (t.status || "").toLowerCase() === "work_from_home").length;
+  const absent = today.filter((t) => (t.status || "").toLowerCase() === "absent" || (!presentStatuses.has((t.status || "").toLowerCase()) && (t.status || "").toLowerCase() !== "wfh" && (t.status || "").toLowerCase() !== "work_from_home")).length;
   const totalEmployees = today.length;
 
   const filteredToday = today.filter((t) => {
-    const isPresent = presentStatuses.has((t.status || "").toLowerCase());
+    const st = (t.status || "").toLowerCase();
+    const isPresent = presentStatuses.has(st);
+    const isWfh = st === "wfh" || st === "work_from_home";
     if (filterType === "present") return isPresent;
-    if (filterType === "absent") return !isPresent;
+    if (filterType === "wfh") return isWfh;
+    if (filterType === "absent") return st === "absent" || (!isPresent && !isWfh);
     return true;
   });
 
@@ -228,6 +232,18 @@ function HRDashboard({ showToast }) {
           style={{
             border: filterType === "present" ? "1px solid #10b981" : "1px solid var(--border)",
             boxShadow: filterType === "present" ? "0 0 16px rgba(16, 185, 129, 0.25)" : "none",
+            transition: "all 0.2s ease",
+          }}
+        />
+        <StatCard
+          icon="🏠"
+          label="Work From Home"
+          value={wfh}
+          accent="#06b6d4"
+          onClick={() => setFilterType("wfh")}
+          style={{
+            border: filterType === "wfh" ? "1px solid #06b6d4" : "1px solid var(--border)",
+            boxShadow: filterType === "wfh" ? "0 0 16px rgba(6, 182, 212, 0.25)" : "none",
             transition: "all 0.2s ease",
           }}
         />

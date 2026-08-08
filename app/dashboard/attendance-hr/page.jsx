@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch, getToken } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
@@ -237,6 +238,7 @@ function MonthGrid({ year, monthIndex, holidays, canSelect, includeSaturdays, on
 }
 
 export default function AttendanceHRPage() {
+  const router = useRouter();
   const { role } = useAuth();
   const isAdmin = role === "admin";
   const isHR = role === "hr";
@@ -735,7 +737,12 @@ export default function AttendanceHRPage() {
           <select className="input" style={{ width: "auto" }} value={year} onChange={(e) => setYear(+e.target.value)}>
             {[2025, 2026, 2027].map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
-          {isHR ? <button className="btn-primary" onClick={openManualModal}>Manual Entry</button> : null}
+          {isHR ? (
+            <>
+              <button className="btn-primary" onClick={openManualModal}>Manual Entry</button>
+              <button className="btn-primary" type="button" style={{ background: "#06b6d4", borderColor: "#06b6d4" }} onClick={() => router.push("/dashboard/attendance-settings")}>🏠 Grant WFH</button>
+            </>
+          ) : null}
           <div style={{ display: "flex", background: "var(--hover-bg)", padding: 4, borderRadius: 10, flexWrap: "wrap" }}>
             {(isAdmin || isHR) ? <button className="btn-ghost" onClick={() => setTab("all_logs")} style={{ padding: "6px 14px", fontSize: 13, background: tab === "all_logs" ? "var(--surface2)" : "transparent" }}>All Attendance Logs</button> : null}
             {(isAdmin || isHR) ? <button className="btn-ghost" onClick={() => setTab("edited")} style={{ padding: "6px 14px", fontSize: 13, background: tab === "edited" ? "var(--surface2)" : "transparent" }}>Manual Edit Records</button> : null}

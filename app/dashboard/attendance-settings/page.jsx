@@ -19,20 +19,6 @@ function fmtDateTime(value) {
   });
 }
 
-const CATEGORY_OPTIONS = [
-  "Software Developer",
-  "2D Animator",
-  "3D Animator",
-  "QA",
-  "HR",
-  "Accounts",
-  "Graphic Designer",
-  "Video Editor",
-  "UI/UX Designer",
-  "Information Security Engineer",
-  "HOD",
-];
-
 export default function AttendanceSettingsPage() {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -44,7 +30,7 @@ export default function AttendanceSettingsPage() {
   const [wfhForm, setWfhForm] = useState({
     date: new Date().toISOString().split("T")[0],
     target_type: "job_title",
-    target_value: "Software Developer",
+    target_value: "",
     reason: "Work From Home Day",
   });
   const [employees, setEmployees] = useState([]);
@@ -70,8 +56,20 @@ export default function AttendanceSettingsPage() {
       setWfhAssignments(Array.isArray(w) ? w : []);
       setEmployees(Array.isArray(e) ? e : []);
       setDepartments(Array.isArray(d) ? d : []);
+
+      setWfhForm((prev) => {
+        if (prev.target_value !== "") return prev;
+        const eList = Array.isArray(e) ? e : [];
+        const dJC = Array.from(new Set(eList.map(emp => emp.job_title).filter(Boolean))).sort();
+        if (prev.target_type === "job_title" && dJC.length > 0) {
+          return { ...prev, target_value: dJC[0] };
+        }
+        return prev;
+      });
     } catch {}
   };
+
+  const dynamicJobCategories = Array.from(new Set(employees.map(emp => emp.job_title).filter(Boolean))).sort();
 
   async function createWfhAssignment() {
     if (!wfhForm.date || !wfhForm.target_value) {
@@ -204,7 +202,7 @@ export default function AttendanceSettingsPage() {
                 value={wfhForm.target_type}
                 onChange={(e) => {
                   const tt = e.target.value;
-                  let defVal = "Software Developer";
+                  let defVal = dynamicJobCategories[0] || "";
                   if (tt === "employee" && employees.length) defVal = employees[0].emp_id;
                   if (tt === "department" && departments.length) defVal = departments[0].name;
                   if (tt === "all") defVal = "All Employees";
@@ -226,7 +224,7 @@ export default function AttendanceSettingsPage() {
                   value={wfhForm.target_value}
                   onChange={(e) => setWfhForm((f) => ({ ...f, target_value: e.target.value }))}
                 >
-                  {CATEGORY_OPTIONS.map((cat) => (
+                  {dynamicJobCategories.map((cat) => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>

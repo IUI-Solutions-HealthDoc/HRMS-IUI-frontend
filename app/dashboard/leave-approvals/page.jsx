@@ -28,6 +28,7 @@ export default function LeaveApprovalsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const PER_PAGE = 10;
   const [showToast, toastNode] = useToast();
+  const [selectedLeave, setSelectedLeave] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -121,7 +122,7 @@ export default function LeaveApprovalsPage() {
               </thead>
               <tbody>
                 {filteredPending.map((item) => (
-                  <tr key={item.id}>
+                  <tr key={item.id} onClick={() => setSelectedLeave(item)} style={{ cursor: "pointer" }}>
                     <td><b>{item.name || item.emp_id}</b></td>
                     <td><span className="chip">{item.subject}</span></td>
                     <td>{fmtDate(item.start_date)}</td>
@@ -136,9 +137,9 @@ export default function LeaveApprovalsPage() {
                     </td>
                     <td>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        <button className="btn-primary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => updateLeave(item, "approve_paid")}>Paid</button>
-                        <button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => updateLeave(item, "approve_unpaid")}>Unpaid</button>
-                        <button className="btn-danger" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => updateLeave(item, "reject")}>Reject</button>
+                        <button className="btn-primary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_paid"); }}>Paid</button>
+                        <button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 12 }} onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_unpaid"); }}>Unpaid</button>
+                        <button className="btn-danger" style={{ padding: "6px 12px", fontSize: 12 }} onClick={(e) => { e.stopPropagation(); updateLeave(item, "reject"); }}>Reject</button>
                       </div>
                     </td>
                   </tr>
@@ -175,7 +176,7 @@ export default function LeaveApprovalsPage() {
                   const safePage = Math.min(currentPage, Math.max(1, Math.ceil(filteredHistory.length / PER_PAGE)));
                   const paginated = filteredHistory.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
                   return paginated.map((item) => (
-                    <tr key={item.id}>
+                    <tr key={item.id} onClick={() => setSelectedLeave(item)} style={{ cursor: "pointer" }}>
                       <td><b>{item.name || item.emp_id}</b></td>
                       <td>{item.status === "Approved" ? (item.is_paid ? "Paid" : "Unpaid") : "—"}</td>
                       <td>{fmtDate(item.start_date)}</td>
@@ -210,6 +211,68 @@ export default function LeaveApprovalsPage() {
           onPageChange={(p) => setCurrentPage(p)}
         />
       </div>
+
+      {selectedLeave && (
+        <div className="modal-overlay" onClick={() => setSelectedLeave(null)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ background: "var(--card-bg, #fff)", padding: 24, borderRadius: 12, width: "100%", maxWidth: 500, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
+            <h2 className="syne" style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>Leave Details</h2>
+            
+            <div style={{ marginBottom: 12 }}>
+              <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>Employee</span>
+              <strong>{selectedLeave.name || selectedLeave.emp_id}</strong>
+            </div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+              <div>
+                <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>Leave Type</span>
+                <strong>{selectedLeave.leave_type || "Casual Leave"}</strong>
+              </div>
+              <div>
+                <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>Status</span>
+                <StatusBadge status={selectedLeave.status} />
+              </div>
+            </div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+              <div>
+                <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>From</span>
+                <strong>{fmtDate(selectedLeave.start_date)}</strong>
+              </div>
+              <div>
+                <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>To</span>
+                <strong>{fmtDate(selectedLeave.end_date)}</strong>
+              </div>
+            </div>
+            
+            <div style={{ marginBottom: 12 }}>
+              <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>Subject</span>
+              <strong>{selectedLeave.subject}</strong>
+            </div>
+            
+            <div style={{ marginBottom: 12 }}>
+              <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>Description</span>
+              <p style={{ margin: "4px 0 0 0", fontSize: 14 }}>{selectedLeave.description || "—"}</p>
+            </div>
+            
+            <div style={{ marginBottom: 20 }}>
+              <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block", marginBottom: 4 }}>Attachments</span>
+              {(selectedLeave.attachments?.length > 0) ? (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {selectedLeave.attachments.map((url, j) => (
+                    <a key={j} href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", padding: "6px 12px", background: "var(--bg, #f3f4f6)", border: "1px solid var(--border, #e5e7eb)", borderRadius: 6, fontSize: 12, color: "var(--accent, #3b82f6)", textDecoration: "none" }}>
+                      📎 Attachment {j + 1}
+                    </a>
+                  ))}
+                </div>
+              ) : <span style={{ color: "var(--muted, #666)", fontSize: 14 }}>No attachments</span>}
+            </div>
+            
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button className="btn-ghost" onClick={() => setSelectedLeave(null)} style={{ padding: "8px 16px", borderRadius: 6 }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toastNode}
     </div>

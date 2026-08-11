@@ -29,6 +29,34 @@ export default function LeaveApprovalsPage() {
   const PER_PAGE = 10;
   const [showToast, toastNode] = useToast();
   const [selectedLeave, setSelectedLeave] = useState(null);
+  const [selectedBalance, setSelectedBalance] = useState(null);
+  const [editedLeaveType, setEditedLeaveType] = useState("");
+
+  useEffect(() => {
+    if (selectedLeave) {
+      setEditedLeaveType(selectedLeave.leave_type || "Casual Leave");
+      apiFetch(`/leave/balance?emp_id=${selectedLeave.emp_id || selectedLeave.employee_id}`)
+        .then(data => setSelectedBalance(data))
+        .catch(e => console.error(e));
+    } else {
+      setSelectedBalance(null);
+      setEditedLeaveType("");
+    }
+  }, [selectedLeave]);
+
+  async function handleUpdateLeaveType() {
+    try {
+      await apiFetch(`/leave/${selectedLeave.id}/update`, { 
+        method: "POST", 
+        body: JSON.stringify({ action: "update_type", leave_type: editedLeaveType }) 
+      });
+      showToast("Leave type updated");
+      load();
+      setSelectedLeave(prev => ({ ...prev, leave_type: editedLeaveType }));
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -116,7 +144,6 @@ export default function LeaveApprovalsPage() {
                   <th>From</th>
                   <th>To</th>
                   <th>Description</th>
-                  <th>Attachments</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -128,13 +155,6 @@ export default function LeaveApprovalsPage() {
                     <td>{fmtDate(item.start_date)}</td>
                     <td>{fmtDate(item.end_date)}</td>
                     <td style={{ maxWidth: 220 }}>{item.description}</td>
-                    <td>
-                      {(item.attachments?.length > 0) ? item.attachments.map((url, j) => (
-                        <a key={j} href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginRight: 6, fontSize: 12, color: "var(--accent)" }}>
-                          📎 File {j + 1}
-                        </a>
-                      )) : <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>}
-                    </td>
                     <td>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         <button className="btn-primary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_paid"); }}>Paid</button>
@@ -163,10 +183,10 @@ export default function LeaveApprovalsPage() {
                 <tr>
                   <th>Employee</th>
                   <th>Type</th>
+                  <th>Leave Type</th>
                   <th>From</th>
                   <th>To</th>
                   <th>Subject</th>
-                  <th>Attachments</th>
                   <th>Status</th>
                   <th>Action By</th>
                 </tr>
@@ -179,16 +199,10 @@ export default function LeaveApprovalsPage() {
                     <tr key={item.id} onClick={() => setSelectedLeave(item)} style={{ cursor: "pointer" }}>
                       <td><b>{item.name || item.emp_id}</b></td>
                       <td>{item.status === "Approved" ? (item.is_paid ? "Paid" : "Unpaid") : "—"}</td>
+                      <td>{item.leave_type || "Casual Leave"}</td>
                       <td>{fmtDate(item.start_date)}</td>
                       <td>{fmtDate(item.end_date)}</td>
                       <td>{item.subject}</td>
-                      <td>
-                        {(item.attachments?.length > 0) ? item.attachments.map((url, j) => (
-                          <a key={j} href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginRight: 6, fontSize: 12, color: "var(--accent)" }}>
-                            📎 File {j + 1}
-                          </a>
-                        )) : <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>}
-                      </td>
                       <td><StatusBadge status={item.status} /></td>
                       <td>
                         {item.action_by_name ? (
@@ -225,13 +239,46 @@ export default function LeaveApprovalsPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div>
                 <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>Leave Type</span>
-                <strong>{selectedLeave.leave_type || "Casual Leave"}</strong>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <select
+                    value={editedLeaveType}
+                    onChange={(e) => setEditedLeaveType(e.target.value)}
+                    style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--fg)", fontSize: 14 }}
+                  >
+                    <option value="Casual Leave">Casual Leave</option>
+                    <option value="Sick Leave">Sick Leave</option>
+                    <option value="Privileged Leave">Privileged Leave</option>
+                  </select>
+                  {editedLeaveType !== (selectedLeave.leave_type || "Casual Leave") && (
+                    <button className="btn-primary" onClick={handleUpdateLeaveType} style={{ padding: "6px 12px", fontSize: 12 }}>Update</button>
+                  )}
+                </div>
               </div>
               <div>
                 <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>Status</span>
                 <StatusBadge status={selectedLeave.status} />
               </div>
             </div>
+
+            {selectedBalance && selectedBalance.annual_quotas && (
+              <div style={{ marginBottom: 16, padding: "12px", background: "var(--bg, #f9fafb)", borderRadius: 8, border: "1px solid var(--border)" }}>
+                <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block", marginBottom: 8, fontWeight: 600 }}>Leave Balances (Remaining)</span>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                  <div style={{ textAlign: "center", background: "#fff", padding: "8px", borderRadius: 6, border: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: 11, color: "var(--muted)" }}>Casual</div>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>{selectedBalance.annual_quotas.casual.remaining}</div>
+                  </div>
+                  <div style={{ textAlign: "center", background: "#fff", padding: "8px", borderRadius: 6, border: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: 11, color: "var(--muted)" }}>Sick</div>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>{selectedBalance.annual_quotas.sick.remaining}</div>
+                  </div>
+                  <div style={{ textAlign: "center", background: "#fff", padding: "8px", borderRadius: 6, border: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: 11, color: "var(--muted)" }}>Privileged</div>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>{selectedBalance.annual_quotas.privileged.remaining}</div>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div>

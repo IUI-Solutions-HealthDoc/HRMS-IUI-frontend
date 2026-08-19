@@ -31,16 +31,22 @@ export default function LeaveApprovalsPage() {
   const [selectedLeave, setSelectedLeave] = useState(null);
   const [selectedBalance, setSelectedBalance] = useState(null);
   const [editedLeaveType, setEditedLeaveType] = useState("");
+  const [editedStartDate, setEditedStartDate] = useState("");
+  const [editedEndDate, setEditedEndDate] = useState("");
 
   useEffect(() => {
     if (selectedLeave) {
       setEditedLeaveType(selectedLeave.leave_type || "Casual Leave");
+      setEditedStartDate(selectedLeave.start_date ? selectedLeave.start_date.split("T")[0] : "");
+      setEditedEndDate(selectedLeave.end_date ? selectedLeave.end_date.split("T")[0] : "");
       apiFetch(`/leave/balance?emp_id=${selectedLeave.emp_id || selectedLeave.employee_id}`)
         .then(data => setSelectedBalance(data))
         .catch(e => console.error(e));
     } else {
       setSelectedBalance(null);
       setEditedLeaveType("");
+      setEditedStartDate("");
+      setEditedEndDate("");
     }
   }, [selectedLeave]);
 
@@ -53,6 +59,36 @@ export default function LeaveApprovalsPage() {
       showToast("Leave type updated");
       load();
       setSelectedLeave(prev => ({ ...prev, leave_type: editedLeaveType }));
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  }
+
+  async function handleUpdateDates() {
+    if (!editedStartDate || !editedEndDate) {
+      showToast("Please select valid start and end dates", "error");
+      return;
+    }
+    if (editedEndDate < editedStartDate) {
+      showToast("End date cannot be before start date", "error");
+      return;
+    }
+    try {
+      await apiFetch(`/leave/${selectedLeave.id}/update`, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "update_dates",
+          start_date: editedStartDate,
+          end_date: editedEndDate,
+        }),
+      });
+      showToast("Leave dates updated successfully");
+      load();
+      setSelectedLeave(prev => ({
+        ...prev,
+        start_date: editedStartDate,
+        end_date: editedEndDate,
+      }));
     } catch (e) {
       showToast(e.message, "error");
     }
@@ -89,6 +125,13 @@ export default function LeaveApprovalsPage() {
       await apiFetch(`/leave/${item.id}/update`, { method: "POST", body: JSON.stringify({ action }) });
       showToast("Leave updated");
       load();
+      if (selectedLeave && selectedLeave.id === item.id) {
+        setSelectedLeave(prev => ({
+          ...prev,
+          status: action === "reject" ? "Rejected" : "Approved",
+          is_paid: action === "approve_paid",
+        }));
+      }
     } catch (error) {
       showToast(error.message, "error");
     }
@@ -114,7 +157,7 @@ export default function LeaveApprovalsPage() {
         <div>
           <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>Leave Approvals</h1>
           <p style={{ color: "var(--muted)", marginTop: 4 }}>
-            {isAdmin ? "Admin can review the full leave ledger and pending approvals." : "Review requests and classify approvals as paid or unpaid."}
+            {isAdmin ? "Admin can review the full leave ledger and pending approvals." : "Review requests, classify approvals as paid or unpaid, modify dates, or reject/re-approve leaves."}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -189,6 +232,7 @@ export default function LeaveApprovalsPage() {
                   <th>Subject</th>
                   <th>Status</th>
                   <th>Action By</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -211,6 +255,60 @@ export default function LeaveApprovalsPage() {
                           </span>
                         ) : "—"}
                       </td>
+                      <td>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {item.status === "Approved" ? (
+                            <button
+                              className="btn-danger"
+                              style={{ padding: "4px 8px", fontSize: 11 }}
+                              onClick={(e) => { e.stopPropagation(); updateLeave(item, "reject"); }}
+                            >
+                              Reject
+                            </button>
+                          ) : item.status === "Rejected" ? (
+                            <>
+                              <button
+                                className="btn-primary"
+                                style={{ padding: "4px 8px", fontSize: 11 }}
+                                onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_paid"); }}
+                              >
+                                Paid
+                              </button>
+                              <button
+                                className="btn-ghost"
+                                style={{ padding: "4px 8px", fontSize: 11 }}
+                                onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_unpaid"); }}
+                              >
+                                Unpaid
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                className="btn-primary"
+                                style={{ padding: "4px 8px", fontSize: 11 }}
+                                onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_paid"); }}
+                              >
+                                Paid
+                              </button>
+                              <button
+                                className="btn-ghost"
+                                style={{ padding: "4px 8px", fontSize: 11 }}
+                                onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_unpaid"); }}
+                              >
+                                Unpaid
+                              </button>
+                              <button
+                                className="btn-danger"
+                                style={{ padding: "4px 8px", fontSize: 11 }}
+                                onClick={(e) => { e.stopPropagation(); updateLeave(item, "reject"); }}
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ));
                 })()}
@@ -228,8 +326,8 @@ export default function LeaveApprovalsPage() {
 
       {selectedLeave && (
         <div className="modal-overlay" onClick={() => setSelectedLeave(null)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ background: "var(--card-bg, #fff)", padding: 24, borderRadius: 12, width: "100%", maxWidth: 500, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
-            <h2 className="syne" style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>Leave Details</h2>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ background: "var(--card-bg, #fff)", padding: 24, borderRadius: 12, width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
+            <h2 className="syne" style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>Leave Details & Actions</h2>
             
             <div style={{ marginBottom: 12 }}>
               <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>Employee</span>
@@ -255,7 +353,7 @@ export default function LeaveApprovalsPage() {
                 </div>
               </div>
               <div>
-                <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>Status</span>
+                <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>Current Status</span>
                 <StatusBadge status={selectedLeave.status} />
               </div>
             </div>
@@ -280,16 +378,35 @@ export default function LeaveApprovalsPage() {
               </div>
             )}
             
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }}>
               <div>
-                <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>From</span>
-                <strong>{fmtDate(selectedLeave.start_date)}</strong>
+                <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>From Date</span>
+                <input
+                  type="date"
+                  value={editedStartDate}
+                  onChange={(e) => setEditedStartDate(e.target.value)}
+                  style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--fg)", fontSize: 13 }}
+                />
               </div>
               <div>
-                <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>To</span>
-                <strong>{fmtDate(selectedLeave.end_date)}</strong>
+                <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>To Date</span>
+                <input
+                  type="date"
+                  value={editedEndDate}
+                  min={editedStartDate}
+                  onChange={(e) => setEditedEndDate(e.target.value)}
+                  style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--fg)", fontSize: 13 }}
+                />
               </div>
             </div>
+            {(editedStartDate !== (selectedLeave.start_date ? selectedLeave.start_date.split("T")[0] : "") ||
+              editedEndDate !== (selectedLeave.end_date ? selectedLeave.end_date.split("T")[0] : "")) && (
+              <div style={{ marginBottom: 12, display: "flex", justifyContent: "flex-end" }}>
+                <button className="btn-primary" onClick={handleUpdateDates} style={{ padding: "6px 12px", fontSize: 12 }}>
+                  Save Date Changes
+                </button>
+              </div>
+            )}
             
             <div style={{ marginBottom: 12 }}>
               <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>Subject</span>
@@ -301,7 +418,7 @@ export default function LeaveApprovalsPage() {
               <p style={{ margin: "4px 0 0 0", fontSize: 14 }}>{selectedLeave.description || "—"}</p>
             </div>
             
-            <div style={{ marginBottom: 20 }}>
+            <div style={{ marginBottom: 16 }}>
               <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block", marginBottom: 4 }}>Attachments</span>
               {(selectedLeave.attachments?.length > 0) ? (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -314,8 +431,38 @@ export default function LeaveApprovalsPage() {
               ) : <span style={{ color: "var(--muted, #666)", fontSize: 14 }}>No attachments</span>}
             </div>
             
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button className="btn-ghost" onClick={() => setSelectedLeave(null)} style={{ padding: "8px 16px", borderRadius: 6 }}>Close</button>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)", flexWrap: "wrap", gap: 8 }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {selectedLeave.status === "Approved" ? (
+                  <button className="btn-danger" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => updateLeave(selectedLeave, "reject")}>
+                    Reject Leave
+                  </button>
+                ) : selectedLeave.status === "Rejected" ? (
+                  <>
+                    <button className="btn-primary" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => updateLeave(selectedLeave, "approve_paid")}>
+                      Approve as Paid
+                    </button>
+                    <button className="btn-ghost" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => updateLeave(selectedLeave, "approve_unpaid")}>
+                      Approve as Unpaid
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className="btn-primary" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => updateLeave(selectedLeave, "approve_paid")}>
+                      Approve (Paid)
+                    </button>
+                    <button className="btn-ghost" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => updateLeave(selectedLeave, "approve_unpaid")}>
+                      Approve (Unpaid)
+                    </button>
+                    <button className="btn-danger" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => updateLeave(selectedLeave, "reject")}>
+                      Reject
+                    </button>
+                  </>
+                )}
+              </div>
+              <button className="btn-ghost" onClick={() => setSelectedLeave(null)} style={{ padding: "6px 16px", borderRadius: 6 }}>
+                Close
+              </button>
             </div>
           </div>
         </div>

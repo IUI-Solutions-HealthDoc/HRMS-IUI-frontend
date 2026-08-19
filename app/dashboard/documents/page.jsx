@@ -323,8 +323,9 @@ export default function DocumentsPage() {
     }
   }
 
-  async function handleDelete(docType) {
+  async function handleDelete(docType, label = "document") {
     if (!selectedEmp?.emp_id) return;
+    if (!window.confirm(`Are you sure you want to delete ${label}? This action cannot be undone.`)) return;
     try {
       const res = await apiFetch(`/documents/${selectedEmp.emp_id}/${docType}`, { method: "DELETE" });
       showToast(res?.message || "Document deleted");
@@ -622,7 +623,7 @@ export default function DocumentsPage() {
                             {canUpload && !selfLockedDoc ? (
                               <button
                                 type="button"
-                                onClick={() => handleDelete(type.id)}
+                                onClick={() => handleDelete(type.id, type.label)}
                                 className="btn-ghost"
                                 style={{ padding: "6px 10px", fontSize: 12, color: "#dc2626" }}
                               >
@@ -640,7 +641,11 @@ export default function DocumentsPage() {
                             <input
                               type="file"
                               style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
-                              onChange={(event) => handleUpload(type.id, event.target.files?.[0])}
+                              onChange={(event) => {
+                                const f = event.target.files?.[0];
+                                event.target.value = "";
+                                if (f) handleUpload(type.id, f);
+                              }}
                               disabled={uploading === type.id || uploading === "bulk"}
                             />
                           </div>

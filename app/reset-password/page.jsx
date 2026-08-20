@@ -116,6 +116,7 @@ function ResetPasswordContent() {
       });
 
       setSuccess(data?.message || "Password reset successfully");
+      setTokenValid(false);
       setTimeout(() => router.push("/login"), 1200);
     } catch (err) {
       setError(err.message || "Unable to reset password");
@@ -314,12 +315,12 @@ function ResetPasswordContent() {
             </form>
           )}
 
-          <div style={{ marginTop: 18, display: "flex", justifyContent: "center" }}>
+          {!requestDone && <div style={{ marginTop: 18, display: "flex", justifyContent: "center" }}>
             <Link href="/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "var(--muted)", textDecoration: "none", fontSize: 13, fontWeight: 600 }}>
               <ArrowLeft size={15} />
               Back to login
             </Link>
-          </div>
+          </div>}
         </div>
       </div>
     </div>

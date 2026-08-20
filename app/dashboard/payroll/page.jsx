@@ -28,9 +28,9 @@ function StatusChip({ status }) {
 export default function PayrollPage() {
   const { role } = useAuth();
   const isAdmin = role === "admin";
-  const canEdit = role === "accounts";
+  const isAccounts = role === "accounts";
   const canUploadPayslip = role === "hr";
-  const showSalary = isAdmin || canEdit;
+  const showSalary = isAdmin || isAccounts;
   const [payroll, setPayroll] = useState([]);
   const [loading, setLoading] = useState(true);
   const [queue, setQueue] = useState([]);
@@ -208,7 +208,7 @@ export default function PayrollPage() {
           <p style={{ color: "var(--muted)", marginTop: 4, fontSize: 13, maxWidth: 600 }}>
             {isAdmin
               ? "Manage and review employee payroll details. Admin can review payroll and approve increments."
-              : "Manage and review employee payroll details. You can edit the first payroll directly. Any later change goes to Admin for approval."}
+              : "Review employee payroll details, including comp-off extra pay and final payable salary."}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -352,6 +352,8 @@ export default function PayrollPage() {
                     <th>NAME</th>
                     <th>DEPARTMENT</th>
                     {showSalary && <th>BASE SALARY</th>}
+                    {showSalary && <th>EXTRA PAY</th>}
+                    {showSalary && <th>NET SALARY</th>}
                     <th>EFFECTIVE FROM</th>
                     <th>STATUS</th>
                     <th>UPLOADED PAYSLIP</th>
@@ -368,11 +370,11 @@ export default function PayrollPage() {
                       {showSalary && (
                         <td>
                           <div style={{ fontWeight: 600 }}>{fmtINR(row.base_salary)}</div>
-                          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
-                            {row.payroll_edit_count ? "Next change needs admin approval" : "First change can be saved directly"}
-                          </div>
+                          {row.calculation_error && <div style={{ fontSize: 11, color: "#ef4444", marginTop: 2 }}>{row.calculation_error}</div>}
                         </td>
                       )}
+                      {showSalary && <td style={{ fontWeight: 600, color: (row.extra_pay_addition || 0) > 0 ? "#10b981" : "var(--muted)" }}>{fmtINR(row.extra_pay_addition || 0)}</td>}
+                      {showSalary && <td style={{ fontWeight: 700 }}>{fmtINR(row.net_salary || row.base_salary || 0)}</td>}
                       <td style={{ color: row.effective_from ? "var(--text)" : "var(--muted)" }}>
                         {row.effective_from || "—"}
                       </td>
@@ -396,18 +398,6 @@ export default function PayrollPage() {
                       </td>
                       <td>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          {canEdit && (
-                            <button
-                              className="btn-primary"
-                              style={{ padding: "6px 16px", fontSize: 12, borderRadius: 6 }}
-                              onClick={() => {
-                                setEditModal(row);
-                                setSalaryForm({ base_salary: row.base_salary || "", bank_account: row.bank_account || "", ifsc_code: row.ifsc_code || "" });
-                              }}
-                            >
-                              Edit
-                            </button>
-                          )}
                           {canUploadPayslip && (
                             <button
                               className="btn-ghost"

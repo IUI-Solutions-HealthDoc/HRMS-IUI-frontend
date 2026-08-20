@@ -70,10 +70,7 @@ export default function TopbarNotifications({ role }) {
         aria-label="Notifications"
         title="Notifications"
         aria-expanded={open}
-        onClick={() => {
-          setOpen((current) => !current);
-          if (!open) loadNotifications();
-        }}
+        onClick={() => setOpen((current) => !current)}
       >
         <Bell size={18} />
         {unreadCount > 0 ? (

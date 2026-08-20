@@ -17,6 +17,7 @@ export default function AppraisalPage() {
   const isHR = role === "hr";
   const canView = isAdmin || isAccounts || isHR;
   const [requests, setRequests] = useState([]);
+  const [appraisalLimit, setAppraisalLimit] = useState(100);
   const [targets, setTargets] = useState([]);
   const [requestForm, setRequestForm] = useState({ employee_emp_id: "", increment_percent: "", justification: "", effective_from: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -34,29 +35,33 @@ export default function AppraisalPage() {
     }
     setLoading(true);
     try {
-      const promises = [apiFetch(`/performance/increment-requests?status=all`)];
+      const promises = [
+        apiFetch(`/performance/increment-requests?status=all`),
+        apiFetch("/performance/increment-limit"),
+      ];
       if (isHR) promises.push(apiFetch("/employees"));
-      const [d, employeeData] = await Promise.all(promises);
+      const [d, limitData, employeeData] = await Promise.all(promises);
       setRequests(Array.isArray(d) ? d : []);
+      setAppraisalLimit(Number(limitData?.max_increment_percent) || 100);
       if (isHR) {
         const employees = (Array.isArray(employeeData) ? employeeData : []).filter((item) => !item.is_accounts && !item.is_superuser);
         setTargets(employees);
-        if (!requestForm.employee_emp_id && employees.length > 0) {
-          setRequestForm((current) => ({ ...current, employee_emp_id: employees[0].emp_id }));
-        }
+        setRequestForm((current) => current.employee_emp_id || employees.length === 0
+          ? current
+          : { ...current, employee_emp_id: employees[0].emp_id });
       }
     } catch {
       setRequests([]);
       if (isHR) setTargets([]);
     }
     setLoading(false);
-  }, [canView, isAccounts, isAdmin, isHR, requestForm.employee_emp_id]);
+  }, [canView, isHR]);
 
   useEffect(() => { load(); }, [load]);
 
   async function decide(id, decision) {
     const note = window.prompt(
-      isAccounts ? "Add Accounts review note (optional):" : "Add Admin decision note (optional):",
+      `${isAccounts ? "Add Accounts review note" : "Add Admin decision note"} (optional). Appraisal limit: ${appraisalLimit}%`,
       ""
     );
     if (note === null) return;
@@ -84,6 +89,10 @@ export default function AppraisalPage() {
     }
     if (!Number.isFinite(percent) || percent <= 0) {
       showToast("Enter a valid increment percentage", "error");
+      return;
+    }
+    if (percent > appraisalLimit) {
+      showToast(`Increment cannot exceed the appraisal limit of ${appraisalLimit}%`, "error");
       return;
     }
     if (!requestForm.justification.trim()) {
@@ -145,7 +154,8 @@ export default function AppraisalPage() {
               </div>
               <div className="form-group">
                 <label className="label">Increment % <span style={{ color: "#ef4444" }}>*</span></label>
-                <input className="input" type="number" step="0.01" min="0.01" max="100" value={requestForm.increment_percent} onChange={(e) => setRequestForm((current) => ({ ...current, increment_percent: e.target.value }))} placeholder="e.g. 8" />
+                <input className="input" type="number" step="0.01" min="0.01" max={appraisalLimit} value={requestForm.increment_percent} onChange={(e) => setRequestForm((current) => ({ ...current, increment_percent: e.target.value }))} placeholder="e.g. 8" />
+                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>Maximum appraisal limit: <strong>{appraisalLimit}%</strong></div>
               </div>
               <div className="form-group">
                 <label className="label">Effective From</label>
@@ -166,7 +176,7 @@ export default function AppraisalPage() {
           <div>
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Employee</th>{showFinancialColumns ? <th>Current</th> : null}<th>Increment</th>{showFinancialColumns ? <th>Increment Amount</th> : null}{showFinancialColumns ? <th>Proposed</th> : null}<th>Requested By</th><th>Notes</th><th>Status</th><th>Action</th></tr></thead>
+                <thead><tr><th>Employee</th>{showFinancialColumns ? <th>Current</th> : null}<th>Increment</th><th>Limit</th>{showFinancialColumns ? <th>Increment Amount</th> : null}{showFinancialColumns ? <th>Proposed</th> : null}<th>Requested By</th><th>Notes</th><th>Status</th><th>Action</th></tr></thead>
                 <tbody>
                   {(() => {
                     const safePage = Math.min(currentPage, Math.max(1, Math.ceil(requests.length / PER_PAGE)));
@@ -176,6 +186,7 @@ export default function AppraisalPage() {
                         <td><b>{r.emp_id}</b><div style={{fontSize:12,color:"var(--muted)"}}>{r.name}</div></td>
                         {showFinancialColumns ? <td>{fmtINR(r.current_salary)}</td> : null}
                         <td><span style={{ color: "#10b981", fontWeight: 700 }}>{r.increment_percent ? `+${r.increment_percent}%` : "—"}</span></td>
+                        <td>{r.appraisal_limit_percent ?? appraisalLimit}%</td>
                         {showFinancialColumns ? <td>{fmtINR(r.increment_amount)}</td> : null}
                         {showFinancialColumns ? <td><span style={{ fontWeight: 700, color: "#10b981" }}>{fmtINR(r.proposed_salary)}</span></td> : null}
                         <td>{r.requested_by_name || `ID: ${r.requested_by_id}`}</td>

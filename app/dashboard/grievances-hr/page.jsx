@@ -65,7 +65,7 @@ export default function GrievancesHRPage() {
                     👤 {g.is_anonymous || g.submitted_by_name === "Anonymous" ? "Anonymous Employee" : (g.submitted_by_name || "Anonymous")} · 📅 {fmtDate(g.submitted_on)}
                   </div>
                   <div style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.6 }}>{g.description}</div>
-                  {g.admin_notes && <div style={{ marginTop: 10, padding: "10px 14px", background: "rgba(16,185,129,0.1)", borderRadius: 8, fontSize: 13, color: "#10b981" }}>💬 Admin Response: {g.admin_notes}</div>}
+                  {g.admin_notes && <div style={{ marginTop: 10, padding: "10px 14px", background: "rgba(16,185,129,0.1)", borderRadius: 8, fontSize: 13, color: "#10b981" }}>💬 {g.responded_by_role || "HR"} Response{g.responded_by_name ? ` by ${g.responded_by_name}` : ""}: {g.admin_notes}</div>}
                 </div>
                 {!g.is_resolved && <button className="btn-ghost" style={{ padding: "8px 16px", fontSize: 13, flexShrink: 0 }} onClick={() => { setRespondModal(g); setResponseForm({ admin_notes: g.admin_notes || "", is_resolved: false }); }}>Respond</button>}
               </div>
@@ -83,7 +83,7 @@ export default function GrievancesHRPage() {
         <Modal title={`Respond: ${respondModal.subject}`} onClose={() => setRespondModal(null)}
           footer={<><button className="btn-ghost" onClick={() => setRespondModal(null)}>Cancel</button><button className="btn-primary" onClick={() => respond(respondModal.id)}>Save Response</button></>}>
           <div style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16, lineHeight: 1.6 }}>{respondModal.description}</div>
-          <div className="form-group"><label className="label">HR Response / Notes</label><textarea className="input" rows={3} value={responseForm.admin_notes} onChange={(e) => setResponseForm((f) => ({ ...f, admin_notes: e.target.value }))} /></div>
+          <div className="form-group"><label className="label">Response / Notes</label><textarea className="input" rows={3} value={responseForm.admin_notes} onChange={(e) => setResponseForm((f) => ({ ...f, admin_notes: e.target.value }))} /></div>
           <div style={{ display: "flex", gap: 16 }}>
             <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14 }}><input type="radio" checked={!responseForm.is_resolved} onChange={() => setResponseForm((f) => ({ ...f, is_resolved: false }))} /> Keep Open</label>
             <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14 }}><input type="radio" checked={responseForm.is_resolved} onChange={() => setResponseForm((f) => ({ ...f, is_resolved: true }))} /> Mark Resolved</label>

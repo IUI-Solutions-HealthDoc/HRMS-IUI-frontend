@@ -38,6 +38,12 @@ export default function ResignationPage() {
   }, [load]);
 
   async function submit() {
+    if (!form.subject.trim()) return showToast("Subject is required", "error");
+    if (!form.applied_date) return showToast("Applied date is required", "error");
+    if (!form.description.trim()) return showToast("Reason / description is required", "error");
+    if (!attachment) return showToast("Attach a PDF, JPG, or PNG file", "error");
+    if (attachment.size > 10 * 1024 * 1024) return showToast("Attachment cannot exceed 10MB", "error");
+    if (!["application/pdf", "image/jpeg", "image/png"].includes(attachment.type)) return showToast("Only PDF, JPG, and PNG files are allowed", "error");
     setSubmitting(true);
     try {
       const body = new FormData();
@@ -114,7 +120,7 @@ export default function ResignationPage() {
               <button
                 className="btn-danger"
                 onClick={submit}
-                disabled={submitting || !form.subject.trim() || !form.description.trim() || !form.applied_date || !attachment}
+                disabled={submitting}
               >
                 {submitting ? "Submitting..." : "Submit"}
               </button>
@@ -138,7 +144,8 @@ export default function ResignationPage() {
           </div>
           <div className="form-group">
             <label className="label">Attachment <span style={{ color: "#ef4444" }}>*</span></label>
-            <input className="input" type="file" onChange={(e) => setAttachment(e.target.files?.[0] || null)} />
+            <input className="input" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setAttachment(e.target.files?.[0] || null)} />
+            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>PDF, JPG, or PNG · maximum 10MB</div>
           </div>
         </Modal>
       )}

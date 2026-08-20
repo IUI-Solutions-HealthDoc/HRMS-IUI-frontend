@@ -48,15 +48,15 @@ function EmployeeDashboard({ user, showToast }) {
     if (leaveForm.end_date < leaveForm.start_date) { showToast("End date cannot be before start date", "error"); return; }
     if (leaveForm.start_date < todayStr) { showToast("Start date cannot be in the past", "error"); return; }
     try {
+      const body = new FormData();
+      body.append("subject", leaveForm.subject || "Leave Request");
+      body.append("description", leaveForm.description || "Leave requested");
+      body.append("start_date", leaveForm.start_date);
+      body.append("end_date", leaveForm.end_date);
+      body.append("leave_type", leaveForm.leave_type);
       await apiFetch("/leave/apply", {
         method: "POST",
-        body: JSON.stringify({
-          subject: leaveForm.subject || "Leave Request",
-          description: leaveForm.description || "Leave requested",
-          start_date: leaveForm.start_date,
-          end_date: leaveForm.end_date,
-          leave_type: leaveForm.leave_type,
-        }),
+        body,
       });
       showToast("Leave applied!");
       setLeaveModal(false);

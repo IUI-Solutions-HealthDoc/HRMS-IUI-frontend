@@ -14,12 +14,13 @@ import { useAuth } from "@/lib/auth-context";
 
 const EMPTY_ASSIGN_FORM = {
   assignment_scope: "all",
-  assigned_to_user_id: "",
-  assigned_department_id: "",
+  emp_id: "",
+  department_id: "",
   title: "",
   description: "",
-  task_link: "",
-  due_date: "",
+  task_count: 1,
+  deadline: "",
+  file: null,
 };
 
 export default function TasksAssignPage() {
@@ -30,6 +31,7 @@ export default function TasksAssignPage() {
   const [departments, setDepartments] = useState([]);
   const [teamMemberCount, setTeamMemberCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [showAssign, setShowAssign] = useState(false);
   const [assignForm, setAssignForm] = useState(EMPTY_ASSIGN_FORM);
   const [pendingApprovals, setPendingApprovals] = useState([]);
@@ -42,10 +44,11 @@ export default function TasksAssignPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
     try {
       const [data, assignmentData] = await Promise.all([
         apiFetch("/tasks/team"),
-        apiFetch("/tasks/assignment-options").catch(() => ({})),
+        apiFetch("/tasks/assignment-options"),
       ]);
       setTasks(Array.isArray(data) ? data : (data?.active_tasks || []));
       setPendingApprovals(Array.isArray(data?.pending_approvals) ? data.pending_approvals : []);
@@ -54,7 +57,9 @@ export default function TasksAssignPage() {
       setAssignees(employees);
       setDepartments(managedDepartments);
       setTeamMemberCount(Number(assignmentData?.total_employees || employees.length || 0));
-    } catch {}
+    } catch (error) {
+      setLoadError(error.message || "Task data could not be loaded");
+    }
     setLoading(false);
   }, []);
 
@@ -62,6 +67,10 @@ export default function TasksAssignPage() {
 
   async function assignTask(e) {
     e.preventDefault();
+    if (assignForm.assignment_scope === "employee" && !assignForm.emp_id) return showToast("Select an employee", "error");
+    if (assignForm.assignment_scope === "department" && !assignForm.department_id) return showToast("Select a department", "error");
+    if (!assignForm.title.trim()) return showToast("Task name is required", "error");
+    if (!assignForm.deadline) return showToast("Deadline is required", "error");
     const formData = new FormData();
     formData.append("assignment_scope", assignForm.assignment_scope);
     if (assignForm.assignment_scope === "all") {
@@ -122,12 +131,6 @@ export default function TasksAssignPage() {
   }
 
   const selectedDepartment = departments.find((department) => String(department.id) === String(assignForm.department_id));
-  const employeesByDepartment = departments
-    .map((department) => ({
-      ...department,
-      employees: assignees.filter((employee) => employee.department_id === department.id),
-    }))
-    .filter((department) => department.employees.length > 0);
   const openTasks = tasks.filter((task) => (task.status || "").toLowerCase() !== "completed").length;
 
   return (
@@ -165,7 +168,7 @@ export default function TasksAssignPage() {
         </div>
       </div>
       <div className="card">
-        {loading ? <Loader /> : tasks.length === 0 ? <EmptyState icon="✓" title="No tasks" /> : (
+        {loading ? <Loader /> : loadError ? <EmptyState icon="⚠️" title="Tasks could not be loaded" sub={loadError} /> : tasks.length === 0 ? <EmptyState icon="✓" title="No tasks" /> : (
           <div className="table-wrap">
             <table>
               <thead><tr><th>Date</th><th>Name of Employee</th><th>Task Details</th><th>No. Tasks Provided</th><th>Deadline</th><th>Status</th><th>Attachment</th><th>Actions</th></tr></thead>
@@ -345,14 +348,10 @@ export default function TasksAssignPage() {
                 <label className="label">Employee</label>
                 <select className="input" value={assignForm.emp_id} onChange={(e) => setAssignForm((form) => ({ ...form, emp_id: e.target.value }))}>
                   <option value="">Select employee</option>
-                  {employeesByDepartment.map((department) => (
-                    <optgroup key={department.id} label={department.name}>
-                      {department.employees.map((employee) => (
-                        <option key={employee.emp_id} value={employee.emp_id}>
-                          {employee.emp_id} - {employee.name}
-                        </option>
-                      ))}
-                    </optgroup>
+                  {assignees.map((employee) => (
+                    <option key={employee.emp_id} value={employee.emp_id}>
+                      {employee.emp_id} - {employee.name}{employee.department ? ` (${employee.department})` : ""}
+                    </option>
                   ))}
                 </select>
               </div>

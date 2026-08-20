@@ -17,6 +17,7 @@ export default function LeavesPage() {
   const [leaves, setLeaves] = useState([]);
   const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(EMPTY_LEAVE_FORM);
   const [files, setFiles] = useState([]);
@@ -33,6 +34,7 @@ export default function LeavesPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
     try {
       const [d, b] = await Promise.all([
         apiFetch("/leave/my"),
@@ -40,7 +42,10 @@ export default function LeavesPage() {
       ]);
       setLeaves(Array.isArray(d) ? d : []);
       if (b) setBalance(b);
-    } catch {}
+    } catch (error) {
+      setLeaves([]);
+      setLoadError(error.message || "Leaves could not be loaded");
+    }
     setLoading(false);
   }, []);
 
@@ -76,8 +81,12 @@ export default function LeavesPage() {
       return ALLOWED_EXT.includes(ext);
     });
     if (valid.length !== selected.length) showToast("Some files were skipped (only PDF & images allowed)", "error");
-    const combined = [...files, ...valid].slice(0, MAX_FILES);
-    setFiles(combined);
+    if (files.length + valid.length > MAX_FILES) {
+      showToast(`Maximum ${MAX_FILES} attachments allowed. Remove a file before adding another.`, "error");
+      e.target.value = "";
+      return;
+    }
+    setFiles([...files, ...valid]);
     e.target.value = "";
   }
 
@@ -139,7 +148,7 @@ export default function LeavesPage() {
         <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
           <h2 className="syne" style={{ fontSize: 16, fontWeight: 700 }}>Leave History</h2>
         </div>
-        {loading ? <Loader /> : leaves.length === 0 ? <EmptyState icon="📅" title="No leaves yet" sub="Apply for your first leave" /> : (
+        {loading ? <Loader /> : loadError ? <EmptyState icon="⚠️" title="Leaves could not be loaded" sub={loadError} /> : leaves.length === 0 ? <EmptyState icon="📅" title="No leaves yet" sub="Apply for your first leave" /> : (
           <div className="table-wrap">
             <table>
               <thead><tr><th>From</th><th>To</th><th>Category</th><th>Subject</th><th>Description</th><th>Attachments</th><th>Status</th><th>Actions</th></tr></thead>
@@ -209,7 +218,10 @@ export default function LeavesPage() {
           <div className="form-group"><label className="label">Description</label><textarea className="input" rows={3} placeholder="Reason for leave…" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} /></div>
           <div className="form-group">
             <label className="label">Attachments <span style={{ fontWeight: 400, color: "var(--muted)" }}>(max 5 — PDF, JPG, PNG only)</span></label>
-            <input type="file" className="input" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" onChange={handleFileChange} style={{ padding: 8 }} />
+            <label className="btn-ghost" style={{ display: "inline-flex", cursor: files.length >= MAX_FILES ? "not-allowed" : "pointer", opacity: files.length >= MAX_FILES ? 0.6 : 1 }}>
+              Choose files ({files.length}/{MAX_FILES})
+              <input type="file" multiple disabled={files.length >= MAX_FILES} accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" onChange={handleFileChange} style={{ display: "none" }} />
+            </label>
             {files.length > 0 && (
               <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {files.map((f, i) => (

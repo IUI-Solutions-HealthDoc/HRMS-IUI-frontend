@@ -164,7 +164,6 @@ function ManualAttendanceCalendar({ monthDate, selectedIso, onSelect, onMonthCha
               title={isFuture ? "Future dates are locked" : (iso || "")}
             >
               <span>{day || ""}</span>
-              {showWfh ? <span style={{ display: "block", fontSize: 8, marginTop: 2 }}>WFH</span> : null}
             </button>
           );
         })}
@@ -236,7 +235,8 @@ function MonthGrid({ year, monthIndex, holidays, canSelect, includeSaturdays, on
                 fontWeight: (showWfh || showHoliday || isDefaultSunday) ? 700 : 500,
               }}
             >
-              {day || ""}
+              <span>{day || ""}</span>
+              {showWfh ? <span style={{ display: "block", fontSize: 8, marginTop: 2 }}>WFH</span> : null}
             </button>
           );
         })}

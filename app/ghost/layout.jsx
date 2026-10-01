@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, Eye, Users, BarChart3, Calendar, FileText } from "lucide-react";
+import { LogOut, Eye, Users, BarChart3, Calendar, FileText, Menu, X } from "lucide-react";
 import AppLogo from "@/components/AppLogo";
 
 export default function GhostLayout({ children }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isGhostSession, setIsGhostSession] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     // Check if ghost session is active via cookie
@@ -30,6 +32,11 @@ export default function GhostLayout({ children }) {
 
     checkGhostSession();
   }, [router]);
+
+  // Close sidebar on route change
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
 
   const handleLogout = async () => {
     try {
@@ -65,31 +72,35 @@ export default function GhostLayout({ children }) {
   }
 
   return (
-    <div style={{
-      display: "flex",
-      minHeight: "100vh",
-      background: "linear-gradient(180deg, rgba(245,247,251,0.96) 0%, rgba(241,245,249,0.98) 100%)",
-    }}>
-      {/* Ghost Sidebar */}
-      <div style={{
-        width: 280,
-        flex: "0 0 280px",
-        height: "100vh",
-        position: "sticky",
-        top: 0,
-        borderRight: "1px solid rgba(148,163,184,0.18)",
-        background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.98) 100%)",
-        display: "flex",
-        flexDirection: "column",
-        boxShadow: "18px 0 40px rgba(15,23,42,0.05)",
-        zIndex: 2,
-      }}>
+    <div className="ghost-layout">
+      {/* Mobile Drawer Overlay */}
+      {sidebarOpen && (
+        <div
+          className="ghost-overlay"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Ghost Sidebar Drawer */}
+      <aside className={`ghost-sidebar ${sidebarOpen ? "ghost-sidebar--open" : ""}`}>
         {/* Logo & Branding */}
         <div style={{ padding: 20, borderBottom: "1px solid var(--border)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <AppLogo size={32} showText={false} />
-            <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Ghost Shell</h2>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <AppLogo size={32} showText={false} />
+              <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Ghost Shell</h2>
+            </div>
+            {/* Mobile close button */}
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="ghost-sidebar-close"
+              aria-label="Close navigation"
+            >
+              <X size={18} />
+            </button>
           </div>
+
           <div style={{
             padding: "10px 12px",
             background: "var(--surface3)",
@@ -109,18 +120,22 @@ export default function GhostLayout({ children }) {
               alignItems: "center",
               justifyContent: "center",
               fontSize: 16,
-              color: "rgba(124,58,237,0.4)",
+              color: "rgba(124,58,237,0.5)",
+              flexShrink: 0,
             }}>
               ◈
             </div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)" }}>
                 System Observer
               </div>
               <div style={{
                 fontSize: 10,
-                color: "rgba(71,85,105,0.6)",
+                color: "rgba(71,85,105,0.7)",
                 letterSpacing: "0.03em",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
               }}>
                 READ · WRITE · NO TRACE
               </div>
@@ -130,11 +145,11 @@ export default function GhostLayout({ children }) {
 
         {/* Navigation */}
         <nav style={{ flex: 1, padding: "16px 12px", display: "flex", flexDirection: "column", gap: 8, overflowY: "auto" }}>
-          <NavLink href="/ghost/dashboard" icon={<Eye size={16} />} label="Overview" />
-          <NavLink href="/ghost/employees" icon={<Users size={16} />} label="Employees" />
-          <NavLink href="/ghost/attendance" icon={<FileText size={16} />} label="Attendance" />
-          <NavLink href="/ghost/payroll" icon={<BarChart3 size={16} />} label="Payroll" />
-          <NavLink href="/ghost/leave" icon={<Calendar size={16} />} label="Leave" />
+          <NavLink href="/ghost/dashboard" icon={<Eye size={16} />} label="Overview" onClick={() => setSidebarOpen(false)} />
+          <NavLink href="/ghost/employees" icon={<Users size={16} />} label="Employees" onClick={() => setSidebarOpen(false)} />
+          <NavLink href="/ghost/attendance" icon={<FileText size={16} />} label="Attendance" onClick={() => setSidebarOpen(false)} />
+          <NavLink href="/ghost/payroll" icon={<BarChart3 size={16} />} label="Payroll" onClick={() => setSidebarOpen(false)} />
+          <NavLink href="/ghost/leave" icon={<Calendar size={16} />} label="Leave" onClick={() => setSidebarOpen(false)} />
         </nav>
 
         {/* Exit Button */}
@@ -147,7 +162,7 @@ export default function GhostLayout({ children }) {
               borderRadius: 8,
               background: "rgba(239,68,68,0.12)",
               border: "1px solid rgba(239,68,68,0.25)",
-              color: "rgba(239,68,68,0.8)",
+              color: "rgba(239,68,68,0.85)",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
@@ -168,82 +183,53 @@ export default function GhostLayout({ children }) {
             Exit Ghost
           </button>
         </div>
-      </div>
+      </aside>
 
-      {/* Main Content */}
-      <div style={{
-        flex: 1,
-        minWidth: 0,
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "visible",
-        background: "linear-gradient(180deg, rgba(255,255,255,0.68) 0%, rgba(248,250,252,0.9) 100%)",
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: "16px 24px",
-          borderBottom: "1px solid rgba(148,163,184,0.18)",
-          background: "rgba(255,255,255,0.82)",
-          backdropFilter: "blur(14px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexShrink: 0,
-          position: "sticky",
-          top: 0,
-          zIndex: 1,
-        }}>
-          <div style={{ fontSize: 11, color: "var(--text-2)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
-            ◈ Ghost Admin Mode — Full System Visibility
+      {/* Main Content Area */}
+      <div className="ghost-main">
+        {/* Header Topbar */}
+        <header className="ghost-topbar">
+          <div className="ghost-topbar-leading">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="ghost-menu-trigger"
+              aria-label="Open Ghost navigation"
+            >
+              <Menu size={18} />
+            </button>
+            <div className="ghost-topbar-title">
+              ◈ Ghost Admin Mode <span className="ghost-topbar-subtitle">— Full System Visibility</span>
+            </div>
           </div>
-          <div style={{
-            fontSize: 10,
-            color: "rgba(124,58,237,0.6)",
-            fontFamily: "Rajdhani, sans-serif",
-            letterSpacing: "0.05em",
-          }}>
+          <div className="ghost-active-pill">
             SESSION ACTIVE
           </div>
-        </div>
+        </header>
 
-        {/* Content */}
-        <div style={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: "auto",
-          overflowX: "hidden",
-          padding: 24,
-        }}>
-          <div style={{
-            minHeight: "100%",
-            borderRadius: 24,
-            border: "1px solid rgba(226,232,240,0.95)",
-            background: "rgba(255,255,255,0.94)",
-            boxShadow: "0 18px 48px rgba(15,23,42,0.06)",
-            padding: 28,
-          }}>
+        {/* Scrollable Page Content */}
+        <main className="ghost-content-wrap">
+          <div className="ghost-content-card">
             {children}
           </div>
-        </div>
+        </main>
       </div>
 
       {/* Ghost Mode HUD Badge - Fixed bottom-left */}
-      <div style={{
+      <div className="ghost-hud-badge" style={{
         position: "fixed",
         bottom: 20,
         left: 20,
-        zIndex: 9999,
+        zIndex: 999,
         display: "flex",
         alignItems: "center",
         gap: 7,
         padding: "6px 13px",
         borderRadius: 999,
-        background: "rgba(8, 11, 16, 0.85)",
-        border: "1px solid rgba(124,58,237,0.20)",
+        background: "rgba(8, 11, 16, 0.88)",
+        border: "1px solid rgba(124,58,237,0.25)",
         backdropFilter: "blur(12px)",
-        boxShadow: "0 0 16px rgba(124,58,237,0.08)",
-        opacity: 0.7,
+        boxShadow: "0 0 16px rgba(124,58,237,0.12)",
+        opacity: 0.8,
         pointerEvents: "none",
         animation: "ghostPulse 4s infinite ease-in-out",
       }}>
@@ -251,8 +237,8 @@ export default function GhostLayout({ children }) {
           width: 6,
           height: 6,
           borderRadius: "50%",
-          background: "rgba(124,58,237,0.5)",
-          boxShadow: "0 0 6px rgba(124,58,237,0.4)",
+          background: "rgba(124,58,237,0.6)",
+          boxShadow: "0 0 6px rgba(124,58,237,0.5)",
           animation: "pulse 3s infinite",
         }} />
         <span style={{
@@ -260,7 +246,7 @@ export default function GhostLayout({ children }) {
           fontWeight: 700,
           letterSpacing: "0.1em",
           textTransform: "uppercase",
-          color: "rgba(124,58,237,0.55)",
+          color: "rgba(124,58,237,0.7)",
           fontFamily: "Rajdhani, Outfit, sans-serif",
         }}>
           GHOST MODE
@@ -270,13 +256,14 @@ export default function GhostLayout({ children }) {
   );
 }
 
-function NavLink({ href, icon, label }) {
+function NavLink({ href, icon, label, onClick }) {
   const pathname = usePathname();
   const isActive = pathname === href || pathname?.startsWith(`${href}/`);
 
   return (
     <Link
       href={href}
+      onClick={onClick}
       style={{
         padding: "10px 12px",
         borderRadius: 8,
@@ -284,7 +271,7 @@ function NavLink({ href, icon, label }) {
         alignItems: "center",
         gap: 12,
         textDecoration: "none",
-        color: isActive ? "rgba(124,58,237,0.8)" : "var(--text-2)",
+        color: isActive ? "rgba(124,58,237,0.95)" : "var(--text-2)",
         background: isActive ? "rgba(124,58,237,0.12)" : "transparent",
         border: isActive ? "1px solid rgba(124,58,237,0.25)" : "1px solid transparent",
         fontSize: 14,
@@ -303,7 +290,7 @@ function NavLink({ href, icon, label }) {
         }
       }}
     >
-      <span style={{ display: "flex", alignItems: "center", opacity: 0.7 }}>{icon}</span>
+      <span style={{ display: "flex", alignItems: "center", opacity: 0.8 }}>{icon}</span>
       {label}
     </Link>
   );

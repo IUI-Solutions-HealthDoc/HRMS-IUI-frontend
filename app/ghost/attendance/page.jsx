@@ -387,10 +387,10 @@ export default function GhostAttendancePage() {
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+      <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 14 }}>
         <div>
           <h1 style={{
-            fontSize: 28,
+            fontSize: "clamp(20px, 3.5vw, 28px)",
             fontWeight: 800,
             color: "var(--text)",
             marginBottom: 8,
@@ -399,7 +399,7 @@ export default function GhostAttendancePage() {
           </h1>
           <p style={{
             color: "var(--text-2)",
-            fontSize: 14,
+            fontSize: 13,
             lineHeight: 1.6,
           }}>
             Hover over any time entry and click the edit icon to modify. Changes overwrite the original record with zero audit trail.
@@ -408,7 +408,7 @@ export default function GhostAttendancePage() {
         <button
           onClick={() => setShowAddModal(true)}
           style={{
-            padding: "10px 20px",
+            padding: "9px 18px",
             borderRadius: 8,
             border: "1px solid rgba(0, 200, 150, 0.35)",
             background: "rgba(0, 200, 150, 0.12)",
@@ -418,6 +418,7 @@ export default function GhostAttendancePage() {
             cursor: "pointer",
             transition: "all 0.2s ease-in-out",
             boxShadow: "0 0 12px rgba(0, 200, 150, 0.1)",
+            whiteSpace: "nowrap",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "rgba(0, 200, 150, 0.22)";
@@ -434,12 +435,12 @@ export default function GhostAttendancePage() {
 
       {/* Instructions */}
       <div style={{
-        padding: 16,
+        padding: 14,
         borderRadius: 12,
         background: "rgba(0,200,150,0.06)",
         border: "1px solid rgba(0,200,150,0.15)",
-        marginBottom: 24,
-        fontSize: 13,
+        marginBottom: 20,
+        fontSize: 12,
         color: "var(--text-2)",
         lineHeight: 1.6,
       }}>
@@ -448,7 +449,7 @@ export default function GhostAttendancePage() {
 
       <div style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+        gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))",
         gap: 12,
         marginBottom: 18,
       }}>
@@ -519,7 +520,7 @@ export default function GhostAttendancePage() {
 
       {/* Record Count */}
       <div style={{
-        marginBottom: 16,
+        marginBottom: 14,
         fontSize: 13,
         color: "var(--text-2)",
       }}>
@@ -527,78 +528,78 @@ export default function GhostAttendancePage() {
       </div>
 
       {/* Attendance Table */}
-      <div style={{
-        borderRadius: 12,
-        border: "1px solid var(--border)",
-        overflow: "hidden",
-        background: "var(--surface3)",
-      }}>
-        <div style={{ overflowX: "auto" }}>
-          <table className="ghost-table" style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            fontSize: 13,
-          }}>
-            <thead>
-              <tr style={{
-                borderBottom: "1px solid var(--border)",
-                background: "var(--surface)",
+      <div className="ghost-table-wrap">
+        <table className="ghost-table" style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          fontSize: 13,
+          minWidth: 620,
+        }}>
+          <thead>
+            <tr style={{
+              borderBottom: "1px solid var(--border)",
+              background: "var(--surface)",
+            }}>
+              <th style={{
+                padding: 14,
+                textAlign: "left",
+                fontWeight: 700,
+                color: "var(--text-2)",
+                textTransform: "uppercase",
+                fontSize: 11,
+                letterSpacing: "0.05em",
+                whiteSpace: "nowrap",
               }}>
-                <th style={{
-                  padding: 14,
-                  textAlign: "left",
-                  fontWeight: 700,
-                  color: "var(--text-2)",
-                  textTransform: "uppercase",
-                  fontSize: 11,
-                  letterSpacing: "0.05em",
-                }}>
-                  Employee
-                </th>
-                <th style={{
-                  padding: 14,
-                  textAlign: "left",
-                  fontWeight: 700,
-                  color: "var(--text-2)",
-                  textTransform: "uppercase",
-                  fontSize: 11,
-                  letterSpacing: "0.05em",
-                }}>
-                  Date
-                </th>
-                <th style={{
-                  padding: 14,
-                  textAlign: "center",
-                  fontWeight: 700,
-                  color: "var(--text-2)",
-                  textTransform: "uppercase",
-                  fontSize: 11,
-                  letterSpacing: "0.05em",
-                }}>
-                  Check In
-                </th>
-                <th style={{
-                  padding: 14,
-                  textAlign: "center",
-                  fontWeight: 700,
-                  color: "var(--text-2)",
-                  textTransform: "uppercase",
-                  fontSize: 11,
-                  letterSpacing: "0.05em",
-                }}>
-                  Check Out
-                </th>
-                <th style={{
-                  padding: 14,
-                  textAlign: "center",
-                  fontWeight: 700,
-                  color: "var(--text-2)",
-                  textTransform: "uppercase",
-                  fontSize: 11,
-                  letterSpacing: "0.05em",
-                }}>
-                  Status
-                </th>
+                Employee
+              </th>
+              <th style={{
+                padding: 14,
+                textAlign: "left",
+                fontWeight: 700,
+                color: "var(--text-2)",
+                textTransform: "uppercase",
+                fontSize: 11,
+                letterSpacing: "0.05em",
+                whiteSpace: "nowrap",
+              }}>
+                Date
+              </th>
+              <th style={{
+                padding: 14,
+                textAlign: "center",
+                fontWeight: 700,
+                color: "var(--text-2)",
+                textTransform: "uppercase",
+                fontSize: 11,
+                letterSpacing: "0.05em",
+                whiteSpace: "nowrap",
+              }}>
+                Check In
+              </th>
+              <th style={{
+                padding: 14,
+                textAlign: "center",
+                fontWeight: 700,
+                color: "var(--text-2)",
+                textTransform: "uppercase",
+                fontSize: 11,
+                letterSpacing: "0.05em",
+                whiteSpace: "nowrap",
+              }}>
+                Check Out
+              </th>
+              <th style={{
+                padding: 14,
+                textAlign: "center",
+                fontWeight: 700,
+                color: "var(--text-2)",
+                textTransform: "uppercase",
+                fontSize: 11,
+                letterSpacing: "0.05em",
+                whiteSpace: "nowrap",
+              }}>
+                Status
+              </th>
               </tr>
             </thead>
             <tbody>
@@ -718,7 +719,6 @@ export default function GhostAttendancePage() {
             </tbody>
           </table>
         </div>
-      </div>
 
       {attendanceData.length === 0 && (
         <div style={{
@@ -750,14 +750,15 @@ export default function GhostAttendancePage() {
           alignItems: "center",
           justifyContent: "center",
           zIndex: 9999,
+          padding: "16px 12px",
         }}>
           <div style={{
             background: "var(--surface3)",
             border: "1px solid rgba(0, 200, 150, 0.2)",
             borderRadius: 16,
-            padding: 28,
+            padding: "20px 18px",
             width: "100%",
-            maxWidth: 480,
+            maxWidth: "min(96vw, 480px)",
             boxShadow: "0 20px 40px rgba(0,0,0,0.5), 0 0 30px rgba(0, 200, 150, 0.15)",
             fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
           }}>

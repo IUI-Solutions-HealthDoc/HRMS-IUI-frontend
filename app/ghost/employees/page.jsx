@@ -190,10 +190,10 @@ export default function GhostEmployeesPage() {
       {toastNode}
 
       {/* Header */}
-      <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 style={{
-            fontSize: 28,
+            fontSize: "clamp(20px, 3.5vw, 28px)",
             fontWeight: 800,
             color: "var(--text)",
             marginBottom: 8,
@@ -202,7 +202,7 @@ export default function GhostEmployeesPage() {
           </h1>
           <p style={{
             color: "var(--text-2)",
-            fontSize: 14,
+            fontSize: 13,
             lineHeight: 1.6,
           }}>
             Complete view of all employees. Ghost Admin can edit details silently with zero trace.
@@ -211,13 +211,13 @@ export default function GhostEmployeesPage() {
       </div>
 
       {/* Search and Filter Row */}
-      <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap", alignItems: "flex-end" }}>
-        <div style={{ flex: 1, minWidth: 260 }}>
+      <div className="ghost-filter-row">
+        <div style={{ flex: "1 1 260px", width: "100%" }}>
           <label style={{
             display: "block",
             marginBottom: 8,
-            fontSize: 12,
-            fontWeight: 600,
+            fontSize: 11,
+            fontWeight: 700,
             textTransform: "uppercase",
             letterSpacing: "0.05em",
             color: "var(--text-2)",
@@ -237,29 +237,31 @@ export default function GhostEmployeesPage() {
               background: "var(--surface)",
               color: "var(--text)",
               fontSize: 13,
+              outline: "none",
             }}
           />
         </div>
 
-        <div style={{ flex: 2 }}>
+        <div style={{ flex: "2 1 300px", minWidth: 0, width: "100%" }}>
           <label style={{
             display: "block",
             marginBottom: 8,
-            fontSize: 12,
-            fontWeight: 600,
+            fontSize: 11,
+            fontWeight: 700,
             textTransform: "uppercase",
             letterSpacing: "0.05em",
             color: "var(--text-2)",
           }}>
             Filter by Department
           </label>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div className="ghost-dept-scroller">
             {departments.map((dept) => (
               <button
                 key={dept}
                 onClick={() => setFilterDept(dept)}
+                className="ghost-dept-btn"
                 style={{
-                  padding: "8px 14px",
+                  padding: "7px 14px",
                   borderRadius: 8,
                   border: filterDept === dept
                     ? "1px solid rgba(0,200,150,0.5)"
@@ -285,7 +287,7 @@ export default function GhostEmployeesPage() {
 
       {/* Employee Count */}
       <div style={{
-        marginBottom: 16,
+        marginBottom: 14,
         fontSize: 13,
         color: "var(--text-2)",
       }}>
@@ -293,46 +295,41 @@ export default function GhostEmployeesPage() {
       </div>
 
       {/* Employees Table */}
-      <div style={{
-        borderRadius: 12,
-        border: "1px solid var(--border)",
-        overflow: "hidden",
-        background: "var(--surface3)",
-      }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            fontSize: 13,
-          }}>
-            <thead>
-              <tr style={{
-                borderBottom: "1px solid var(--border)",
-                background: "var(--surface)",
-              }}>
-                <th style={{ padding: 14, textAlign: "left", fontWeight: 700, color: "var(--text-2)", textTransform: "uppercase", fontSize: 11 }}>
-                  ID
-                </th>
-                <th style={{ padding: 14, textAlign: "left", fontWeight: 700, color: "var(--text-2)", textTransform: "uppercase", fontSize: 11 }}>
-                  Name
-                </th>
-                <th style={{ padding: 14, textAlign: "left", fontWeight: 700, color: "var(--text-2)", textTransform: "uppercase", fontSize: 11 }}>
-                  Username
-                </th>
-                <th style={{ padding: 14, textAlign: "left", fontWeight: 700, color: "var(--text-2)", textTransform: "uppercase", fontSize: 11 }}>
-                  Email
-                </th>
-                <th style={{ padding: 14, textAlign: "left", fontWeight: 700, color: "var(--text-2)", textTransform: "uppercase", fontSize: 11 }}>
-                  Department
-                </th>
-                <th style={{ padding: 14, textAlign: "left", fontWeight: 700, color: "var(--text-2)", textTransform: "uppercase", fontSize: 11 }}>
-                  Role
-                </th>
-                <th style={{ padding: 14, textAlign: "right", fontWeight: 700, color: "var(--text-2)", textTransform: "uppercase", fontSize: 11 }}>
-                  Actions
-                </th>
-              </tr>
-            </thead>
+      <div className="ghost-table-wrap">
+        <table style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          fontSize: 13,
+          minWidth: 640,
+        }}>
+          <thead>
+            <tr style={{
+              borderBottom: "1px solid var(--border)",
+              background: "var(--surface)",
+            }}>
+              <th style={{ padding: 14, textAlign: "left", fontWeight: 700, color: "var(--text-2)", textTransform: "uppercase", fontSize: 11, whiteSpace: "nowrap" }}>
+                ID
+              </th>
+              <th style={{ padding: 14, textAlign: "left", fontWeight: 700, color: "var(--text-2)", textTransform: "uppercase", fontSize: 11, whiteSpace: "nowrap" }}>
+                Name
+              </th>
+              <th style={{ padding: 14, textAlign: "left", fontWeight: 700, color: "var(--text-2)", textTransform: "uppercase", fontSize: 11, whiteSpace: "nowrap" }}>
+                Username
+              </th>
+              <th style={{ padding: 14, textAlign: "left", fontWeight: 700, color: "var(--text-2)", textTransform: "uppercase", fontSize: 11, whiteSpace: "nowrap" }}>
+                Email
+              </th>
+              <th style={{ padding: 14, textAlign: "left", fontWeight: 700, color: "var(--text-2)", textTransform: "uppercase", fontSize: 11, whiteSpace: "nowrap" }}>
+                Department
+              </th>
+              <th style={{ padding: 14, textAlign: "left", fontWeight: 700, color: "var(--text-2)", textTransform: "uppercase", fontSize: 11, whiteSpace: "nowrap" }}>
+                Role
+              </th>
+              <th style={{ padding: 14, textAlign: "right", fontWeight: 700, color: "var(--text-2)", textTransform: "uppercase", fontSize: 11, whiteSpace: "nowrap" }}>
+                Actions
+              </th>
+            </tr>
+          </thead>
             <tbody>
               {filteredEmployees.map((emp, idx) => (
                 <tr
@@ -424,7 +421,6 @@ export default function GhostEmployeesPage() {
             </tbody>
           </table>
         </div>
-      </div>
 
       {filteredEmployees.length === 0 && (
         <div style={{
@@ -453,29 +449,29 @@ export default function GhostEmployeesPage() {
           alignItems: "center",
           justifyContent: "center",
           zIndex: 1000,
-          padding: 20,
+          padding: "16px 12px",
         }}>
           <div style={{
             background: "var(--surface3)",
             borderRadius: 16,
             border: "1px solid var(--border)",
             width: "100%",
-            maxWidth: 680,
-            maxHeight: "90vh",
+            maxWidth: "min(96vw, 680px)",
+            maxHeight: "92vh",
             display: "flex",
             flexDirection: "column",
             boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.3)",
           }}>
             {/* Modal Header */}
             <div style={{
-              padding: "20px 24px",
+              padding: "16px 20px",
               borderBottom: "1px solid var(--border)",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
             }}>
               <div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)" }}>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)" }}>
                   Edit Employee Profile (Silent Mode)
                 </h3>
                 <p style={{ fontSize: 12, color: "var(--text-2)", marginTop: 4 }}>
@@ -490,6 +486,7 @@ export default function GhostEmployeesPage() {
                   color: "var(--text-2)",
                   cursor: "pointer",
                   fontSize: 20,
+                  padding: 4,
                 }}
               >
                 ✕
@@ -497,14 +494,14 @@ export default function GhostEmployeesPage() {
             </div>
 
             {/* Modal Body */}
-            <form onSubmit={handleSave} style={{ overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 20 }}>
+            <form onSubmit={handleSave} style={{ overflowY: "auto", padding: "20px 18px", display: "flex", flexDirection: "column", gap: 20 }}>
               
               {/* Section: Personal Info */}
               <div>
                 <h4 style={{ fontSize: 13, fontWeight: 700, color: "rgba(0,200,150,0.9)", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Personal Information
                 </h4>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div className="ghost-form-grid-2">
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>First Name</label>
                     <input
@@ -544,7 +541,7 @@ export default function GhostEmployeesPage() {
                       style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }}
                     />
                   </div>
-                  <div style={{ gridColumn: "span 2" }}>
+                  <div style={{ gridColumn: "1 / -1" }}>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>Reset Password (Leave blank to keep current)</label>
                     <input
                       type="password"
@@ -562,7 +559,7 @@ export default function GhostEmployeesPage() {
                 <h4 style={{ fontSize: 13, fontWeight: 700, color: "rgba(0,200,150,0.9)", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Organization Details
                 </h4>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div className="ghost-form-grid-2">
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>Employee ID</label>
                     <input
@@ -615,7 +612,7 @@ export default function GhostEmployeesPage() {
                 <h4 style={{ fontSize: 13, fontWeight: 700, color: "rgba(0,200,150,0.9)", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Roles & Shift Settings
                 </h4>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, background: "var(--surface)", padding: 16, borderRadius: 8, border: "1px solid var(--border)" }}>
+                <div className="ghost-form-grid-3" style={{ background: "var(--surface)", padding: 16, borderRadius: 8, border: "1px solid var(--border)" }}>
                   <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>
                     <input
                       type="checkbox"
@@ -672,7 +669,7 @@ export default function GhostEmployeesPage() {
                 <h4 style={{ fontSize: 13, fontWeight: 700, color: "rgba(0,200,150,0.9)", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Payroll & Financial Details
                 </h4>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+                <div className="ghost-form-grid-3">
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>Base Salary</label>
                     <input
@@ -709,7 +706,7 @@ export default function GhostEmployeesPage() {
                 <h4 style={{ fontSize: 13, fontWeight: 700, color: "rgba(0,200,150,0.9)", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   🌴 Leave Quotas & Remaining
                 </h4>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+                <div className="ghost-form-grid-3" style={{ marginBottom: 12 }}>
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>CL Total Quota</label>
                     <input type="number" min="0" value={editForm.cl_quota} onChange={(e) => setEditForm({ ...editForm, cl_quota: e.target.value })} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} />
@@ -723,7 +720,7 @@ export default function GhostEmployeesPage() {
                     <input type="number" min="0" value={editForm.pl_quota} onChange={(e) => setEditForm({ ...editForm, pl_quota: e.target.value })} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} />
                   </div>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+                <div className="ghost-form-grid-3" style={{ marginBottom: 12 }}>
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>CL Deduction (HR Adj)</label>
                     <input type="number" min="0" value={editForm.cl_deduction} onChange={(e) => setEditForm({ ...editForm, cl_deduction: e.target.value })} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} />
@@ -750,7 +747,7 @@ export default function GhostEmployeesPage() {
                 <h4 style={{ fontSize: 13, fontWeight: 700, color: "rgba(0,200,150,0.9)", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   System & Reporting
                 </h4>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+                <div className="ghost-form-grid-3">
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>System Number</label>
                     <input

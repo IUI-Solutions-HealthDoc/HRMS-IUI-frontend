@@ -62,9 +62,9 @@ export default function GhostLeavePage() {
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: 32 }}>
+      <div style={{ marginBottom: 24 }}>
         <h1 style={{
-          fontSize: 28,
+          fontSize: "clamp(20px, 3.5vw, 28px)",
           fontWeight: 800,
           color: "var(--text)",
           marginBottom: 8,
@@ -73,7 +73,7 @@ export default function GhostLeavePage() {
         </h1>
         <p style={{
           color: "var(--text-2)",
-          fontSize: 14,
+          fontSize: 13,
           lineHeight: 1.6,
         }}>
           View-only access to all leave applications and approvals. No actions available.
@@ -82,7 +82,7 @@ export default function GhostLeavePage() {
 
       {/* Record Count */}
       <div style={{
-        marginBottom: 16,
+        marginBottom: 14,
         fontSize: 13,
         color: "var(--text-2)",
       }}>
@@ -90,80 +90,80 @@ export default function GhostLeavePage() {
       </div>
 
       {/* Leave Table */}
-      <div style={{
-        borderRadius: 12,
-        border: "1px solid var(--border)",
-        overflow: "hidden",
-        background: "var(--surface3)",
-      }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            fontSize: 13,
-          }}>
-            <thead>
-              <tr style={{
-                borderBottom: "1px solid var(--border)",
-                background: "var(--surface)",
+      <div className="ghost-table-wrap">
+        <table style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          fontSize: 13,
+          minWidth: 620,
+        }}>
+          <thead>
+            <tr style={{
+              borderBottom: "1px solid var(--border)",
+              background: "var(--surface)",
+            }}>
+              <th style={{
+                padding: 14,
+                textAlign: "left",
+                fontWeight: 700,
+                color: "var(--text-2)",
+                textTransform: "uppercase",
+                fontSize: 11,
+                letterSpacing: "0.05em",
+                whiteSpace: "nowrap",
               }}>
-                <th style={{
-                  padding: 14,
-                  textAlign: "left",
-                  fontWeight: 700,
-                  color: "var(--text-2)",
-                  textTransform: "uppercase",
-                  fontSize: 11,
-                  letterSpacing: "0.05em",
-                }}>
-                  Employee
-                </th>
-                <th style={{
-                  padding: 14,
-                  textAlign: "left",
-                  fontWeight: 700,
-                  color: "var(--text-2)",
-                  textTransform: "uppercase",
-                  fontSize: 11,
-                  letterSpacing: "0.05em",
-                }}>
-                  Type
-                </th>
-                <th style={{
-                  padding: 14,
-                  textAlign: "center",
-                  fontWeight: 700,
-                  color: "var(--text-2)",
-                  textTransform: "uppercase",
-                  fontSize: 11,
-                  letterSpacing: "0.05em",
-                }}>
-                  Days
-                </th>
-                <th style={{
-                  padding: 14,
-                  textAlign: "left",
-                  fontWeight: 700,
-                  color: "var(--text-2)",
-                  textTransform: "uppercase",
-                  fontSize: 11,
-                  letterSpacing: "0.05em",
-                }}>
-                  From - To
-                </th>
-                <th style={{
-                  padding: 14,
-                  textAlign: "center",
-                  fontWeight: 700,
-                  color: "var(--text-2)",
-                  textTransform: "uppercase",
-                  fontSize: 11,
-                  letterSpacing: "0.05em",
-                }}>
-                  Status
-                </th>
-              </tr>
-            </thead>
+                Employee
+              </th>
+              <th style={{
+                padding: 14,
+                textAlign: "left",
+                fontWeight: 700,
+                color: "var(--text-2)",
+                textTransform: "uppercase",
+                fontSize: 11,
+                letterSpacing: "0.05em",
+                whiteSpace: "nowrap",
+              }}>
+                Type
+              </th>
+              <th style={{
+                padding: 14,
+                textAlign: "center",
+                fontWeight: 700,
+                color: "var(--text-2)",
+                textTransform: "uppercase",
+                fontSize: 11,
+                letterSpacing: "0.05em",
+                whiteSpace: "nowrap",
+              }}>
+                Days
+              </th>
+              <th style={{
+                padding: 14,
+                textAlign: "left",
+                fontWeight: 700,
+                color: "var(--text-2)",
+                textTransform: "uppercase",
+                fontSize: 11,
+                letterSpacing: "0.05em",
+                whiteSpace: "nowrap",
+              }}>
+                From - To
+              </th>
+              <th style={{
+                padding: 14,
+                textAlign: "center",
+                fontWeight: 700,
+                color: "var(--text-2)",
+                textTransform: "uppercase",
+                fontSize: 11,
+                letterSpacing: "0.05em",
+                whiteSpace: "nowrap",
+              }}>
+                Status
+              </th>
+            </tr>
+          </thead>
             <tbody>
               {leaveData.map((row, idx) => {
                 const statusStyle = getStatusColor(row.status);
@@ -218,7 +218,6 @@ export default function GhostLeavePage() {
             </tbody>
           </table>
         </div>
-      </div>
 
       {leaveData.length === 0 && (
         <div style={{

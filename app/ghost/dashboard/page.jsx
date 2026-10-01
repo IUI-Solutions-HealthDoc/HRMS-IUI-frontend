@@ -50,9 +50,9 @@ export default function GhostDashboard() {
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: 32 }}>
+      <div style={{ marginBottom: 24 }}>
         <h1 style={{
-          fontSize: 28,
+          fontSize: "clamp(20px, 3.5vw, 28px)",
           fontWeight: 800,
           color: "var(--text)",
           marginBottom: 8,
@@ -61,7 +61,7 @@ export default function GhostDashboard() {
         </h1>
         <p style={{
           color: "var(--text-2)",
-          fontSize: 14,
+          fontSize: 13,
           lineHeight: 1.6,
         }}>
           Live backend summary for {monthLabel}. All viewing and editing happens with zero trace in normal audit logs.
@@ -88,23 +88,18 @@ export default function GhostDashboard() {
           {error}
         </div>
       ) : (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-          gap: 16,
-          marginBottom: 32,
-        }}>
+        <div className="ghost-stats-grid">
           {stats.map((stat, idx) => (
             <div
               key={idx}
               style={{
-                padding: 20,
+                padding: "16px 18px",
                 borderRadius: 12,
                 background: "var(--surface3)",
                 border: "1px solid var(--border)",
                 display: "flex",
-                alignItems: "flex-start",
-                gap: 16,
+                alignItems: "center",
+                gap: 14,
                 transition: "all 0.15s",
                 cursor: "pointer",
               }}
@@ -118,31 +113,34 @@ export default function GhostDashboard() {
               }}
             >
               <div style={{
-                width: 48,
-                height: 48,
+                width: 44,
+                height: 44,
                 borderRadius: 10,
                 background: "rgba(0,200,150,0.12)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "rgba(0,168,126,0.8)",
+                color: "rgba(0,168,126,0.85)",
                 flexShrink: 0,
               }}>
                 {stat.icon}
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
-                  fontSize: 12,
+                  fontSize: 11,
                   color: "var(--text-2)",
                   fontWeight: 600,
                   textTransform: "uppercase",
                   letterSpacing: "0.03em",
-                  marginBottom: 4,
+                  marginBottom: 3,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
                 }}>
                   {stat.label}
                 </div>
                 <div style={{
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: 800,
                   color: "var(--text)",
                 }}>
@@ -155,10 +153,10 @@ export default function GhostDashboard() {
       )}
 
       {/* Info Boxes */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
+      <div className="ghost-info-grid">
         {/* What Ghost Can Do */}
         <div style={{
-          padding: 20,
+          padding: 18,
           borderRadius: 12,
           background: "rgba(16,185,129,0.06)",
           border: "1px solid rgba(16,185,129,0.18)",

@@ -353,13 +353,32 @@ export default function LeaveApprovalsPage() {
                       <td>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                           {item.status === "Approved" ? (
-                            <button
-                              className="btn-danger"
-                              style={{ padding: "4px 8px", fontSize: 11 }}
-                              onClick={(e) => { e.stopPropagation(); updateLeave(item, "reject"); }}
-                            >
-                              Reject
-                            </button>
+                            <>
+                              {item.is_paid ? (
+                                <button
+                                  className="btn-ghost"
+                                  style={{ padding: "4px 8px", fontSize: 11 }}
+                                  onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_unpaid"); }}
+                                >
+                                  Make Unpaid
+                                </button>
+                              ) : (
+                                <button
+                                  className="btn-primary"
+                                  style={{ padding: "4px 8px", fontSize: 11 }}
+                                  onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_paid"); }}
+                                >
+                                  Make Paid
+                                </button>
+                              )}
+                              <button
+                                className="btn-danger"
+                                style={{ padding: "4px 8px", fontSize: 11 }}
+                                onClick={(e) => { e.stopPropagation(); updateLeave(item, "reject"); }}
+                              >
+                                Reject
+                              </button>
+                            </>
                           ) : item.status === "Rejected" ? (
                             <>
                               <button
@@ -588,9 +607,20 @@ export default function LeaveApprovalsPage() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)", flexWrap: "wrap", gap: 8 }}>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {selectedLeave.status === "Approved" ? (
-                  <button className="btn-danger" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => updateLeave(selectedLeave, "reject")}>
-                    Reject Leave
-                  </button>
+                  <>
+                    {selectedLeave.is_paid ? (
+                      <button className="btn-ghost" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => updateLeave(selectedLeave, "approve_unpaid")}>
+                        Mark as Unpaid
+                      </button>
+                    ) : (
+                      <button className="btn-primary" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => updateLeave(selectedLeave, "approve_paid")}>
+                        Mark as Paid
+                      </button>
+                    )}
+                    <button className="btn-danger" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => updateLeave(selectedLeave, "reject")}>
+                      Reject Leave
+                    </button>
+                  </>
                 ) : selectedLeave.status === "Rejected" ? (
                   <>
                     <button className="btn-primary" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => updateLeave(selectedLeave, "approve_paid")}>

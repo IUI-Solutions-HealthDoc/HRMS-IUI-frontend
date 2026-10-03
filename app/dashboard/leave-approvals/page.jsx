@@ -199,19 +199,15 @@ export default function LeaveApprovalsPage() {
     }
   }
 
-  const filteredPending = pending.filter((item) => {
-    if (!user) return true;
-    if (item.employee_id && user.id && String(item.employee_id) === String(user.id)) return false;
-    if (item.emp_id && user.emp_id && item.emp_id === user.emp_id) return false;
-    return true;
-  });
+  const isOwnLeave = (item) => {
+    if (!user) return false;
+    if (item.user_id && user.id && String(item.user_id) === String(user.id)) return true;
+    if (item.emp_id && user.emp_id && item.emp_id === user.emp_id) return true;
+    return false;
+  };
 
-  const filteredHistory = history.filter((item) => {
-    if (!user) return true;
-    if (item.employee_id && user.id && String(item.employee_id) === String(user.id)) return false;
-    if (item.emp_id && user.emp_id && item.emp_id === user.emp_id) return false;
-    return true;
-  });
+  const filteredPending = pending.filter((item) => !isOwnLeave(item));
+  const filteredHistory = history;
 
   return (
     <div>
@@ -352,7 +348,9 @@ export default function LeaveApprovalsPage() {
                       </td>
                       <td>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                          {item.status === "Approved" ? (
+                          {isOwnLeave(item) && !isAdmin ? (
+                            <span style={{ fontSize: 12, color: "var(--muted)" }}>Own record</span>
+                          ) : item.status === "Approved" ? (
                             <>
                               {item.is_paid ? (
                                 <button

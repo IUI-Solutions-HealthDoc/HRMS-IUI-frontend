@@ -13,8 +13,10 @@ import Loader from "@/components/ui/Loader";
 import AttendanceCalendar from "@/components/ui/AttendanceCalendar";
 import Modal from "@/components/ui/Modal";
 import { Hand } from "lucide-react";
+import ClubLeaveFields, { CLUB_DEFAULTS, clubStatus, WordCounter } from "@/components/ClubLeaveFields";
+import { countWords, WORD_LIMITS } from "@/lib/limits";
 
-const EMPTY_LEAVE_FORM = { subject: "", description: "", start_date: "", end_date: "", leave_type: "Casual Leave" };
+const EMPTY_LEAVE_FORM = { subject: "", description: "", start_date: "", end_date: "", leave_type: "Casual Leave", ...CLUB_DEFAULTS };
 const PRESENT_ATTENDANCE_STATUSES = new Set(["present", "p", "late", "l", "half_day", "h", "early_leave", "e"]);
 const EXCUSED_ATTENDANCE_STATUSES = new Set(["wfh", "work_from_home", "f", "r", "holiday", "o", "week_off", "wo", "leave", "paid_leave"]);
 
@@ -38,6 +40,11 @@ function EmployeeDashboard({ user, showToast }) {
   const [leaveModal, setLeaveModal] = useState(false);
   const [leaveForm, setLeaveForm] = useState(EMPTY_LEAVE_FORM);
   const [selectedLeave, setSelectedLeave] = useState(null);
+  const [leaveBalance, setLeaveBalance] = useState(null);
+
+  useEffect(() => {
+    if (leaveModal) apiFetch("/leave/balance").then(setLeaveBalance).catch(() => {});
+  }, [leaveModal]);
 
   useEffect(() => {
     const load = async () => {
@@ -64,6 +71,10 @@ function EmployeeDashboard({ user, showToast }) {
     if (!leaveForm.subject.trim()) { showToast("Subject is required", "error"); return; }
     if (!leaveForm.start_date || !leaveForm.end_date) { showToast("Please select both start and end dates", "error"); return; }
     if (leaveForm.end_date < leaveForm.start_date) { showToast("End date cannot be before start date", "error"); return; }
+    if (countWords(leaveForm.subject) > WORD_LIMITS.subject) { showToast(`Subject cannot exceed ${WORD_LIMITS.subject} words`, "error"); return; }
+    if (countWords(leaveForm.description) > WORD_LIMITS.description) { showToast(`Description cannot exceed ${WORD_LIMITS.description} words`, "error"); return; }
+    const club = clubStatus(leaveForm, leaveBalance);
+    if (club.error) { showToast(club.error, "error"); return; }
     try {
       const body = new FormData();
       body.append("subject", leaveForm.subject.trim());
@@ -71,13 +82,14 @@ function EmployeeDashboard({ user, showToast }) {
       body.append("start_date", leaveForm.start_date);
       body.append("end_date", leaveForm.end_date);
       body.append("leave_type", leaveForm.leave_type);
+      if (leaveForm.club) { body.append("cl_days", club.cl); body.append("pl_days", club.pl); }
       await apiFetch("/leave/apply", {
         method: "POST",
         body,
       });
       showToast("Leave applied!");
       setLeaveModal(false);
-      setLeaveForm({ subject: "", description: "", start_date: "", end_date: "", leave_type: "Casual Leave" });
+      setLeaveForm(EMPTY_LEAVE_FORM);
       const refreshedLeaves = await apiFetch("/leave/my").catch(() => []);
       setLeaves(Array.isArray(refreshedLeaves) ? refreshedLeaves : []);
     } catch (e) {
@@ -193,19 +205,20 @@ function EmployeeDashboard({ user, showToast }) {
       {leaveModal && (
         <Modal title="Apply for Leave" onClose={() => { setLeaveModal(false); setLeaveForm(EMPTY_LEAVE_FORM); }}
           footer={<><button className="btn-ghost" onClick={() => setLeaveModal(false)}>Cancel</button><button className="btn-primary" onClick={submitQuickLeave}>Apply</button></>}>
-          <div className="form-group"><label className="label">Leave Category</label>
+          {!leaveForm.club && <div className="form-group"><label className="label">Leave Category</label>
             <select className="input" value={leaveForm.leave_type} onChange={(e) => setLeaveForm((form) => ({ ...form, leave_type: e.target.value }))}>
               <option value="Casual Leave">Casual Leave (CL)</option>
               <option value="Sick Leave">Sick Leave (SL)</option>
               <option value="Privileged Leave">Privileged Leave (PL)</option>
             </select>
-          </div>
-          <div className="form-group"><label className="label">Subject <span style={{ color: "#ef4444" }}>*</span></label><input className="input" required value={leaveForm.subject} onChange={(e) => setLeaveForm((form) => ({ ...form, subject: e.target.value }))} /></div>
+          </div>}
+          <div className="form-group"><label className="label">Subject <span style={{ color: "#ef4444" }}>*</span></label><input className="input" required value={leaveForm.subject} onChange={(e) => setLeaveForm((form) => ({ ...form, subject: e.target.value }))} /><WordCounter value={leaveForm.subject} limit={WORD_LIMITS.subject} /></div>
           <div className="form-row">
             <div className="form-group"><label className="label">Start Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" required value={leaveForm.start_date} onChange={(e) => setLeaveForm((form) => ({ ...form, start_date: e.target.value }))} /></div>
             <div className="form-group"><label className="label">End Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" required min={leaveForm.start_date || undefined} value={leaveForm.end_date} onChange={(e) => setLeaveForm((form) => ({ ...form, end_date: e.target.value }))} /></div>
           </div>
-          <div className="form-group"><label className="label">Description</label><textarea className="input" rows={3} value={leaveForm.description} onChange={(e) => setLeaveForm((form) => ({ ...form, description: e.target.value }))} /></div>
+          <ClubLeaveFields form={leaveForm} setForm={setLeaveForm} balance={leaveBalance} />
+          <div className="form-group"><label className="label">Description</label><textarea className="input" rows={3} value={leaveForm.description} onChange={(e) => setLeaveForm((form) => ({ ...form, description: e.target.value }))} /><WordCounter value={leaveForm.description} limit={WORD_LIMITS.description} /></div>
         </Modal>
       )}
       {selectedLeave && (

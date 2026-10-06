@@ -10,6 +10,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import Loader from "@/components/ui/Loader";
 import PasswordInput from "@/components/ui/PasswordInput";
 import Pagination from "@/components/ui/Pagination";
+import EmployeeBulkImport from "@/components/EmployeeBulkImport";
 import { validateEmail, validateStrongPassword, validateBaseSalary, sanitizeNumericInput } from "@/lib/validators";
 
 export default function StaffPage() {
@@ -797,7 +798,10 @@ export default function StaffPage() {
             {isAdmin ? "Admin View, Add, Edit, Delete, and Deactivate All Employees" : "HR can add employees; account management is handled by Admin"}
           </p>
         </div>
-        <button className="btn-primary" onClick={handleOpenAddModal}>+ Add Employee</button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {canEditStaff ? <EmployeeBulkImport onDone={load} showToast={showToast} /> : null}
+          <button className="btn-primary" onClick={handleOpenAddModal}>+ Add Employee</button>
+        </div>
       </div>
 
       {/* Search */}

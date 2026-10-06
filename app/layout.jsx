@@ -1,6 +1,7 @@
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
+import UploadGuard from "@/components/UploadGuard";
 
 export const metadata = {
   title: "IUI Solutions — HRMS & Payroll",
@@ -18,6 +19,7 @@ export default function RootLayout({ children }) {
       <body>
         <ThemeProvider>
           <AuthProvider>{children}</AuthProvider>
+          <UploadGuard />
         </ThemeProvider>
       </body>
     </html>

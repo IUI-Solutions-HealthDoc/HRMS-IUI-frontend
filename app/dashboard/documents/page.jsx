@@ -274,13 +274,15 @@ export default function DocumentsPage() {
 
   async function handleUpload(docType, file) {
     if (!file || !selectedEmp?.emp_id) return;
-    if (file.size > 5 * 1024 * 1024) {
-      showToast("Document cannot exceed 5MB", "error");
+    const picked = Array.isArray(file) ? file : [file];
+    if (picked.some((f) => f.size > 10 * 1024 * 1024)) {
+      showToast("Each document must be 10MB or smaller", "error");
       return;
     }
     setUploading(docType);
     const formData = new FormData();
-    formData.append("file", file);
+    if (picked.length > 1) picked.forEach((f) => formData.append("files", f));
+    else formData.append("file", picked[0]);
     try {
       const res = await apiFetch(`/documents/${selectedEmp.emp_id}/upload/${docType}`, {
         method: "POST",
@@ -303,15 +305,15 @@ export default function DocumentsPage() {
       showToast("Select at least one document", "error");
       return;
     }
-    if (entries.some(([, file]) => file.size > 5 * 1024 * 1024)) {
-      showToast("Each document must be 5MB or smaller", "error");
+    if (entries.some(([, file]) => [].concat(file).some((f) => f.size > 10 * 1024 * 1024))) {
+      showToast("Each document must be 10MB or smaller", "error");
       return;
     }
 
     setUploading("bulk");
     const formData = new FormData();
     entries.forEach(([docType, file]) => {
-      formData.append(docType, file);
+      [].concat(file).forEach((f) => formData.append(docType, f));
     });
 
     try {
@@ -653,14 +655,20 @@ export default function DocumentsPage() {
                             <input
                               type="file"
                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
+                              multiple={type.id === "experience_letter"}
                               style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
                               onChange={(event) => {
-                                const f = event.target.files?.[0];
+                                const picked = Array.from(event.target.files || []);
                                 event.target.value = "";
-                                if (f) handleUpload(type.id, f);
+                                if (picked.length) handleUpload(type.id, type.id === "experience_letter" ? picked : picked[0]);
                               }}
                               disabled={uploading === type.id || uploading === "bulk"}
                             />
+                          </div>
+                        ) : null}
+                        {canUpload && !selfLockedDoc && type.id === "experience_letter" ? (
+                          <div style={{ fontSize: 11, color: "var(--muted)" }}>
+                            Note: select all your experience letters together (PDF/JPG/PNG). They will be combined into one file.
                           </div>
                         ) : null}
                         {selfLockedDoc ? (
@@ -709,11 +717,20 @@ export default function DocumentsPage() {
                   className="input"
                   type="file"
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
-                  onChange={(event) => setBulkFiles((current) => ({ ...current, [type.id]: event.target.files?.[0] || null }))}
+                  multiple={type.id === "experience_letter"}
+                  onChange={(event) => {
+                    const picked = Array.from(event.target.files || []);
+                    setBulkFiles((current) => ({ ...current, [type.id]: picked.length ? (type.id === "experience_letter" ? picked : picked[0]) : null }));
+                  }}
                 />
                 <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>
-                  {bulkFiles[type.id]?.name || "No file selected"}
+                  {[].concat(bulkFiles[type.id] || []).map((f) => f.name).join(", ") || "No file selected"}
                 </div>
+                {type.id === "experience_letter" ? (
+                  <div style={{ marginTop: 4, fontSize: 11, color: "var(--muted)" }}>
+                    Note: select all experience letters together. They will be combined into one file.
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>

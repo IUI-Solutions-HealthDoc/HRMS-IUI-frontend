@@ -9,9 +9,10 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import Pagination from "@/components/ui/Pagination";
 import Loader from "@/components/ui/Loader";
+import ClubLeaveFields, { CLUB_DEFAULTS, clubStatus, WordCounter } from "@/components/ClubLeaveFields";
+import { countWords, WORD_LIMITS } from "@/lib/limits";
 
-
-const EMPTY_LEAVE_FORM = { subject: "", description: "", start_date: "", end_date: "", leave_type: "Casual Leave" };
+const EMPTY_LEAVE_FORM = { subject: "", description: "", start_date: "", end_date: "", leave_type: "Casual Leave", ...CLUB_DEFAULTS };
 
 export default function LeavesPage() {
   const [leaves, setLeaves] = useState([]);
@@ -60,16 +61,21 @@ export default function LeavesPage() {
     if (!form.subject.trim()) { showToast("Subject is required", "error"); setSubmitting(false); return; }
     if (!form.start_date || !form.end_date) { showToast("Please select both start and end dates", "error"); setSubmitting(false); return; }
     if (form.end_date < form.start_date) { showToast("End date cannot be before start date", "error"); setSubmitting(false); return; }
-    if (balance?.is_in_probation && form.leave_type !== "Casual Leave") {
+    if (countWords(form.subject) > WORD_LIMITS.subject) { showToast(`Subject cannot exceed ${WORD_LIMITS.subject} words`, "error"); setSubmitting(false); return; }
+    if (countWords(form.description) > WORD_LIMITS.description) { showToast(`Description cannot exceed ${WORD_LIMITS.description} words`, "error"); setSubmitting(false); return; }
+    const club = clubStatus(form, balance);
+    if (club.error) { showToast(club.error, "error"); setSubmitting(false); return; }
+    if (balance?.is_in_probation && (form.club || form.leave_type !== "Casual Leave")) {
       showToast("Only Casual Leave can be applied during probation period.", "error");
       setSubmitting(false);
       return;
     }
     try {
       const fd = new FormData();
-      fd.append("subject", form.subject || `${form.leave_type} request`);
-      fd.append("leave_type", form.leave_type);
-      fd.append("description", form.description || "Leave requested");
+      fd.append("subject", form.subject.trim());
+      fd.append("leave_type", form.leave_type || "Casual Leave");
+      fd.append("description", form.description.trim() || form.subject.trim());
+      if (form.club) { fd.append("cl_days", club.cl); fd.append("pl_days", club.pl); }
       fd.append("start_date", form.start_date);
       fd.append("end_date", form.end_date);
       files.forEach((f) => fd.append("attachments", f));
@@ -177,7 +183,7 @@ export default function LeavesPage() {
                 {paginatedLeaves.map((l, i) => (
                   <tr key={i}>
                     <td>{fmtDate(l.start_date)}</td><td>{fmtDate(l.end_date)}</td>
-                    <td><span className="chip" style={{ fontWeight: 600 }}>{l.leave_type || "Casual Leave"}</span></td>
+                    <td><span className="chip" style={{ fontWeight: 600 }}>{l.cl_days > 0 && l.pl_days > 0 ? `${l.cl_days} CL + ${l.pl_days} PL` : (l.leave_type || "Casual Leave")}</span></td>
                     <td><span className="chip">{l.subject}</span></td>
                     <td style={{ maxWidth: 240, minWidth: 160, whiteSpace: "normal", overflowWrap: "anywhere" }}>{l.description}</td>
                     <td>
@@ -223,7 +229,7 @@ export default function LeavesPage() {
               ⏳ <b>Probation Active</b>: You can only apply for <b>Casual Leave</b> until your probation period concludes on {balance.probation_end_date ? fmtDate(balance.probation_end_date) : "the scheduled date"}.
             </div>
           )}
-          <div className="form-group"><label className="label">Leave Category</label>
+          {!form.club && <div className="form-group"><label className="label">Leave Category</label>
             <select className="input" value={form.leave_type} onChange={(e) => setForm((f) => ({ ...f, leave_type: e.target.value }))}>
               <option value="Casual Leave">Casual Leave (CL - 10/yr)</option>
               <option value="Sick Leave" disabled={balance?.is_in_probation}>
@@ -233,12 +239,14 @@ export default function LeavesPage() {
                 Privileged Leave (PL - 15/yr){balance?.is_in_probation ? " — Locked (Probation)" : ""}
               </option>
             </select>
-          </div>
-          <div className="form-group"><label className="label">Subject <span style={{ color: "#ef4444" }}>*</span></label><input className="input" placeholder="e.g. Family function, Medical, etc." value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} required /></div>
+          </div>}
+          <div className="form-group"><label className="label">Subject <span style={{ color: "#ef4444" }}>*</span></label><input className="input" placeholder="e.g. Family function, Medical, etc." value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} required /><WordCounter value={form.subject} limit={WORD_LIMITS.subject} /></div>
           <div className="form-row">
             <div className="form-group"><label className="label">Start Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" value={form.start_date} onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))} required /></div>
             <div className="form-group"><label className="label">End Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" min={form.start_date || undefined} value={form.end_date} onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))} required /></div>
           </div>
+          <ClubLeaveFields form={form} setForm={setForm} balance={balance} />
+          <div className="form-group"><label className="label">Description</label><textarea className="input" rows={3} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} /><WordCounter value={form.description} limit={WORD_LIMITS.description} /></div>
           {(() => {
             const warn = [];
             if (form.start_date) { const d = new Date(form.start_date + "T00:00:00"); if (d.getDay() === 0) warn.push("Start date is a Sunday"); else if (d.getDay() === 6) warn.push("Start date is a Saturday"); }

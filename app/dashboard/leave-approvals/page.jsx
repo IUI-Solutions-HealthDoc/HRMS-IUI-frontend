@@ -334,7 +334,7 @@ export default function LeaveApprovalsPage() {
                     <tr key={item.id} onClick={() => setSelectedLeave(item)} style={{ cursor: "pointer" }}>
                       <td><b>{item.name || item.emp_id}</b></td>
                       <td>{item.status === "Approved" ? (item.is_paid ? "Paid" : "Unpaid") : "—"}</td>
-                      <td>{item.leave_type || "Casual Leave"}</td>
+                      <td>{item.cl_days > 0 && item.pl_days > 0 ? `${item.cl_days} CL + ${item.pl_days} PL` : (item.leave_type || "Casual Leave")}</td>
                       <td>{fmtDate(item.start_date)}</td>
                       <td>{fmtDate(item.end_date)}</td>
                       <td>{item.subject}</td>

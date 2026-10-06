@@ -247,9 +247,11 @@ function MonthGrid({ year, monthIndex, holidays, canSelect, includeSaturdays, on
 
 export default function AttendanceHRPage() {
   const router = useRouter();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const isAdmin = role === "admin";
   const isHR = role === "hr";
+  const isHOD = role === "hod" || user?.is_hod || user?.username === "ritik";
+  const canViewAllAttendance = isAdmin || isHR || isHOD;
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("all_logs");
   const [year, setYear] = useState(new Date().getFullYear());
@@ -324,9 +326,9 @@ export default function AttendanceHRPage() {
         apiFetch("/employees/me").catch(() => null),
         apiFetch(`/attendance/all?${allLogsParams.toString()}`).catch(() => []),
       ];
-      if (isAdmin || isHR) {
-        requests.push(apiFetch(`/attendance/edited-records?year=${year}&source=manual`));
-        requests.push(apiFetch(`/attendance/not-punched?year=${year}`));
+      if (canViewAllAttendance) {
+        requests.push(apiFetch(`/attendance/edited-records?year=${year}&source=manual`).catch(() => []));
+        requests.push(apiFetch(`/attendance/not-punched?year=${year}`).catch(() => []));
       }
       const responses = await Promise.all(requests);
       const holidayRes = responses[0] || {};
@@ -336,7 +338,7 @@ export default function AttendanceHRPage() {
       const allLogsRes = responses[4] || [];
       let editedRes = [];
       let notPunchedRes = [];
-      if (isAdmin || isHR) {
+      if (canViewAllAttendance) {
         editedRes = responses[5] || [];
         notPunchedRes = responses[6] || [];
       }
@@ -748,7 +750,7 @@ export default function AttendanceHRPage() {
         <div>
           <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>Attendance Management</h1>
           <p style={{ color: "var(--muted)", marginTop: 4 }}>
-            {isAdmin ? "Admin reviews system-wide attendance, manual edits, and manages holidays." : "HR handles system attendance, manual edits, and device logs."}
+            {isAdmin ? "Admin reviews system-wide attendance, manual edits, and manages holidays." : isHR ? "HR handles system attendance, manual edits, and device logs." : "Review all employee attendance records, previous logs, and biometric device punches."}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -762,16 +764,16 @@ export default function AttendanceHRPage() {
             </>
           ) : null}
           <div style={{ display: "flex", background: "var(--hover-bg)", padding: 4, borderRadius: 10, flexWrap: "wrap" }}>
-            {(isAdmin || isHR) ? <button className="btn-ghost" onClick={() => setTab("all_logs")} style={{ padding: "6px 14px", fontSize: 13, background: tab === "all_logs" ? "var(--surface2)" : "transparent" }}>All Attendance Logs</button> : null}
-            {(isAdmin || isHR) ? <button className="btn-ghost" onClick={() => setTab("edited")} style={{ padding: "6px 14px", fontSize: 13, background: tab === "edited" ? "var(--surface2)" : "transparent" }}>Manual Edit Records</button> : null}
-            {(isAdmin || isHR) ? <button className="btn-ghost" onClick={() => setTab("not_punched")} style={{ padding: "6px 14px", fontSize: 13, background: tab === "not_punched" ? "var(--surface2)" : "transparent" }}>Not Punched</button> : null}
+            {canViewAllAttendance ? <button className="btn-ghost" onClick={() => setTab("all_logs")} style={{ padding: "6px 14px", fontSize: 13, background: tab === "all_logs" ? "var(--surface2)" : "transparent" }}>All Attendance Logs</button> : null}
+            {canViewAllAttendance ? <button className="btn-ghost" onClick={() => setTab("edited")} style={{ padding: "6px 14px", fontSize: 13, background: tab === "edited" ? "var(--surface2)" : "transparent" }}>Manual Edit Records</button> : null}
+            {canViewAllAttendance ? <button className="btn-ghost" onClick={() => setTab("not_punched")} style={{ padding: "6px 14px", fontSize: 13, background: tab === "not_punched" ? "var(--surface2)" : "transparent" }}>Not Punched</button> : null}
             <button className="btn-ghost" onClick={() => setTab("calendar")} style={{ padding: "6px 14px", fontSize: 13, background: tab === "calendar" ? "var(--surface2)" : "transparent" }}>Holiday Calendar</button>
             <button className="btn-ghost" onClick={() => setTab("machine")} style={{ padding: "6px 14px", fontSize: 13, background: tab === "machine" ? "var(--surface2)" : "transparent" }}>Machine Logs</button>
           </div>
         </div>
       </div>
 
-      {tab === "all_logs" && (isAdmin || isHR) ? (
+      {tab === "all_logs" && canViewAllAttendance ? (
         <div className="card">
           <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
             <div>
@@ -862,7 +864,7 @@ export default function AttendanceHRPage() {
         </div>
       ) : null}
 
-      {tab === "edited" && (isAdmin || isHR) ? (
+      {tab === "edited" && canViewAllAttendance ? (
         <div className="card">
           <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
             <h2 className="syne" style={{ fontSize: 16, fontWeight: 700 }}>Manual Attendance Edit Records</h2>
@@ -929,7 +931,7 @@ export default function AttendanceHRPage() {
         </div>
       ) : null}
 
-      {tab === "not_punched" && (isAdmin || isHR) ? (
+      {tab === "not_punched" && canViewAllAttendance ? (
         <div className="card">
           <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
             <h2 className="syne" style={{ fontSize: 16, fontWeight: 700 }}>Not Punched Records (Auto Closed at 11:30 PM)</h2>

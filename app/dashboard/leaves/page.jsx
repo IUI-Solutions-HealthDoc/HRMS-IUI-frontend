@@ -200,6 +200,11 @@ export default function LeavesPage() {
                           by {l.action_by_name} {l.action_by_role ? `(${l.action_by_role})` : ""}
                         </div>
                       )}
+                      {l.approver_comment && (
+                        <div style={{ fontSize: 11, color: "var(--text)", marginTop: 4, background: "var(--hover-bg)", padding: "3px 6px", borderRadius: 4, maxWidth: 200 }}>
+                          💬 {l.approver_comment}
+                        </div>
+                      )}
                     </td>
                     <td>
                       {l.status === "Pending" ? (

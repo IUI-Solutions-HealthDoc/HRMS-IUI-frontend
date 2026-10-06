@@ -30,6 +30,7 @@ export default function LeaveApprovalsPage() {
   const PER_PAGE = 10;
   const [showToast, toastNode] = useToast();
   const [selectedLeave, setSelectedLeave] = useState(null);
+  const [actionComment, setActionComment] = useState("");
   const [selectedBalance, setSelectedBalance] = useState(null);
   const [editedLeaveType, setEditedLeaveType] = useState("");
   const [editedStartDate, setEditedStartDate] = useState("");
@@ -99,6 +100,7 @@ export default function LeaveApprovalsPage() {
       setEditedLeaveType(selectedLeave.leave_type || "Casual Leave");
       setEditedStartDate(selectedLeave.start_date ? selectedLeave.start_date.split("T")[0] : "");
       setEditedEndDate(selectedLeave.end_date ? selectedLeave.end_date.split("T")[0] : "");
+      setActionComment(selectedLeave.approver_comment || "");
       apiFetch(`/leave/balance?emp_id=${selectedLeave.emp_id || selectedLeave.employee_id}`)
         .then(data => setSelectedBalance(data))
         .catch(e => console.error(e));
@@ -107,6 +109,7 @@ export default function LeaveApprovalsPage() {
       setEditedLeaveType("");
       setEditedStartDate("");
       setEditedEndDate("");
+      setActionComment("");
     }
   }, [selectedLeave]);
 
@@ -176,15 +179,19 @@ export default function LeaveApprovalsPage() {
     load();
   }, [load]);
 
-  async function updateLeave(item, action) {
+  async function updateLeave(item, action, customComment) {
     const actionLabel = action === "approve_paid" ? "Paid" : action === "approve_unpaid" ? "Unpaid" : "Rejected";
     const empName = item.name || item.emp_id || "Employee";
     const subject = item.subject || "No Subject";
     if (!confirm(`Are you sure you want to mark this leave as ${actionLabel} for ${empName} (Subject: ${subject})?`)) {
       return;
     }
+    const finalComment = customComment !== undefined ? customComment : (selectedLeave && selectedLeave.id === item.id ? actionComment : undefined);
     try {
-      await apiFetch(`/leave/${item.id}/update`, { method: "POST", body: JSON.stringify({ action }) });
+      await apiFetch(`/leave/${item.id}/update`, {
+        method: "POST",
+        body: JSON.stringify({ action, comment: finalComment || undefined }),
+      });
       showToast("Leave updated");
       load();
       if (selectedLeave && selectedLeave.id === item.id) {
@@ -192,6 +199,7 @@ export default function LeaveApprovalsPage() {
           ...prev,
           status: action === "reject" ? "Rejected" : "Approved",
           is_paid: action === "approve_paid",
+          approver_comment: finalComment || prev?.approver_comment,
         }));
       }
     } catch (error) {
@@ -338,7 +346,14 @@ export default function LeaveApprovalsPage() {
                       <td>{fmtDate(item.start_date)}</td>
                       <td>{fmtDate(item.end_date)}</td>
                       <td>{item.subject}</td>
-                      <td><StatusBadge status={item.status} /></td>
+                      <td>
+                        <StatusBadge status={item.status} />
+                        {item.approver_comment && (
+                          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 3, maxWidth: 170, whiteSpace: "normal" }} title={item.approver_comment}>
+                            💬 {item.approver_comment}
+                          </div>
+                        )}
+                      </td>
                       <td>
                         {item.action_by_name ? (
                           <span style={{ fontSize: 12, color: "var(--muted)" }}>
@@ -600,6 +615,20 @@ export default function LeaveApprovalsPage() {
                   ))}
                 </div>
               ) : <span style={{ color: "var(--muted, #666)", fontSize: 14 }}>No attachments</span>}
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block", marginBottom: 4 }}>
+                Approver Note / Reason (Optional)
+              </span>
+              <textarea
+                className="input"
+                rows={2}
+                placeholder="Add a remark or note (e.g. Approved as per project deadline, or reason for rejection/unpaid)..."
+                value={actionComment}
+                onChange={(e) => setActionComment(e.target.value)}
+                style={{ width: "100%", fontSize: 13, resize: "vertical" }}
+              />
             </div>
             
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)", flexWrap: "wrap", gap: 8 }}>

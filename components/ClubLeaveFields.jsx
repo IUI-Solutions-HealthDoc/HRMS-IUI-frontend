@@ -4,13 +4,27 @@ import { countWords, WORD_LIMITS } from "@/lib/limits";
 
 export const CLUB_DEFAULTS = { club: false, cl_days: "", pl_days: "" };
 
-export function spanDays(start, end) {
+export function spanDays(start, end, holidays = []) {
   if (!start || !end || end < start) return 0;
   let count = 0;
   const curr = new Date(start + "T00:00:00");
   const stop = new Date(end + "T00:00:00");
+  const holidayDates = new Set(
+    (holidays || []).map((h) => (typeof h === "string" ? h : h.date)).filter(Boolean)
+  );
+
   while (curr <= stop) {
-    if (curr.getDay() !== 0) { // 0 is Sunday
+    const isSunday = curr.getDay() === 0;
+    const mm = String(curr.getMonth() + 1).padStart(2, "0");
+    const dd = String(curr.getDate()).padStart(2, "0");
+    const yyyy = curr.getFullYear();
+    const dateStr = `${yyyy}-${mm}-${dd}`;
+
+    // Fixed Indian national holidays: 26 Jan, 15 Aug, 02 Oct
+    const isNationalHoliday = (mm === "01" && dd === "26") || (mm === "08" && dd === "15") || (mm === "10" && dd === "02");
+    const isHoliday = isNationalHoliday || holidayDates.has(dateStr);
+
+    if (!isSunday && !isHoliday) {
       count++;
     }
     curr.setDate(curr.getDate() + 1);
@@ -19,17 +33,17 @@ export function spanDays(start, end) {
 }
 
 // Validation summary for the club split; `error` is "" when the form may be submitted.
-export function clubStatus(form, balance) {
+export function clubStatus(form, balance, holidays = []) {
   if (!form.club) return { days: 0, error: "" };
-  const days = spanDays(form.start_date, form.end_date);
+  const days = spanDays(form.start_date, form.end_date, holidays);
   const cl = parseInt(form.cl_days || 0, 10) || 0;
   const pl = parseInt(form.pl_days || 0, 10) || 0;
   const clLeft = balance?.annual_quotas?.casual?.remaining;
   const plLeft = balance?.annual_quotas?.privileged?.remaining;
   let error = "";
-  if (!days) error = "Select the dates first";
+  if (!days) error = "Selected date range contains no working days";
   else if (cl < 0 || pl < 0) error = "Days cannot be negative";
-  else if (cl + pl !== days) error = `CL + PL must equal ${days} day(s)`;
+  else if (cl + pl !== days) error = `CL + PL must equal ${days} working day(s)`;
   else if (clLeft != null && cl > clLeft) error = `Only ${clLeft} CL available`;
   else if (plLeft != null && pl > plLeft) error = `Only ${plLeft} PL available`;
   return { days, cl, pl, error };
@@ -44,8 +58,8 @@ export function WordCounter({ value, limit }) {
   );
 }
 
-export default function ClubLeaveFields({ form, setForm, balance }) {
-  const st = clubStatus(form, balance);
+export default function ClubLeaveFields({ form, setForm, balance, holidays = [] }) {
+  const st = clubStatus(form, balance, holidays);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   return (
     <div className="form-group">

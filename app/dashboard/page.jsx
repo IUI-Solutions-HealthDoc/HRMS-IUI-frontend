@@ -73,7 +73,7 @@ function EmployeeDashboard({ user, showToast }) {
     if (leaveForm.end_date < leaveForm.start_date) { showToast("End date cannot be before start date", "error"); return; }
     if (countWords(leaveForm.subject) > WORD_LIMITS.subject) { showToast(`Subject cannot exceed ${WORD_LIMITS.subject} words`, "error"); return; }
     if (countWords(leaveForm.description) > WORD_LIMITS.description) { showToast(`Description cannot exceed ${WORD_LIMITS.description} words`, "error"); return; }
-    const club = clubStatus(leaveForm, leaveBalance);
+    const club = clubStatus(leaveForm, leaveBalance, holidays);
     if (club.error) { showToast(club.error, "error"); return; }
     try {
       const body = new FormData();
@@ -217,7 +217,7 @@ function EmployeeDashboard({ user, showToast }) {
             <div className="form-group"><label className="label">Start Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" required value={leaveForm.start_date} onChange={(e) => setLeaveForm((form) => ({ ...form, start_date: e.target.value }))} /></div>
             <div className="form-group"><label className="label">End Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" required min={leaveForm.start_date || undefined} value={leaveForm.end_date} onChange={(e) => setLeaveForm((form) => ({ ...form, end_date: e.target.value }))} /></div>
           </div>
-          <ClubLeaveFields form={leaveForm} setForm={setLeaveForm} balance={leaveBalance} />
+          <ClubLeaveFields form={leaveForm} setForm={setLeaveForm} balance={leaveBalance} holidays={holidays} />
           <div className="form-group"><label className="label">Description</label><textarea className="input" rows={3} value={leaveForm.description} onChange={(e) => setLeaveForm((form) => ({ ...form, description: e.target.value }))} /><WordCounter value={leaveForm.description} limit={WORD_LIMITS.description} /></div>
         </Modal>
       )}

@@ -63,7 +63,7 @@ export default function LeavesPage() {
     if (form.end_date < form.start_date) { showToast("End date cannot be before start date", "error"); setSubmitting(false); return; }
     if (countWords(form.subject) > WORD_LIMITS.subject) { showToast(`Subject cannot exceed ${WORD_LIMITS.subject} words`, "error"); setSubmitting(false); return; }
     if (countWords(form.description) > WORD_LIMITS.description) { showToast(`Description cannot exceed ${WORD_LIMITS.description} words`, "error"); setSubmitting(false); return; }
-    const club = clubStatus(form, balance);
+    const club = clubStatus(form, balance, holidays);
     if (club.error) { showToast(club.error, "error"); setSubmitting(false); return; }
     if (balance?.is_in_probation && (form.club || form.leave_type !== "Casual Leave")) {
       showToast("Only Casual Leave can be applied during probation period.", "error");
@@ -250,7 +250,7 @@ export default function LeavesPage() {
             <div className="form-group"><label className="label">Start Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" value={form.start_date} onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))} required /></div>
             <div className="form-group"><label className="label">End Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" min={form.start_date || undefined} value={form.end_date} onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))} required /></div>
           </div>
-          <ClubLeaveFields form={form} setForm={setForm} balance={balance} />
+          <ClubLeaveFields form={form} setForm={setForm} balance={balance} holidays={holidays} />
           <div className="form-group"><label className="label">Description</label><textarea className="input" rows={3} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} /><WordCounter value={form.description} limit={WORD_LIMITS.description} /></div>
           {(() => {
             const warn = [];

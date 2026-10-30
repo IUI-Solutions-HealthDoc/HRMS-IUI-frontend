@@ -131,6 +131,7 @@ export default function AttendanceSettingsPage() {
         lates_per_half_day_deduction: settings.lates_per_half_day_deduction,
         early_leaves_per_half_day: settings.early_leaves_per_half_day,
         allow_web_punch: settings.allow_web_punch,
+        allow_geo_login: settings.allow_geo_login,
       };
       await apiFetch("/attendance/settings", {
         method: "PUT",
@@ -439,6 +440,15 @@ export default function AttendanceSettingsPage() {
             onChange={(e) => setSettings((item) => ({ ...item, allow_web_punch: e.target.checked }))}
           />
           Allow web punch
+        </label>
+
+        <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+          <input
+            type="checkbox"
+            checked={settings?.allow_geo_login || false}
+            onChange={(e) => setSettings((item) => ({ ...item, allow_geo_login: e.target.checked }))}
+          />
+          Allow Geo Login for employees
         </label>
 
         <button className="btn-primary" onClick={saveRules} disabled={savingRules}>

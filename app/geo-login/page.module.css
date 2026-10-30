@@ -1,0 +1,433 @@
+.page {
+  display: grid;
+  gap: 18px;
+  color: var(--text);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.header p {
+  margin-top: 5px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.headerMeta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.headerMeta > span {
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface2);
+}
+
+.punchState {
+  font-weight: 600;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.panel {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 18px;
+}
+
+.panelTitle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.panelTitle h2 {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.step {
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: var(--accent);
+  background: var(--accent-dim);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.mapPreview {
+  position: relative;
+  display: grid;
+  min-height: 210px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background-color: color-mix(in srgb, var(--accent-dim) 65%, var(--surface3));
+  background-image:
+    linear-gradient(rgba(124, 58, 237, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 58, 237, 0.08) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+
+.mapRoadOne,
+.mapRoadTwo,
+.mapRoadThree {
+  position: absolute;
+  height: 15px;
+  width: 130%;
+  border: 5px solid var(--surface2);
+  border-left: 0;
+  border-right: 0;
+  opacity: 0.95;
+}
+
+.mapRoadOne {
+  top: 45%;
+  left: -12%;
+  transform: rotate(-13deg);
+}
+
+.mapRoadTwo {
+  top: 16%;
+  left: -20%;
+  transform: rotate(67deg);
+}
+
+.mapRoadThree {
+  top: 75%;
+  left: 18%;
+  transform: rotate(17deg);
+}
+
+.mapMarker {
+  z-index: 1;
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  border: 1px dashed var(--accent);
+  border-radius: 50%;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent-dim) 78%, transparent);
+}
+
+.mapCaption {
+  position: absolute;
+  z-index: 2;
+  bottom: 12px;
+  color: var(--text-2);
+  font-size: 11px;
+}
+
+.locationStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.locationStats > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--surface3);
+}
+
+.locationStats span {
+  color: var(--text-2);
+  font-size: 11px;
+}
+
+.locationStats strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.fullStat {
+  grid-column: 1 / -1;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.noticeSuccess {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.14);
+}
+
+.noticeWarning {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.14);
+}
+
+.error {
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.photoBox {
+  display: grid;
+  min-height: 312px;
+  place-items: stretch;
+  overflow: hidden;
+  border: 1px dashed var(--border-hover);
+  border-radius: 12px;
+  background: var(--surface3);
+}
+
+.photoEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 24px;
+  text-align: center;
+}
+
+.cameraIcon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.photoEmpty strong {
+  font-size: 13px;
+}
+
+.photoEmpty > span:not(.cameraIcon) {
+  max-width: 300px;
+  color: var(--text-2);
+  font-size: 11px;
+}
+
+.photoActions,
+.actionControls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.photoActions {
+  margin-top: 5px;
+}
+
+.photoActions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.photoPreview {
+  position: relative;
+  display: grid;
+  min-height: 312px;
+  place-items: center;
+  padding: 12px;
+}
+
+.photoPreview img {
+  max-width: 100%;
+  max-height: 288px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.photoGallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 10px;
+  padding: 12px;
+}
+
+.photoTile {
+  position: relative;
+  min-width: 0;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface2);
+}
+
+.photoTile img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.photoTile figcaption {
+  padding: 6px 2px 2px;
+  color: var(--text-2);
+  font-size: 10px;
+}
+
+.webcamPreview {
+  display: grid;
+  min-height: 312px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 12px;
+}
+
+.webcamPreview video {
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  max-height: 420px;
+  border-radius: 8px;
+  background: #0b1120;
+  object-fit: cover;
+}
+
+.webcamPreview .frontCamera {
+  transform: scaleX(-1);
+}
+
+.webcamActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.webcamActions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.addPhotoTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 120px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+
+.addPhotoTile button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.removePhoto {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--surface2);
+  cursor: pointer;
+}
+
+.actionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+}
+
+.privacy,
+.timeInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.actionControls {
+  justify-content: flex-end;
+}
+
+.timeInfo {
+  color: var(--text);
+}
+
+.attendanceNote {
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 760px) {
+  .steps {
+    grid-template-columns: 1fr;
+  }
+
+  .actionBar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .actionControls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}

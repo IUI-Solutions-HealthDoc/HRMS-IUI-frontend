@@ -20,6 +20,7 @@ import {
   FolderLock,
   LayoutDashboard,
   Logs,
+  MapPin,
   X,
   MessagesSquare,
   Settings2,
@@ -76,6 +77,8 @@ const ICON_MAP = {
   comp_off: SunMedium,
   appraisal: TrendingUp,
   team_setup: Settings2,
+  geo_login: MapPin,
+  geo_records: MapPin,
 };
 
 export default function Sidebar({ sidebarOpen, onClose }) {

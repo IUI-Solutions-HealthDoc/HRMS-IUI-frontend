@@ -56,32 +56,36 @@ export default function StaffPage() {
   const [bankDetails, setBankDetails] = useState(null);
   const latestLoadIdRef = useRef(0);
 
-  const getNextEmpId = (empId) => {
-    if (!empId) return "";
-    const match = empId.trim().match(/^([a-zA-Z_\-]+)?(\d+)$/);
-    if (match) {
-      const prefix = match[1] || "";
-      const numStr = match[2];
-      const nextNum = parseInt(numStr, 10) + 1;
-      const nextNumStr = String(nextNum).padStart(numStr.length, "0");
-      return prefix + nextNumStr;
+  const getNextEmpId = (staffList, defaultPrefix = "IUI") => {
+    if (!staffList || staffList.length === 0) return `${defaultPrefix}0001`;
+    const reg = new RegExp(`^${defaultPrefix}([-_])?(\\d+)$`, "i");
+    let maxNum = 0;
+    let pad = 4;
+    let hasDash = false;
+    for (const emp of staffList) {
+      if (!emp || !emp.emp_id) continue;
+      const m = emp.emp_id.trim().match(reg);
+      if (m) {
+        if (m[1] === "-") hasDash = true;
+        pad = Math.max(pad, m[2].length);
+        const val = parseInt(m[2], 10);
+        if (val > maxNum) maxNum = val;
+      }
     }
-    return empId;
+    const nextNum = maxNum + 1;
+    const sep = hasDash ? "-" : "";
+    return `${defaultPrefix}${sep}${String(nextNum).padStart(pad, "0")}`;
   };
 
-  const handleOpenAddModal = () => {
-    let nextId = "";
-    if (staff && staff.length > 0) {
-      const lastEmp = staff.reduce((max, curr) => {
-        if (!max) return curr;
-        if (curr.id && max.id) {
-          return curr.id > max.id ? curr : max;
-        }
-        return curr;
-      }, null);
-      if (lastEmp && lastEmp.emp_id) {
-        nextId = getNextEmpId(lastEmp.emp_id);
+  const handleOpenAddModal = async () => {
+    let nextId = getNextEmpId(staff, "IUI");
+    try {
+      const res = await apiFetch("/employees/next-id?prefix=IUI");
+      if (res && res.next_emp_id) {
+        nextId = res.next_emp_id;
       }
+    } catch {
+      // fallback already computed
     }
     setForm({
       username: "", password: "", first_name: "", last_name: "", email: "",

@@ -4,9 +4,18 @@ import { countWords, WORD_LIMITS } from "@/lib/limits";
 
 export const CLUB_DEFAULTS = { club: false, cl_days: "", pl_days: "" };
 
-function spanDays(start, end) {
+export function spanDays(start, end) {
   if (!start || !end || end < start) return 0;
-  return Math.round((new Date(end + "T00:00:00") - new Date(start + "T00:00:00")) / 86400000) + 1;
+  let count = 0;
+  const curr = new Date(start + "T00:00:00");
+  const stop = new Date(end + "T00:00:00");
+  while (curr <= stop) {
+    if (curr.getDay() !== 0) { // 0 is Sunday
+      count++;
+    }
+    curr.setDate(curr.getDate() + 1);
+  }
+  return count;
 }
 
 // Validation summary for the club split; `error` is "" when the form may be submitted.

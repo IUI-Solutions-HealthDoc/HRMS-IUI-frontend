@@ -20,6 +20,7 @@ export default function LeavesPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [selectedLeave, setSelectedLeave] = useState(null);
   const [form, setForm] = useState(EMPTY_LEAVE_FORM);
   const [files, setFiles] = useState([]);
   const [holidays, setHolidays] = useState([]);
@@ -193,48 +194,173 @@ export default function LeavesPage() {
           <h2 className="syne" style={{ fontSize: 16, fontWeight: 700 }}>Leave History</h2>
         </div>
         {loading ? <Loader /> : loadError ? <EmptyState icon="⚠️" title="Leaves could not be loaded" sub={loadError} /> : leaves.length === 0 ? <EmptyState icon="📅" title="No leaves yet" sub="Apply for your first leave" /> : (
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>From</th><th>To</th><th>Category</th><th>Subject</th><th>Description</th><th>Attachments</th><th>Status</th><th>Actions</th></tr></thead>
-              <tbody>
-                {paginatedLeaves.map((l, i) => (
-                  <tr key={i}>
-                    <td>{fmtDate(l.start_date)}</td><td>{fmtDate(l.end_date)}</td>
-                    <td><span className="chip" style={{ fontWeight: 600 }}>{l.cl_days > 0 && l.pl_days > 0 ? `${l.cl_days} CL + ${l.pl_days} PL` : (l.leave_type || "Casual Leave")}</span></td>
-                    <td><span className="chip">{l.subject}</span></td>
-                    <td style={{ maxWidth: 240, minWidth: 160, whiteSpace: "normal", overflowWrap: "anywhere" }}>{l.description}</td>
-                    <td>
-                      {(l.attachments?.length > 0) ? l.attachments.map((url, j) => (
-                        <a key={j} href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginRight: 6, fontSize: 12, color: "var(--accent)" }}>
-                          📎 File {j + 1}
-                        </a>
-                      )) : <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>}
-                    </td>
-                    <td>
-                      <StatusBadge status={l.status} />
-                      {l.action_by_name && (
-                        <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 2 }}>
-                          by {l.action_by_name} {l.action_by_role ? `(${l.action_by_role})` : ""}
-                        </div>
-                      )}
-                      {l.approver_comment && (
-                        <div style={{ fontSize: 11, color: "var(--text)", marginTop: 4, background: "var(--hover-bg)", padding: "3px 6px", borderRadius: 4, maxWidth: 200 }}>
-                          💬 {l.approver_comment}
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      {l.status === "Pending" ? (
-                        <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: 12, color: "#ef4444" }} onClick={() => cancelLeave(l.id)}>
-                          Cancel
-                        </button>
-                      ) : "—"}
-                    </td>
+          <>
+            {/* Desktop Table View */}
+            <div className="table-wrap leave-table-desktop">
+              <table>
+                <thead>
+                  <tr>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Category</th>
+                    <th>Subject</th>
+                    <th>Reason</th>
+                    <th>Attachments</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedLeaves.map((l, i) => (
+                    <tr key={i} style={{ cursor: "pointer" }} onClick={(e) => {
+                      if (e.target.closest("button") || e.target.closest("a")) return;
+                      setSelectedLeave(l);
+                    }}>
+                      <td>{fmtDate(l.start_date)}</td>
+                      <td>{fmtDate(l.end_date)}</td>
+                      <td>
+                        <span className="chip" style={{ fontWeight: 600 }}>
+                          {l.cl_days > 0 && l.pl_days > 0 ? `${l.cl_days} CL + ${l.pl_days} PL` : (l.leave_type || "Casual Leave")}
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setSelectedLeave(l); }}
+                          style={{ background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer", color: "inherit" }}
+                        >
+                          <span className="chip" style={{ fontWeight: 600, color: "var(--accent)" }}>
+                            {l.subject || "Leave Request"}
+                          </span>
+                        </button>
+                      </td>
+                      <td>
+                        {l.description ? (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setSelectedLeave(l); }}
+                            className="btn-ghost"
+                            style={{
+                              padding: "4px 10px",
+                              fontSize: 12,
+                              borderRadius: 6,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                              background: "rgba(124, 58, 237, 0.08)",
+                              border: "1px solid rgba(124, 58, 237, 0.2)",
+                              color: "var(--accent)",
+                              cursor: "pointer",
+                            }}
+                            title="Click to view full description"
+                          >
+                            <span>👁️ View Note</span>
+                          </button>
+                        ) : (
+                          <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>
+                        )}
+                      </td>
+                      <td>
+                        {(l.attachments?.length > 0) ? l.attachments.map((url, j) => (
+                          <a key={j} href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginRight: 6, fontSize: 12, color: "var(--accent)" }}>
+                            📎 File {j + 1}
+                          </a>
+                        )) : <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>}
+                      </td>
+                      <td>
+                        <StatusBadge status={l.status} />
+                        {l.action_by_name && (
+                          <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 2 }}>
+                            by {l.action_by_name} {l.action_by_role ? `(${l.action_by_role})` : ""}
+                          </div>
+                        )}
+                        {l.approver_comment && (
+                          <div style={{ fontSize: 11, color: "var(--text)", marginTop: 4, background: "var(--hover-bg)", padding: "3px 6px", borderRadius: 4, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            💬 {l.approver_comment}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            style={{ padding: "4px 8px", fontSize: 12 }}
+                            onClick={() => setSelectedLeave(l)}
+                          >
+                            Details
+                          </button>
+                          {l.status === "Pending" && (
+                            <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: 12, color: "#ef4444" }} onClick={() => cancelLeave(l.id)}>
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="leave-cards-mobile">
+              {paginatedLeaves.map((l, i) => (
+                <div
+                  key={i}
+                  className="leave-card-item"
+                  onClick={() => setSelectedLeave(l)}
+                  style={{
+                    padding: "14px 16px",
+                    background: "var(--hover-bg, rgba(255,255,255,0.03))",
+                    borderRadius: 12,
+                    border: "1px solid var(--border)",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>
+                      {fmtDate(l.start_date)} – {fmtDate(l.end_date)}
+                    </span>
+                    <StatusBadge status={l.status} />
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <span className="chip" style={{ fontWeight: 700, fontSize: 11 }}>
+                        {l.cl_days > 0 && l.pl_days > 0 ? `${l.cl_days} CL + ${l.pl_days} PL` : (l.leave_type || "Casual Leave")}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>
+                      {l.subject || "Leave Request"}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 6, borderTop: "1px solid var(--border)", marginTop: 2 }}>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      style={{ padding: "4px 8px", fontSize: 12, color: "var(--accent)", fontWeight: 600 }}
+                      onClick={(e) => { e.stopPropagation(); setSelectedLeave(l); }}
+                    >
+                      👁️ View Details
+                    </button>
+                    {l.status === "Pending" && (
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        style={{ padding: "4px 8px", fontSize: 12, color: "#ef4444", fontWeight: 600 }}
+                        onClick={(e) => { e.stopPropagation(); cancelLeave(l.id); }}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
         <Pagination
           currentPage={safePage}
@@ -243,6 +369,104 @@ export default function LeavesPage() {
           onPageChange={(p) => setCurrentPage(p)}
         />
       </div>
+
+      {/* Leave Details Modal */}
+      {selectedLeave && (
+        <Modal
+          title={`Leave Details — ${selectedLeave.subject || "Leave Request"}`}
+          onClose={() => setSelectedLeave(null)}
+          footer={
+            <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
+              {selectedLeave.status === "Pending" ? (
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  style={{ color: "#ef4444", fontWeight: 600, fontSize: 13 }}
+                  onClick={() => {
+                    const id = selectedLeave.id;
+                    setSelectedLeave(null);
+                    cancelLeave(id);
+                  }}
+                >
+                  Cancel Request
+                </button>
+              ) : <span />}
+              <button type="button" className="btn-primary" onClick={() => setSelectedLeave(null)}>Close</button>
+            </div>
+          }
+        >
+          <div style={{ display: "grid", gap: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, padding: "12px 14px", background: "var(--hover-bg, rgba(255,255,255,0.03))", borderRadius: 10, border: "1px solid var(--border)" }}>
+              <div>
+                <span style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em", display: "block" }}>Category</span>
+                <span className="chip" style={{ marginTop: 4, fontWeight: 700, fontSize: 12 }}>
+                  {selectedLeave.cl_days > 0 && selectedLeave.pl_days > 0 ? `${selectedLeave.cl_days} CL + ${selectedLeave.pl_days} PL` : (selectedLeave.leave_type || "Casual Leave")}
+                </span>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <span style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em", display: "block" }}>Status</span>
+                <div style={{ marginTop: 4 }}><StatusBadge status={selectedLeave.status} /></div>
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div style={{ padding: 10, background: "var(--hover-bg, rgba(255,255,255,0.02))", borderRadius: 8, border: "1px solid var(--border)" }}>
+                <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600, display: "block" }}>Start Date</span>
+                <span style={{ fontSize: 13, fontWeight: 700, marginTop: 4, display: "block" }}>{fmtDate(selectedLeave.start_date)}</span>
+              </div>
+              <div style={{ padding: 10, background: "var(--hover-bg, rgba(255,255,255,0.02))", borderRadius: 8, border: "1px solid var(--border)" }}>
+                <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600, display: "block" }}>End Date</span>
+                <span style={{ fontSize: 13, fontWeight: 700, marginTop: 4, display: "block" }}>{fmtDate(selectedLeave.end_date)}</span>
+              </div>
+            </div>
+
+            <div>
+              <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600, display: "block", marginBottom: 4 }}>Subject</span>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{selectedLeave.subject || "—"}</div>
+            </div>
+
+            <div>
+              <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600, display: "block", marginBottom: 6 }}>Reason / Description</span>
+              <div style={{ padding: "12px 14px", borderRadius: 10, background: "var(--hover-bg, rgba(255,255,255,0.04))", border: "1px solid var(--border)", fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 220, overflowY: "auto" }}>
+                {selectedLeave.description || "No description provided."}
+              </div>
+            </div>
+
+            {selectedLeave.approver_comment && (
+              <div style={{ padding: "12px 14px", background: "rgba(124,58,237,0.08)", border: "1px solid rgba(124,58,237,0.25)", borderRadius: 10 }}>
+                <span style={{ fontSize: 11, color: "var(--accent, #7c3aed)", fontWeight: 700, display: "block", marginBottom: 4 }}>Approver Remarks</span>
+                <div style={{ fontSize: 13, color: "var(--text)" }}>💬 {selectedLeave.approver_comment}</div>
+                {selectedLeave.action_by_name && (
+                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>
+                    by {selectedLeave.action_by_name} {selectedLeave.action_by_role ? `(${selectedLeave.action_by_role})` : ""}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {selectedLeave.attachments?.length > 0 && (
+              <div>
+                <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600, display: "block", marginBottom: 6 }}>Attachments</span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {selectedLeave.attachments.map((url, j) => (
+                    <a
+                      key={j}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, background: "var(--hover-bg)", border: "1px solid var(--border)", fontSize: 12, color: "var(--accent)", textDecoration: "none" }}
+                    >
+                      📎 File {j + 1}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {/* Apply Leave Modal */}
       {showModal && (
         <Modal title="Apply for Leave" onClose={() => setShowModal(false)}
           footer={<><button className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button><button className="btn-primary" onClick={applyLeave} disabled={submitting}>{submitting ? "Submitting…" : "Apply Leave"}</button></>}>
@@ -273,7 +497,17 @@ export default function LeavesPage() {
             <div className="form-group"><label className="label">End Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" min={form.start_date || undefined} value={form.end_date} onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))} required /></div>
           </div>
           <ClubLeaveFields form={form} setForm={setForm} balance={balance} holidays={holidays} />
-          <div className="form-group"><label className="label">Description</label><textarea className="input" rows={3} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} /><WordCounter value={form.description} limit={WORD_LIMITS.description} /></div>
+          <div className="form-group">
+            <label className="label">Description</label>
+            <textarea
+              className="input"
+              rows={3}
+              placeholder="Reason for leave…"
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            />
+            <WordCounter value={form.description} limit={WORD_LIMITS.description} />
+          </div>
           {(() => {
             const warn = [];
             if (form.start_date) { const d = new Date(form.start_date + "T00:00:00"); if (d.getDay() === 0) warn.push("Start date is a Sunday"); else if (d.getDay() === 6) warn.push("Start date is a Saturday"); }
@@ -284,7 +518,6 @@ export default function LeavesPage() {
             if (endHoliday) warn.push(`End date is ${endHoliday.name || "a holiday"}`);
             return warn.length > 0 ? <div style={{ padding: "8px 12px", background: "rgba(245,158,11,0.15)", borderRadius: 8, fontSize: 13, color: "#f59e0b", marginBottom: 8 }}>⚠️ {warn.join(" · ")} — weekends may not count as working days</div> : null;
           })()}
-          <div className="form-group"><label className="label">Description</label><textarea className="input" rows={3} placeholder="Reason for leave…" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} /></div>
           <div className="form-group">
             <label className="label">Attachments <span style={{ fontWeight: 400, color: "var(--muted)" }}>(max 5 — PDF, JPG, PNG only)</span></label>
             <label className="btn-ghost" style={{ display: "inline-flex", cursor: files.length >= MAX_FILES ? "not-allowed" : "pointer", opacity: files.length >= MAX_FILES ? 0.6 : 1 }}>
@@ -304,6 +537,26 @@ export default function LeavesPage() {
           </div>
         </Modal>
       )}
+
+      <style jsx>{`
+        .leave-table-desktop {
+          display: block;
+        }
+        .leave-cards-mobile {
+          display: none;
+        }
+        @media (max-width: 768px) {
+          .leave-table-desktop {
+            display: none !important;
+          }
+          .leave-cards-mobile {
+            display: flex !important;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px;
+          }
+        }
+      `}</style>
       {toastNode}
     </div>
   );

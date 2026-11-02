@@ -621,13 +621,17 @@ export default function StaffPage() {
 
   async function openQuotaEdit(emp) {
     setQuotaModal(emp);
+    const isFem = (emp.gender || "").toLowerCase() === "female";
     setQuotaForm({
       cl_quota: String(emp.cl_quota ?? 10),
       sl_quota: String(emp.sl_quota ?? 12),
       pl_quota: String(emp.pl_quota ?? 15),
+      period_quota: String(emp.period_quota ?? (isFem ? 12 : 0)),
       cl_taken: "0",
       sl_taken: "0",
       pl_taken: "0",
+      period_taken: "0",
+      is_female: isFem,
       loading: true,
     });
     try {
@@ -637,9 +641,12 @@ export default function StaffPage() {
           cl_quota: String(b.annual_quotas.casual?.total ?? emp.cl_quota ?? 10),
           sl_quota: String(b.annual_quotas.sick?.total ?? emp.sl_quota ?? 12),
           pl_quota: String(b.annual_quotas.privileged?.total ?? emp.pl_quota ?? 15),
+          period_quota: String(b.annual_quotas.period?.total ?? emp.period_quota ?? (b.is_female ? 12 : 0)),
           cl_taken: String(b.annual_quotas.casual?.used ?? 0),
           sl_taken: String(b.annual_quotas.sick?.used ?? 0),
           pl_taken: String(b.annual_quotas.privileged?.used ?? 0),
+          period_taken: String(b.annual_quotas.period?.used ?? 0),
+          is_female: Boolean(b.is_female || isFem),
           loading: false,
         });
       } else {
@@ -668,6 +675,10 @@ export default function StaffPage() {
         sl_taken: takenVals[1],
         pl_taken: takenVals[2],
       };
+      if (quotaForm.is_female || Number(quotaForm.period_quota) > 0) {
+        payload.period_quota = Math.max(0, Number(quotaForm.period_quota) || 0);
+        payload.period_taken = Math.max(0, Number(quotaForm.period_taken) || 0);
+      }
       const result = await apiFetch(`/leave/quota/${quotaModal.emp_id}`, {
         method: "PUT",
         body: JSON.stringify(payload),
@@ -1592,6 +1603,9 @@ export default function StaffPage() {
                 { label: "Casual Leave", qField: "cl_quota", tField: "cl_taken", defQ: 10 },
                 { label: "Sick Leave", qField: "sl_quota", tField: "sl_taken", defQ: 12 },
                 { label: "Privileged Leave", qField: "pl_quota", tField: "pl_taken", defQ: 15 },
+                ...((quotaForm.is_female || Number(quotaForm.period_quota) > 0)
+                  ? [{ label: "Period Leave (1/month)", qField: "period_quota", tField: "period_taken", defQ: 12 }]
+                  : []),
               ].map(({ label, qField, tField }) => {
                 const total = Number(quotaForm[qField]) || 0;
                 const taken = Number(quotaForm[tField]) || 0;

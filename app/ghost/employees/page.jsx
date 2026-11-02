@@ -60,12 +60,15 @@ export default function GhostEmployeesPage() {
       system_no: emp.system_no || "",
       hod_user_id: emp.hod_user_id || "",
       tl_user_id: emp.tl_user_id || "",
+      gender: emp.gender || "Male",
       cl_quota: emp.cl_quota ?? 10,
       sl_quota: emp.sl_quota ?? 12,
       pl_quota: emp.pl_quota ?? 15,
+      period_quota: emp.period_quota ?? ((emp.gender || "").toLowerCase() === "female" ? 12 : 0),
       cl_deduction: emp.cl_deduction ?? 0,
       sl_deduction: emp.sl_deduction ?? 0,
       pl_deduction: emp.pl_deduction ?? 0,
+      period_deduction: emp.period_deduction ?? 0,
     });
   }
 
@@ -96,12 +99,15 @@ export default function GhostEmployeesPage() {
         system_no: editForm.system_no.trim() || null,
         hod_user_id: editForm.hod_user_id ? Number(editForm.hod_user_id) : null,
         tl_user_id: editForm.tl_user_id ? Number(editForm.tl_user_id) : null,
+        gender: editForm.gender,
         cl_quota: Number(editForm.cl_quota) || 10,
         sl_quota: Number(editForm.sl_quota) || 12,
         pl_quota: Number(editForm.pl_quota) || 15,
+        period_quota: Number(editForm.period_quota) || 0,
         cl_deduction: Number(editForm.cl_deduction) || 0,
         sl_deduction: Number(editForm.sl_deduction) || 0,
         pl_deduction: Number(editForm.pl_deduction) || 0,
+        period_deduction: Number(editForm.period_deduction) || 0,
       };
 
       if (editForm.new_password.trim()) {
@@ -708,6 +714,24 @@ export default function GhostEmployeesPage() {
                 </h4>
                 <div className="ghost-form-grid-3" style={{ marginBottom: 12 }}>
                   <div>
+                    <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>Gender</label>
+                    <select
+                      value={editForm.gender}
+                      onChange={(e) => {
+                        const g = e.target.value;
+                        const patch = { gender: g };
+                        if (g === "Female" && (!editForm.period_quota || Number(editForm.period_quota) === 0)) {
+                          patch.period_quota = 12;
+                        }
+                        setEditForm({ ...editForm, ...patch });
+                      }}
+                      style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }}
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </select>
+                  </div>
+                  <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>CL Total Quota</label>
                     <input type="number" min="0" value={editForm.cl_quota} onChange={(e) => setEditForm({ ...editForm, cl_quota: e.target.value })} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} />
                   </div>
@@ -715,17 +739,24 @@ export default function GhostEmployeesPage() {
                     <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>SL Total Quota</label>
                     <input type="number" min="0" value={editForm.sl_quota} onChange={(e) => setEditForm({ ...editForm, sl_quota: e.target.value })} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} />
                   </div>
+                </div>
+                <div className="ghost-form-grid-3" style={{ marginBottom: 12 }}>
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>PL Total Quota</label>
                     <input type="number" min="0" value={editForm.pl_quota} onChange={(e) => setEditForm({ ...editForm, pl_quota: e.target.value })} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} />
                   </div>
-                </div>
-                <div className="ghost-form-grid-3" style={{ marginBottom: 12 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>Period Leave Quota</label>
+                    <input type="number" min="0" value={editForm.period_quota} onChange={(e) => setEditForm({ ...editForm, period_quota: e.target.value })} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} />
+                    <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4 }}>1 leave/month (12/year default)</div>
+                  </div>
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>CL Deduction (HR Adj)</label>
                     <input type="number" min="0" value={editForm.cl_deduction} onChange={(e) => setEditForm({ ...editForm, cl_deduction: e.target.value })} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} />
                     <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4 }}>Remaining CL = {Math.max(0, (Number(editForm.cl_quota) || 10) - (Number(editForm.cl_deduction) || 0))}</div>
                   </div>
+                </div>
+                <div className="ghost-form-grid-3" style={{ marginBottom: 12 }}>
                   <div>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>SL Deduction (HR Adj)</label>
                     <input type="number" min="0" value={editForm.sl_deduction} onChange={(e) => setEditForm({ ...editForm, sl_deduction: e.target.value })} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} />
@@ -736,9 +767,17 @@ export default function GhostEmployeesPage() {
                     <input type="number" min="0" value={editForm.pl_deduction} onChange={(e) => setEditForm({ ...editForm, pl_deduction: e.target.value })} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} />
                     <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4 }}>Remaining PL = {Math.max(0, (Number(editForm.pl_quota) || 15) - (Number(editForm.pl_deduction) || 0))}</div>
                   </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>Period Deduction (HR Adj)</label>
+                    <input type="number" min="0" value={editForm.period_deduction} onChange={(e) => setEditForm({ ...editForm, period_deduction: e.target.value })} style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} />
+                    <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4 }}>Remaining Period = {Math.max(0, (Number(editForm.period_quota) || 0) - (Number(editForm.period_deduction) || 0))}</div>
+                  </div>
                 </div>
-                <button type="button" onClick={() => setEditForm({ ...editForm, cl_quota: 10, sl_quota: 12, pl_quota: 15, cl_deduction: 0, sl_deduction: 0, pl_deduction: 0 })} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid var(--border)", background: "transparent", color: "rgba(0,200,150,0.9)", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
-                  ↻ Reset to Defaults (CL:10, SL:12, PL:15, Deductions:0)
+                <button type="button" onClick={() => {
+                  const isF = (editForm.gender || "").toLowerCase() === "female";
+                  setEditForm({ ...editForm, cl_quota: 10, sl_quota: 12, pl_quota: 15, period_quota: isF ? 12 : 0, cl_deduction: 0, sl_deduction: 0, pl_deduction: 0, period_deduction: 0 });
+                }} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid var(--border)", background: "transparent", color: "rgba(0,200,150,0.9)", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
+                  ↻ Reset to Defaults (CL:10, SL:12, PL:15{editForm.gender === "Female" ? ", Period:12" : ""}, Deductions:0)
                 </button>
               </div>
 

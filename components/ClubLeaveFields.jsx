@@ -59,6 +59,7 @@ export function WordCounter({ value, limit }) {
 }
 
 export default function ClubLeaveFields({ form, setForm, balance, holidays = [] }) {
+  if (form.leave_type === "Period Leave") return null;
   const st = clubStatus(form, balance, holidays);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   return (

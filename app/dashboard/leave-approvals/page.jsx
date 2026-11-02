@@ -547,7 +547,7 @@ export default function LeaveApprovalsPage() {
             {selectedBalance && selectedBalance.annual_quotas && (
               <div style={{ marginBottom: 16, padding: "12px", background: "var(--bg, #f9fafb)", borderRadius: 8, border: "1px solid var(--border)" }}>
                 <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block", marginBottom: 8, fontWeight: 600 }}>Leave Balances (Remaining)</span>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: selectedBalance.annual_quotas.period ? "repeat(4, 1fr)" : "repeat(3, 1fr)", gap: 8 }}>
                   <div style={{ textAlign: "center", background: "#fff", padding: "8px", borderRadius: 6, border: "1px solid var(--border)" }}>
                     <div style={{ fontSize: 11, color: "var(--muted)" }}>Casual</div>
                     <div style={{ fontSize: 16, fontWeight: 700 }}>{selectedBalance.annual_quotas.casual.remaining}</div>
@@ -560,6 +560,12 @@ export default function LeaveApprovalsPage() {
                     <div style={{ fontSize: 11, color: "var(--muted)" }}>Privileged</div>
                     <div style={{ fontSize: 16, fontWeight: 700 }}>{selectedBalance.annual_quotas.privileged.remaining}</div>
                   </div>
+                  {selectedBalance.annual_quotas.period && (
+                    <div style={{ textAlign: "center", background: "#fff", padding: "8px", borderRadius: 6, border: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: 11, color: "#ec4899" }}>Period</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: "#ec4899" }}>{selectedBalance.annual_quotas.period.remaining}</div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -121,7 +121,10 @@ export default function LeavesPage() {
       <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 className="syne" style={{ fontSize: 28, fontWeight: 800 }}>My Leaves</h1>
-          <p style={{ color: "var(--muted)", marginTop: 4 }}>Annual Quotas: {quotas?.casual?.total ?? 10} Casual Leaves, {quotas?.sick?.total ?? 12} Sick Leaves & {quotas?.privileged?.total ?? 15} Privileged Leaves per year</p>
+          <p style={{ color: "var(--muted)", marginTop: 4 }}>
+            Annual Quotas: {quotas?.casual?.total ?? 10} Casual Leaves, {quotas?.sick?.total ?? 12} Sick Leaves & {quotas?.privileged?.total ?? 15} Privileged Leaves per year
+            {quotas?.period && <span> · {quotas.period.total} Period Leaves (1/Month)</span>}
+          </p>
         </div>
         <button className="btn-primary" onClick={() => { setForm(EMPTY_LEAVE_FORM); setFiles([]); setShowModal(true); }}>+ Apply Leave</button>
       </div>
@@ -169,6 +172,20 @@ export default function LeavesPage() {
             Used: {quotas?.privileged?.used ?? 0} days{(quotas?.privileged?.deduction ?? 0) > 0 && <span> · HR Adjusted: −{quotas.privileged.deduction}</span>}
           </div>
         </div>
+        {quotas?.period && (
+          <div className="card" style={{ padding: "18px 20px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>PERIOD LEAVE</div>
+              <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: "rgba(236,72,153,0.15)", color: "#ec4899", fontWeight: 600 }}>1 / Month</span>
+            </div>
+            <div className="syne" style={{ fontSize: 24, fontWeight: 800, color: "#ec4899", marginTop: 4 }}>
+              {quotas.period.remaining ?? 12} <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 500 }}>/ {quotas.period.total ?? 12} days left</span>
+            </div>
+            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+              Used: {quotas.period.used ?? 0} days{(quotas.period.deduction ?? 0) > 0 && <span> · HR Adjusted: −{quotas.period.deduction}</span>}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="card">
@@ -243,6 +260,11 @@ export default function LeavesPage() {
               <option value="Privileged Leave" disabled={balance?.is_in_probation}>
                 Privileged Leave (PL - 15/yr){balance?.is_in_probation ? " — Locked (Probation)" : ""}
               </option>
+              {quotas?.period && (
+                <option value="Period Leave">
+                  Period Leave (1/month - 12/yr)
+                </option>
+              )}
             </select>
           </div>}
           <div className="form-group"><label className="label">Subject <span style={{ color: "#ef4444" }}>*</span></label><input className="input" placeholder="e.g. Family function, Medical, etc." value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} required /><WordCounter value={form.subject} limit={WORD_LIMITS.subject} /></div>

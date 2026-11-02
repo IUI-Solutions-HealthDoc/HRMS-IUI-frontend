@@ -277,26 +277,63 @@ export default function LeaveApprovalsPage() {
           <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
             <h2 className="syne" style={{ fontSize: 16, fontWeight: 700 }}>Pending Approvals ({filteredPending.length})</h2>
           </div>
-          <div className="table-wrap">
+          {/* Desktop Table */}
+          <div className="table-wrap approvals-table-desktop">
             <table>
               <thead>
                 <tr>
                   <th>Employee</th>
+                  <th>Category</th>
                   <th>Subject</th>
                   <th>From</th>
                   <th>To</th>
-                  <th>Description</th>
+                  <th>Reason</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredPending.map((item) => (
                   <tr key={item.id} onClick={() => setSelectedLeave(item)} style={{ cursor: "pointer" }}>
-                    <td><b>{item.name || item.emp_id}</b></td>
+                    <td>
+                      <b>{item.name || item.emp_id}</b>
+                      {item.emp_id && item.name && (
+                        <div style={{ color: "var(--muted)", fontSize: 11 }}>{item.emp_id}</div>
+                      )}
+                    </td>
+                    <td>
+                      <span className="chip" style={{ fontWeight: 600 }}>
+                        {item.cl_days > 0 && item.pl_days > 0 ? `${item.cl_days} CL + ${item.pl_days} PL` : (item.leave_type || "Casual Leave")}
+                      </span>
+                    </td>
                     <td><span className="chip">{item.subject}</span></td>
                     <td>{fmtDate(item.start_date)}</td>
                     <td>{fmtDate(item.end_date)}</td>
-                    <td style={{ maxWidth: 220 }}>{item.description}</td>
+                    <td>
+                      {item.description ? (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setSelectedLeave(item); }}
+                          className="btn-ghost"
+                          style={{
+                            padding: "4px 10px",
+                            fontSize: 12,
+                            borderRadius: 6,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            background: "rgba(124, 58, 237, 0.08)",
+                            border: "1px solid rgba(124, 58, 237, 0.25)",
+                            color: "var(--accent)",
+                            cursor: "pointer",
+                          }}
+                          title="Click to view full description"
+                        >
+                          <span>👁️ View Note</span>
+                        </button>
+                      ) : (
+                        <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>
+                      )}
+                    </td>
                     <td>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         <button className="btn-primary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_paid"); }}>Paid</button>
@@ -309,6 +346,62 @@ export default function LeaveApprovalsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Cards for Pending Approvals */}
+          <div className="pending-cards-mobile">
+            {filteredPending.map((item) => (
+              <div
+                key={item.id}
+                onClick={() => setSelectedLeave(item)}
+                style={{
+                  padding: "14px 16px",
+                  background: "var(--hover-bg, rgba(255,255,255,0.03))",
+                  borderRadius: 12,
+                  border: "1px solid var(--border)",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{item.name || item.emp_id}</div>
+                    {item.emp_id && item.name && (
+                      <div style={{ color: "var(--muted)", fontSize: 11 }}>{item.emp_id}</div>
+                    )}
+                  </div>
+                  <span className="chip" style={{ fontWeight: 700, fontSize: 11 }}>
+                    {item.cl_days > 0 && item.pl_days > 0 ? `${item.cl_days} CL + ${item.pl_days} PL` : (item.leave_type || "Casual Leave")}
+                  </span>
+                </div>
+
+                <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>
+                  📅 {fmtDate(item.start_date)} – {fmtDate(item.end_date)}
+                </div>
+
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+                  {item.subject}
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: "1px solid var(--border)", marginTop: 2, flexWrap: "wrap", gap: 8 }}>
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    style={{ padding: "4px 8px", fontSize: 12, color: "var(--accent)", fontWeight: 600 }}
+                    onClick={(e) => { e.stopPropagation(); setSelectedLeave(item); }}
+                  >
+                    👁️ View Details
+                  </button>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button className="btn-primary" style={{ padding: "5px 10px", fontSize: 11 }} onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_paid"); }}>Paid</button>
+                    <button className="btn-ghost" style={{ padding: "5px 10px", fontSize: 11 }} onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_unpaid"); }}>Unpaid</button>
+                    <button className="btn-danger" style={{ padding: "5px 10px", fontSize: 11 }} onClick={(e) => { e.stopPropagation(); updateLeave(item, "reject"); }}>Reject</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -319,129 +412,232 @@ export default function LeaveApprovalsPage() {
         {loading ? <Loader /> : filteredHistory.length === 0 ? (
           <EmptyState icon="📅" title="No leave records" />
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Employee</th>
-                  <th>Type</th>
-                  <th>Leave Type</th>
-                  <th>From</th>
-                  <th>To</th>
-                  <th>Subject</th>
-                  <th>Status</th>
-                  <th>Action By</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(() => {
-                  const safePage = Math.min(currentPage, Math.max(1, Math.ceil(filteredHistory.length / PER_PAGE)));
-                  const paginated = filteredHistory.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
-                  return paginated.map((item) => (
-                    <tr key={item.id} onClick={() => setSelectedLeave(item)} style={{ cursor: "pointer" }}>
-                      <td><b>{item.name || item.emp_id}</b></td>
-                      <td>{item.status === "Approved" ? (item.is_paid ? "Paid" : "Unpaid") : "—"}</td>
-                      <td>{item.cl_days > 0 && item.pl_days > 0 ? `${item.cl_days} CL + ${item.pl_days} PL` : (item.leave_type || "Casual Leave")}</td>
-                      <td>{fmtDate(item.start_date)}</td>
-                      <td>{fmtDate(item.end_date)}</td>
-                      <td>{item.subject}</td>
-                      <td>
-                        <StatusBadge status={item.status} />
-                        {item.approver_comment && (
-                          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 3, maxWidth: 170, whiteSpace: "normal" }} title={item.approver_comment}>
-                            💬 {item.approver_comment}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        {item.action_by_name ? (
-                          <span style={{ fontSize: 12, color: "var(--muted)" }}>
-                            {item.action_by_name} {item.action_by_role ? `(${item.action_by_role})` : ""}
-                          </span>
-                        ) : "—"}
-                      </td>
-                      <td>
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                          {isOwnLeave(item) && !isAdmin ? (
-                            <span style={{ fontSize: 12, color: "var(--muted)" }}>Own record</span>
-                          ) : item.status === "Approved" ? (
-                            <>
-                              {item.is_paid ? (
+          <>
+            <div className="table-wrap approvals-table-desktop">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Type</th>
+                    <th>Leave Type</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Subject</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                    <th>Action By</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const safePage = Math.min(currentPage, Math.max(1, Math.ceil(filteredHistory.length / PER_PAGE)));
+                    const paginated = filteredHistory.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+                    return paginated.map((item) => (
+                      <tr key={item.id} onClick={() => setSelectedLeave(item)} style={{ cursor: "pointer" }}>
+                        <td>
+                          <b>{item.name || item.emp_id}</b>
+                          {item.emp_id && item.name && (
+                            <div style={{ color: "var(--muted)", fontSize: 11 }}>{item.emp_id}</div>
+                          )}
+                        </td>
+                        <td>{item.status === "Approved" ? (item.is_paid ? "Paid" : "Unpaid") : "—"}</td>
+                        <td>{item.cl_days > 0 && item.pl_days > 0 ? `${item.cl_days} CL + ${item.pl_days} PL` : (item.leave_type || "Casual Leave")}</td>
+                        <td>{fmtDate(item.start_date)}</td>
+                        <td>{fmtDate(item.end_date)}</td>
+                        <td>{item.subject}</td>
+                        <td>
+                          {item.description ? (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setSelectedLeave(item); }}
+                              className="btn-ghost"
+                              style={{
+                                padding: "4px 10px",
+                                fontSize: 12,
+                                borderRadius: 6,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                background: "rgba(124, 58, 237, 0.08)",
+                                border: "1px solid rgba(124, 58, 237, 0.25)",
+                                color: "var(--accent)",
+                                cursor: "pointer",
+                              }}
+                              title="Click to view full description"
+                            >
+                              <span>👁️ View Note</span>
+                            </button>
+                          ) : (
+                            <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>
+                          )}
+                        </td>
+                        <td>
+                          <StatusBadge status={item.status} />
+                          {item.approver_comment && (
+                            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 3, maxWidth: 170, whiteSpace: "normal" }} title={item.approver_comment}>
+                              💬 {item.approver_comment}
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          {item.action_by_name ? (
+                            <span style={{ fontSize: 12, color: "var(--muted)" }}>
+                              {item.action_by_name} {item.action_by_role ? `(${item.action_by_role})` : ""}
+                            </span>
+                          ) : "—"}
+                        </td>
+                        <td>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            {isOwnLeave(item) && !isAdmin ? (
+                              <span style={{ fontSize: 12, color: "var(--muted)" }}>Own record</span>
+                            ) : item.status === "Approved" ? (
+                              <>
+                                {item.is_paid ? (
+                                  <button
+                                    className="btn-ghost"
+                                    style={{ padding: "4px 8px", fontSize: 11 }}
+                                    onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_unpaid"); }}
+                                  >
+                                    Make Unpaid
+                                  </button>
+                                ) : (
+                                  <button
+                                    className="btn-primary"
+                                    style={{ padding: "4px 8px", fontSize: 11 }}
+                                    onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_paid"); }}
+                                  >
+                                    Make Paid
+                                  </button>
+                                )}
                                 <button
-                                  className="btn-ghost"
+                                  className="btn-danger"
                                   style={{ padding: "4px 8px", fontSize: 11 }}
-                                  onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_unpaid"); }}
+                                  onClick={(e) => { e.stopPropagation(); updateLeave(item, "reject"); }}
                                 >
-                                  Make Unpaid
+                                  Reject
                                 </button>
-                              ) : (
+                              </>
+                            ) : item.status === "Rejected" ? (
+                              <>
                                 <button
                                   className="btn-primary"
                                   style={{ padding: "4px 8px", fontSize: 11 }}
                                   onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_paid"); }}
                                 >
-                                  Make Paid
+                                  Paid
                                 </button>
-                              )}
-                              <button
-                                className="btn-danger"
-                                style={{ padding: "4px 8px", fontSize: 11 }}
-                                onClick={(e) => { e.stopPropagation(); updateLeave(item, "reject"); }}
-                              >
-                                Reject
-                              </button>
-                            </>
-                          ) : item.status === "Rejected" ? (
-                            <>
-                              <button
-                                className="btn-primary"
-                                style={{ padding: "4px 8px", fontSize: 11 }}
-                                onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_paid"); }}
-                              >
-                                Paid
-                              </button>
-                              <button
-                                className="btn-ghost"
-                                style={{ padding: "4px 8px", fontSize: 11 }}
-                                onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_unpaid"); }}
-                              >
-                                Unpaid
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                className="btn-primary"
-                                style={{ padding: "4px 8px", fontSize: 11 }}
-                                onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_paid"); }}
-                              >
-                                Paid
-                              </button>
-                              <button
-                                className="btn-ghost"
-                                style={{ padding: "4px 8px", fontSize: 11 }}
-                                onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_unpaid"); }}
-                              >
-                                Unpaid
-                              </button>
-                              <button
-                                className="btn-danger"
-                                style={{ padding: "4px 8px", fontSize: 11 }}
-                                onClick={(e) => { e.stopPropagation(); updateLeave(item, "reject"); }}
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ));
-                })()}
-              </tbody>
-            </table>
-          </div>
+                                <button
+                                  className="btn-ghost"
+                                  style={{ padding: "4px 8px", fontSize: 11 }}
+                                  onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_unpaid"); }}
+                                >
+                                  Unpaid
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  className="btn-primary"
+                                  style={{ padding: "4px 8px", fontSize: 11 }}
+                                  onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_paid"); }}
+                                >
+                                  Paid
+                                </button>
+                                <button
+                                  className="btn-ghost"
+                                  style={{ padding: "4px 8px", fontSize: 11 }}
+                                  onClick={(e) => { e.stopPropagation(); updateLeave(item, "approve_unpaid"); }}
+                                >
+                                  Unpaid
+                                </button>
+                                <button
+                                  className="btn-danger"
+                                  style={{ padding: "4px 8px", fontSize: 11 }}
+                                  onClick={(e) => { e.stopPropagation(); updateLeave(item, "reject"); }}
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards for History */}
+            <div className="history-cards-mobile">
+              {(() => {
+                const safePage = Math.min(currentPage, Math.max(1, Math.ceil(filteredHistory.length / PER_PAGE)));
+                const paginated = filteredHistory.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+                return paginated.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => setSelectedLeave(item)}
+                    style={{
+                      padding: "14px 16px",
+                      background: "var(--hover-bg, rgba(255,255,255,0.03))",
+                      borderRadius: 12,
+                      border: "1px solid var(--border)",
+                      cursor: "pointer",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{item.name || item.emp_id}</div>
+                        {item.emp_id && item.name && (
+                          <div style={{ color: "var(--muted)", fontSize: 11 }}>{item.emp_id}</div>
+                        )}
+                      </div>
+                      <StatusBadge status={item.status} />
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12 }}>
+                      <span className="chip" style={{ fontWeight: 600 }}>
+                        {item.cl_days > 0 && item.pl_days > 0 ? `${item.cl_days} CL + ${item.pl_days} PL` : (item.leave_type || "Casual Leave")}
+                      </span>
+                      {item.status === "Approved" && (
+                        <span style={{ color: "var(--muted)", fontWeight: 600 }}>
+                          {item.is_paid ? "Paid" : "Unpaid"}
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>
+                      📅 {fmtDate(item.start_date)} – {fmtDate(item.end_date)}
+                    </div>
+
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+                      {item.subject}
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: "1px solid var(--border)", marginTop: 2, flexWrap: "wrap", gap: 8 }}>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        style={{ padding: "4px 8px", fontSize: 12, color: "var(--accent)", fontWeight: 600 }}
+                        onClick={(e) => { e.stopPropagation(); setSelectedLeave(item); }}
+                      >
+                        👁️ View Details
+                      </button>
+                      {item.action_by_name && (
+                        <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                          by {item.action_by_name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          </>
         )}
         <Pagination
           currentPage={currentPage}
@@ -605,9 +801,11 @@ export default function LeaveApprovalsPage() {
               <strong>{selectedLeave.subject}</strong>
             </div>
             
-            <div style={{ marginBottom: 12 }}>
-              <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>Description</span>
-              <p style={{ margin: "4px 0 0 0", fontSize: 14 }}>{selectedLeave.description || "—"}</p>
+            <div style={{ marginBottom: 14 }}>
+              <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block", marginBottom: 6, fontWeight: 600 }}>Reason / Description</span>
+              <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--hover-bg, rgba(255,255,255,0.04))", border: "1px solid var(--border)", fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 200, overflowY: "auto" }}>
+                {selectedLeave.description || "No description provided."}
+              </div>
             </div>
             
             <div style={{ marginBottom: 16 }}>
@@ -685,6 +883,27 @@ export default function LeaveApprovalsPage() {
         </div>
       )}
 
+      <style jsx>{`
+        .approvals-table-desktop {
+          display: block;
+        }
+        .pending-cards-mobile,
+        .history-cards-mobile {
+          display: none;
+        }
+        @media (max-width: 768px) {
+          .approvals-table-desktop {
+            display: none !important;
+          }
+          .pending-cards-mobile,
+          .history-cards-mobile {
+            display: flex !important;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px;
+          }
+        }
+      `}</style>
       {toastNode}
     </div>
   );

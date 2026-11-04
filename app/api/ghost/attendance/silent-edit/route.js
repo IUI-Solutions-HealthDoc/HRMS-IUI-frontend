@@ -16,7 +16,7 @@ export async function PATCH(request) {
     }
 
     const backendUrl = (process.env.BACKEND_URL || "http://localhost:8000").replace(/\/+$/, "");
-    const apiUrl = `${backendUrl}/ghost/attendance/silent-edit?record_id=${record_id}&field=${field}&new_value=${encodeURIComponent(new_value)}`;
+    const apiUrl = `${backendUrl}/ghost/attendance/silent-edit?record_id=${record_id}&field=${field}&new_value=${encodeURIComponent(new_value)}&ghost_token=${encodeURIComponent(ghostToken)}`;
 
     const res = await fetch(apiUrl, {
       method: "PATCH",

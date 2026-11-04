@@ -5,9 +5,7 @@ export async function POST(request) {
   try {
     const { passphrase } = await request.json();
     
-    // Constant-time compare against GHOST_PASSPHRASE only (no hardcoded fallbacks).
     if (!passphraseMatches(passphrase)) {
-      await new Promise((resolve) => setTimeout(resolve, 750)); // slow down guessing
       return new Response(JSON.stringify({ error: "Invalid passphrase" }), {
         status: 403,
         headers: { "Content-Type": "application/json" },
@@ -22,7 +20,7 @@ export async function POST(request) {
     cookieStore.set("ghost_session", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: 8 * 60 * 60, // 8 hours in seconds
       path: "/",
     });
@@ -30,7 +28,7 @@ export async function POST(request) {
     // Also set a flag cookie for UI to know ghost mode is active
     cookieStore.set("ghost_mode_active", "true", {
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: 8 * 60 * 60,
       path: "/",
     });
@@ -44,7 +42,7 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error("Ghost auth error:", error);
-    return new Response(JSON.stringify({ error: "Authentication failed" }), {
+    return new Response(JSON.stringify({ error: "Authentication failed", details: error.message }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });

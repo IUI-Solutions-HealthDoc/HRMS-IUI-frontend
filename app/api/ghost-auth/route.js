@@ -1,11 +1,22 @@
 import { cookies } from "next/headers";
-import { passphraseMatches, signGhostToken } from "@/lib/ghost-session";
+import { ghostConfigProblem, passphraseMatches, signGhostToken } from "@/lib/ghost-session";
 
 export async function POST(request) {
   try {
     const { passphrase } = await request.json();
+
+    const configProblem = ghostConfigProblem();
+    if (configProblem) {
+      console.error("Ghost login disabled:", configProblem);
+      return new Response(JSON.stringify({ error: "Ghost login is not configured on the server" }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     
+    // Constant-time compare against GHOST_PASSPHRASE only (no hardcoded fallbacks).
     if (!passphraseMatches(passphrase)) {
+      await new Promise((resolve) => setTimeout(resolve, 750)); // slow down guessing
       return new Response(JSON.stringify({ error: "Invalid passphrase" }), {
         status: 403,
         headers: { "Content-Type": "application/json" },
@@ -20,7 +31,7 @@ export async function POST(request) {
     cookieStore.set("ghost_session", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict",
       maxAge: 8 * 60 * 60, // 8 hours in seconds
       path: "/",
     });
@@ -28,7 +39,7 @@ export async function POST(request) {
     // Also set a flag cookie for UI to know ghost mode is active
     cookieStore.set("ghost_mode_active", "true", {
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict",
       maxAge: 8 * 60 * 60,
       path: "/",
     });
@@ -42,7 +53,7 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error("Ghost auth error:", error);
-    return new Response(JSON.stringify({ error: "Authentication failed", details: error.message }), {
+    return new Response(JSON.stringify({ error: "Authentication failed" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });

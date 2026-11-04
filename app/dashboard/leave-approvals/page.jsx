@@ -18,6 +18,13 @@ const FILTERS = [
   { id: "rejected", label: "Rejected" },
 ];
 
+function getAttachments(item) {
+  if (!item?.attachments) return [];
+  if (Array.isArray(item.attachments)) return item.attachments.filter(Boolean);
+  if (typeof item.attachments === "string") return item.attachments.split(",").map((s) => s.trim()).filter(Boolean);
+  return [];
+}
+
 export default function LeaveApprovalsPage() {
   const { role, user } = useAuth();
   const isAdmin = role === "admin";
@@ -288,6 +295,7 @@ export default function LeaveApprovalsPage() {
                   <th>From</th>
                   <th>To</th>
                   <th>Reason</th>
+                  <th>Attachments</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -333,6 +341,31 @@ export default function LeaveApprovalsPage() {
                       ) : (
                         <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>
                       )}
+                    </td>
+                    <td>
+                      {(() => {
+                        const atts = getAttachments(item);
+                        return atts.length > 0 ? (
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", maxWidth: 140 }}>
+                            {atts.map((url, j) => (
+                              <a
+                                key={j}
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="chip"
+                                style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--accent)", textDecoration: "none", fontWeight: 600 }}
+                                title={`Attachment ${j + 1}`}
+                              >
+                                📎 {atts.length > 1 ? `File ${j + 1}` : "File"}
+                              </a>
+                            ))}
+                          </div>
+                        ) : (
+                          <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>
+                        );
+                      })()}
                     </td>
                     <td>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -384,6 +417,29 @@ export default function LeaveApprovalsPage() {
                   {item.subject}
                 </div>
 
+                {(() => {
+                  const atts = getAttachments(item);
+                  if (atts.length === 0) return null;
+                  return (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 12 }}>
+                      <span style={{ color: "var(--muted)", fontSize: 11, fontWeight: 600 }}>Attachments:</span>
+                      {atts.map((url, j) => (
+                        <a
+                          key={j}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="chip"
+                          style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--accent)", textDecoration: "none", fontWeight: 600 }}
+                        >
+                          📎 File {atts.length > 1 ? j + 1 : ""}
+                        </a>
+                      ))}
+                    </div>
+                  );
+                })()}
+
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: "1px solid var(--border)", marginTop: 2, flexWrap: "wrap", gap: 8 }}>
                   <button
                     type="button"
@@ -424,6 +480,7 @@ export default function LeaveApprovalsPage() {
                     <th>To</th>
                     <th>Subject</th>
                     <th>Reason</th>
+                    <th>Attachments</th>
                     <th>Status</th>
                     <th>Action By</th>
                     <th>Action</th>
@@ -471,6 +528,31 @@ export default function LeaveApprovalsPage() {
                           ) : (
                             <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>
                           )}
+                        </td>
+                        <td>
+                          {(() => {
+                            const atts = getAttachments(item);
+                            return atts.length > 0 ? (
+                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", maxWidth: 140 }}>
+                                {atts.map((url, j) => (
+                                  <a
+                                    key={j}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="chip"
+                                    style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--accent)", textDecoration: "none", fontWeight: 600 }}
+                                    title={`Attachment ${j + 1}`}
+                                  >
+                                    📎 {atts.length > 1 ? `File ${j + 1}` : "File"}
+                                  </a>
+                                ))}
+                              </div>
+                            ) : (
+                              <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>
+                            );
+                          })()}
                         </td>
                         <td>
                           <StatusBadge status={item.status} />
@@ -617,6 +699,29 @@ export default function LeaveApprovalsPage() {
                     <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
                       {item.subject}
                     </div>
+
+                    {(() => {
+                      const atts = getAttachments(item);
+                      if (atts.length === 0) return null;
+                      return (
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 12 }}>
+                          <span style={{ color: "var(--muted)", fontSize: 11, fontWeight: 600 }}>Attachments:</span>
+                          {atts.map((url, j) => (
+                            <a
+                              key={j}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="chip"
+                              style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--accent)", textDecoration: "none", fontWeight: 600 }}
+                            >
+                              📎 File {atts.length > 1 ? j + 1 : ""}
+                            </a>
+                          ))}
+                        </div>
+                      );
+                    })()}
 
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: "1px solid var(--border)", marginTop: 2, flexWrap: "wrap", gap: 8 }}>
                       <button
@@ -809,16 +914,39 @@ export default function LeaveApprovalsPage() {
             </div>
             
             <div style={{ marginBottom: 16 }}>
-              <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block", marginBottom: 4 }}>Attachments</span>
-              {(selectedLeave.attachments?.length > 0) ? (
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {selectedLeave.attachments.map((url, j) => (
-                    <a key={j} href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", padding: "6px 12px", background: "var(--bg, #f3f4f6)", border: "1px solid var(--border, #e5e7eb)", borderRadius: 6, fontSize: 12, color: "var(--accent, #3b82f6)", textDecoration: "none" }}>
-                      📎 Attachment {j + 1}
-                    </a>
-                  ))}
-                </div>
-              ) : <span style={{ color: "var(--muted, #666)", fontSize: 14 }}>No attachments</span>}
+              <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block", marginBottom: 6, fontWeight: 600 }}>Attachments</span>
+              {(() => {
+                const atts = getAttachments(selectedLeave);
+                return atts.length > 0 ? (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {atts.map((url, j) => (
+                      <a
+                        key={j}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "6px 12px",
+                          background: "var(--hover-bg, rgba(255,255,255,0.05))",
+                          border: "1px solid var(--border)",
+                          borderRadius: 6,
+                          fontSize: 12,
+                          color: "var(--accent)",
+                          textDecoration: "none",
+                          fontWeight: 600,
+                        }}
+                      >
+                        📎 Attachment {atts.length > 1 ? j + 1 : ""}
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <span style={{ color: "var(--muted, #666)", fontSize: 13 }}>No attachments</span>
+                );
+              })()}
             </div>
 
             <div style={{ marginBottom: 14 }}>

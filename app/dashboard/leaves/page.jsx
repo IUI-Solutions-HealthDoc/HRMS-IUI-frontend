@@ -337,6 +337,24 @@ export default function LeavesPage() {
                       {l.subject || "Leave Request"}
                     </div>
                   </div>
+                  {l.attachments?.length > 0 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 12 }}>
+                      <span style={{ color: "var(--muted)", fontSize: 11, fontWeight: 600 }}>Attachments:</span>
+                      {l.attachments.map((url, j) => (
+                        <a
+                          key={j}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="chip"
+                          style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--accent)", textDecoration: "none", fontWeight: 600 }}
+                        >
+                          📎 File {l.attachments.length > 1 ? j + 1 : ""}
+                        </a>
+                      ))}
+                    </div>
+                  )}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 6, borderTop: "1px solid var(--border)", marginTop: 2 }}>
                     <button
                       type="button"

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch, backendAssetUrl } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
@@ -813,7 +814,38 @@ export default function StaffPage() {
             {isAdmin ? "Admin View, Add, Edit, Delete, and Deactivate All Employees" : "HR can add employees; account management is handled by Admin"}
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          {isAdmin && (
+            <Link
+              href="/dashboard/biometric-requests"
+              className="btn-ghost"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                textDecoration: "none",
+                padding: "8px 14px",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              <span>📟 Biometric Requests</span>
+              {pendingBiometricCount > 0 && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    padding: "2px 7px",
+                    borderRadius: 10,
+                    background: "var(--accent)",
+                    color: "#fff",
+                    fontWeight: 700,
+                  }}
+                >
+                  {pendingBiometricCount}
+                </span>
+              )}
+            </Link>
+          )}
           {canEditStaff ? <EmployeeBulkImport onDone={load} showToast={showToast} /> : null}
           <button className="btn-primary" onClick={handleOpenAddModal}>+ Add Employee</button>
         </div>
@@ -832,81 +864,56 @@ export default function StaffPage() {
       </div>
 
       {isAdmin && (
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, padding: 18, paddingBottom: biometricRequests.length ? 8 : 18 }}>
-            <div>
-              <h3 className="syne" style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Biometric Enrollment Requests</h3>
-              <p style={{ color: "var(--muted)", fontSize: 13 }}>
-                {pendingBiometricCount} pending request{pendingBiometricCount === 1 ? "" : "s"} across connected devices.
-              </p>
+        <div
+          className="card"
+          style={{
+            marginBottom: 16,
+            padding: "12px 18px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                background: "var(--hover-bg)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 18,
+                border: "1px solid var(--border)",
+              }}
+            >
+              📟
             </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-              <button className="btn-ghost" style={{ padding: "8px 12px", fontSize: 12 }} onClick={load}>Refresh</button>
-              <button className="btn-ghost" style={{ padding: "8px 12px", fontSize: 12 }} onClick={() => clearEnrollmentRequests({ onlyOpen: true })}>Clear Open</button>
-              <button className="btn-ghost" style={{ padding: "8px 12px", fontSize: 12 }} onClick={() => clearEnrollmentRequests()}>Clear Non-Completed</button>
-              <button className="btn-ghost" style={{ padding: "8px 12px", fontSize: 12 }} onClick={() => clearEnrollmentRequests({ includeCompleted: true })}>Clear All</button>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>Biometric Enrollment Requests</div>
+              <div style={{ color: "var(--muted)", fontSize: 12 }}>
+                {pendingBiometricCount} pending request{pendingBiometricCount === 1 ? "" : "s"} across connected devices · Tracking queued fingerprint & face sync
+              </div>
             </div>
           </div>
-
-          {loading ? <Loader /> : biometricRequests.length === 0 ? (
-            <EmptyState icon="📟" title="No biometric requests yet" sub="Queued fingerprint and face enrollments will appear here for admin tracking." />
-          ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Employee</th>
-                    <th>Type</th>
-                    <th>Device</th>
-                    <th>Status</th>
-                    <th>Requested</th>
-                    <th>Sent</th>
-                    <th>Resolved</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {biometricRequests.map((request) => (
-                    <tr key={request.id}>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{request.employee_name}</div>
-                        <div style={{ fontSize: 12, color: "var(--muted)" }}>{request.employee_emp_id}</div>
-                      </td>
-                      <td>{modalityLabel(request.modality)}</td>
-                      <td><span className="chip">{request.device_sn}</span></td>
-                      <td>
-                        <span className="badge" style={statusBadgeStyle(request.status)}>
-                          {request.status.toUpperCase()}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ fontSize: 12 }}>{formatDateTime(request.requested_at)}</div>
-                        <div style={{ fontSize: 11, color: "var(--muted)" }}>by {request.requested_by}</div>
-                      </td>
-                      <td>{formatDateTime(request.sent_at)}</td>
-                      <td>
-                        <div style={{ fontSize: 12 }}>{formatDateTime(request.resolved_at)}</div>
-                        {request.resolution_source ? <div style={{ fontSize: 11, color: "var(--muted)" }}>{request.resolution_source}</div> : null}
-                      </td>
-                      <td>
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                          {["queued", "sent"].includes(request.status) ? (
-                            <>
-                              <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => updateEnrollmentRequest(request.id, "completed")}>Complete</button>
-                              <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => updateEnrollmentRequest(request.id, "failed")}>Fail</button>
-                              <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => updateEnrollmentRequest(request.id, "cancelled")}>Cancel</button>
-                            </>
-                          ) : (
-                            <span style={{ fontSize: 12, color: "var(--muted)" }}>{request.notes || "Closed"}</span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <Link
+            href="/dashboard/biometric-requests"
+            className="btn-primary"
+            style={{
+              padding: "6px 14px",
+              fontSize: 12,
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <span>View All Requests</span>
+            <span>→</span>
+          </Link>
         </div>
       )}
 

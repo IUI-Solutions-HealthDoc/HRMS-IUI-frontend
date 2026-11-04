@@ -14,6 +14,10 @@ function proxyHeaders(request) {
   return headers;
 }
 
+// NOTE: this route handler shadows the /api/proxy rewrite in next.config.mjs, so every
+// API call is a billed Vercel Function invocation. Prefer NEXT_PUBLIC_API_URL (browser
+// calls Railway directly). Bodies are streamed rather than buffered to keep the
+// function's memory and duration down for uploads/downloads that still pass through.
 async function proxy(request, context) {
   const method = request.method.toUpperCase();
   const hasBody = !["GET", "HEAD"].includes(method);
@@ -21,7 +25,8 @@ async function proxy(request, context) {
   const response = await fetch(targetUrl(request, params.path), {
     method,
     headers: proxyHeaders(request),
-    body: hasBody ? await request.arrayBuffer() : undefined,
+    body: hasBody ? request.body : undefined,
+    duplex: hasBody ? "half" : undefined,
     cache: "no-store",
   });
 
@@ -29,7 +34,7 @@ async function proxy(request, context) {
   headers.delete("content-encoding");
   headers.delete("content-length");
   headers.delete("transfer-encoding");
-  return new Response(await response.arrayBuffer(), {
+  return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers,

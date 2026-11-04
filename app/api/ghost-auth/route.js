@@ -1,25 +1,13 @@
 import { cookies } from "next/headers";
-
-// Simple JWT-like token creation (for demo - use proper JWT library in production)
-function createGhostToken() {
-  const payload = {
-    role: "ghost",
-    id: null,
-    iat: Date.now(),
-    exp: Date.now() + 8 * 60 * 60 * 1000, // 8 hours
-  };
-  // For demo purposes, base64 encode. Use jsonwebtoken in production
-  return Buffer.from(JSON.stringify(payload)).toString("base64");
-}
+import { passphraseMatches, signGhostToken } from "@/lib/ghost-session";
 
 export async function POST(request) {
   try {
     const { passphrase } = await request.json();
     
-    // Verify passphrase against environment variable
-    const ghostPassphrase = process.env.GHOST_PASSPHRASE || "demo-ghost-pass";
-    
-    if (passphrase !== ghostPassphrase) {
+    // Constant-time compare against GHOST_PASSPHRASE only (no hardcoded fallbacks).
+    if (!passphraseMatches(passphrase)) {
+      await new Promise((resolve) => setTimeout(resolve, 750)); // slow down guessing
       return new Response(JSON.stringify({ error: "Invalid passphrase" }), {
         status: 403,
         headers: { "Content-Type": "application/json" },
@@ -27,7 +15,7 @@ export async function POST(request) {
     }
 
     // Create ghost session token
-    const token = createGhostToken();
+    const token = signGhostToken();
     
     // Set httpOnly cookie - not readable from JS
     const cookieStore = await cookies();

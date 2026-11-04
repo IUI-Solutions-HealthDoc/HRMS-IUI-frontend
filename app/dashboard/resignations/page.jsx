@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { apiFetch, getToken } from "@/lib/api";
+import { apiFetch, getToken, apiUrl } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { fmtDate } from "@/lib/formatters";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -53,7 +53,7 @@ export default function ResignationsPage() {
   async function openAttachment(path) {
     const popup = window.open("", "_blank");
     try {
-      const response = await fetch(`/api/proxy${path}`, {
+      const response = await fetch(apiUrl(path), {
         cache: "no-store",
         headers: { Authorization: `Bearer ${getToken()}` },
       });

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch } from "@/lib/api";
+import { usePolling } from "@/hooks/usePolling";
 import { useToast } from "@/hooks/useToast";
 import { fmtDate, fmtTime, fmtINR } from "@/lib/formatters";
 import StatCard from "@/components/ui/StatCard";
@@ -248,11 +249,13 @@ function HRDashboard({ showToast }) {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState("all");
 
-  useEffect(() => {
-    apiFetch("/attendance/today").then((d) => { const recs = d?.records || d; setToday(Array.isArray(recs) ? recs : []); }).catch(() => {}).finally(() => setLoading(false));
-    const t = setInterval(() => { apiFetch("/attendance/today").then((d) => { const recs = d?.records || d; setToday(Array.isArray(recs) ? recs : []); }).catch(() => {}); }, 60000);
-    return () => clearInterval(t);
-  }, []);
+  // Refreshes every 60 s while the tab is visible; backs off if the API errors.
+  usePolling(
+    () => apiFetch("/attendance/today")
+      .then((d) => { const recs = d?.records || d; setToday(Array.isArray(recs) ? recs : []); })
+      .finally(() => setLoading(false)),
+    60000,
+  );
 
   const present = today.filter(isPresentAttendance).length;
   const wfh = today.filter((t) => (t.status || "").toLowerCase() === "wfh" || (t.status || "").toLowerCase() === "work_from_home").length;
@@ -391,11 +394,8 @@ function AdminDashboard({ showToast }) {
     setLoading(false);
   };
 
-  useEffect(() => {
-    loadStats();
-    const interval = setInterval(loadStats, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  // Employees, today's board and ratings change slowly: refresh every 2 min, only while visible.
+  usePolling(loadStats, 120000);
 
   const allRawEmployees = Array.isArray(stats?.employees) ? stats.employees : [];
   const employees = allRawEmployees.filter((emp) => emp.is_active !== false && emp.status !== "Inactive");
@@ -684,20 +684,15 @@ function HODDashboard({ showToast }) {
     load();
   }, []);
 
-  useEffect(() => {
-    apiFetch("/attendance/today").then((d) => {
-      const recs = d?.records || d;
-      setToday(Array.isArray(recs) ? recs : []);
-    }).catch(() => {}).finally(() => setLoadingToday(false));
-
-    const t = setInterval(() => {
-      apiFetch("/attendance/today").then((d) => {
+  usePolling(
+    () => apiFetch("/attendance/today")
+      .then((d) => {
         const recs = d?.records || d;
         setToday(Array.isArray(recs) ? recs : []);
-      }).catch(() => {});
-    }, 60000);
-    return () => clearInterval(t);
-  }, []);
+      })
+      .finally(() => setLoadingToday(false)),
+    60000,
+  );
 
   const openTasks = tasks.filter((task) => (task.status || "").toLowerCase() !== "completed").length;
 

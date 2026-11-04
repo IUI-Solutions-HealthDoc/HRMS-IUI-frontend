@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiFetch, getToken } from "@/lib/api";
+import { apiFetch, getToken, apiUrl } from "@/lib/api";
 import Loader from "@/components/ui/Loader";
 import EmptyState from "@/components/ui/EmptyState";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -25,7 +25,7 @@ export default function TasksHRPage() {
 
   async function downloadReport() {
     try {
-      const res = await fetch(`/api/proxy/exports/tasks/`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      const res = await fetch(apiUrl(`/exports/tasks/`), { headers: { Authorization: `Bearer ${getToken()}` } });
       if (!res.ok) throw new Error("Download failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);

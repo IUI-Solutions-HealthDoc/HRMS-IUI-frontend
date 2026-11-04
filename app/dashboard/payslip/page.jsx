@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { apiFetch, getToken } from "@/lib/api";
+import { apiFetch, getToken, apiUrl } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { fmtINR } from "@/lib/formatters";
 import EmptyState from "@/components/ui/EmptyState";
@@ -48,7 +48,7 @@ export default function PayslipPage() {
     setDownloading(true);
     try {
       const token = getToken();
-      const response = await fetch(`/api/proxy/payslip/download/me?month=${month}&year=${year}`, {
+      const response = await fetch(apiUrl(`/payslip/download/me?month=${month}&year=${year}`), {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!response.ok) {

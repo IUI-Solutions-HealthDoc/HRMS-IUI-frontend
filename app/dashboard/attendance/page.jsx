@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { apiFetch, getToken } from "@/lib/api";
+import { apiFetch, getToken, apiUrl } from "@/lib/api";
+import { usePolling } from "@/hooks/usePolling";
 import { useToast } from "@/hooks/useToast";
 import { fmtDate, fmtTime } from "@/lib/formatters";
 import StatCard from "@/components/ui/StatCard";
@@ -70,7 +71,7 @@ export default function AttendancePage() {
     setExporting(true);
     try {
       const token = getToken();
-      const response = await fetch(`/api/proxy/exports/my-attendance?month=${month}&year=${year}`, {
+      const response = await fetch(apiUrl(`/exports/my-attendance?month=${month}&year=${year}`), {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!response.ok) throw new Error("Attendance export failed");
@@ -97,16 +98,9 @@ export default function AttendancePage() {
 
   useEffect(() => {
     loadAttendance();
-    const interval = setInterval(() => loadAttendance({ silent: true }), AUTO_REFRESH_MS);
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") loadAttendance({ silent: true });
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
   }, [loadAttendance]);
+  // Background refresh only while the tab is visible.
+  usePolling(loadAttendance, AUTO_REFRESH_MS, { immediate: false });
 
   // Authoritative counts come from /performance/attendance-ratings (includes no-punch absents).
   // Fallback to record-based counts when the rating call has not landed yet.

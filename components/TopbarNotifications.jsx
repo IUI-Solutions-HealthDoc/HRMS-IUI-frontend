@@ -5,6 +5,7 @@ import { Bell, CheckCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { apiFetch } from "@/lib/api";
+import { usePolling } from "@/hooks/usePolling";
 import { fmtDateTime } from "@/lib/formatters";
 
 export default function TopbarNotifications({ role }) {
@@ -20,19 +21,18 @@ export default function TopbarNotifications({ role }) {
       const data = await apiFetch("/notifications");
       setNotifications(Array.isArray(data?.notifications) ? data.notifications : []);
       setUnreadCount(Number(data?.unread_count || 0));
-    } catch {
-      setNotifications([]);
-      setUnreadCount(0);
     } finally {
+      // Keep the last list on a transient error instead of blanking the bell.
       setLoading(false);
     }
   }
 
+  // Every 90 s while the tab is visible (was 45 s in every tab, hidden or not),
+  // with backoff on errors. Opening the bell refreshes immediately.
+  usePolling(loadNotifications, 90000);
   useEffect(() => {
-    loadNotifications();
-    const timer = setInterval(loadNotifications, 45000);
-    return () => clearInterval(timer);
-  }, []);
+    if (open) loadNotifications().catch(() => {});
+  }, [open]);
 
   useEffect(() => {
     if (!open) return undefined;

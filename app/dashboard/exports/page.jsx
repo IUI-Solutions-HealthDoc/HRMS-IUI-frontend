@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { apiFetch, getToken } from "@/lib/api";
+import { apiFetch, getToken, apiUrl } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 
 export default function ExportsPage() {
@@ -26,7 +26,7 @@ export default function ExportsPage() {
 
   async function download(path, label) {
     try {
-      const res = await fetch(`/api/proxy${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      const res = await fetch(apiUrl(path), { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (!res.ok) throw new Error("Download failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);

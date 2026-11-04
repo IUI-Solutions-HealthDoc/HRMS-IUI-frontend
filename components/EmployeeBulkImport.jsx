@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { apiFetch, getToken } from "@/lib/api";
+import { apiFetch, getToken, apiUrl } from "@/lib/api";
 import Modal from "@/components/ui/Modal";
 
 // Admin / HR: download the import template and bulk-add employees from it.
@@ -15,7 +15,7 @@ export default function EmployeeBulkImport({ onDone, showToast }) {
   async function downloadTemplate() {
     try {
       const token = getToken();
-      const res = await fetch("/api/proxy/employees/import-template", {
+      const res = await fetch(apiUrl("/employees/import-template"), {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error("Template download failed");

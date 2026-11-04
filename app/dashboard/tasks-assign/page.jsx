@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiUrl } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -116,7 +116,7 @@ export default function TasksAssignPage() {
 
   async function downloadReport() {
     try {
-      const res = await fetch(`/api/proxy/exports/tasks`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      const res = await fetch(apiUrl(`/exports/tasks`), { headers: { Authorization: `Bearer ${getToken()}` } });
       if (!res.ok) {
         let msg = "Download failed";
         try { const err = await res.json(); msg = err.detail || msg; } catch {}

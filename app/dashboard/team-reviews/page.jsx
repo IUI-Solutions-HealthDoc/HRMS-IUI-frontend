@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { usePolling } from "@/hooks/usePolling";
 import { useToast } from "@/hooks/useToast";
 import { fmtDate } from "@/lib/formatters";
 import Modal from "@/components/ui/Modal";
@@ -57,9 +58,8 @@ export default function TeamReviewsPage() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 60000);
-    return () => clearInterval(interval);
   }, [load]);
+  usePolling(load, 120000, { immediate: false });
 
   async function decide(revertId, decision, note = "") {
     try {

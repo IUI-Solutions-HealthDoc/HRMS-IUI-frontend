@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch, backendAssetUrl } from "@/lib/api";
+import { usePolling } from "@/hooks/usePolling";
 import { useToast } from "@/hooks/useToast";
 import { fmtINR } from "@/lib/formatters";
 import Modal from "@/components/ui/Modal";
@@ -171,33 +172,21 @@ export default function StaffPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    if (!isAdmin) return undefined;
-
-    let stopped = false;
-    const poll = async () => {
-      if (document.visibilityState !== "visible") return;
-      try {
-        const [requestResult, unmappedUsersResult, devicesResult] = await Promise.all([
-          apiFetch("/api/devices/enrollment-requests/"),
-          apiFetch("/api/devices/unmapped-users/").catch(() => ({ users: [] })),
-          apiFetch("/api/devices/").catch(() => ({ devices: [] })),
-        ]);
-        if (stopped) return;
-        setBiometricRequests(Array.isArray(requestResult?.requests) ? requestResult.requests : []);
-        setMachineCandidates(Array.isArray(unmappedUsersResult?.users) ? unmappedUsersResult.users : []);
-        setOnlineDevice(resolveOnlineDevice(devicesResult?.devices));
-      } catch {
-        // keep last known state on intermittent machine/network lag
-      }
-    };
-
-    const timer = setInterval(poll, 7000);
-    return () => {
-      stopped = true;
-      clearInterval(timer);
-    };
-  }, [isAdmin]);
+  // Fast 7 s polling only while a biometric enrollment is in flight; otherwise once
+  // a minute. Paused while the tab is hidden. Errors keep the last known state.
+  const hasPendingEnrollment = biometricRequests.some((request) =>
+    ["queued", "sent"].includes(String(request?.status || "").toLowerCase())
+  );
+  usePolling(async () => {
+    const [requestResult, unmappedUsersResult, devicesResult] = await Promise.all([
+      apiFetch("/api/devices/enrollment-requests/"),
+      apiFetch("/api/devices/unmapped-users/").catch(() => ({ users: [] })),
+      apiFetch("/api/devices/").catch(() => ({ devices: [] })),
+    ]);
+    setBiometricRequests(Array.isArray(requestResult?.requests) ? requestResult.requests : []);
+    setMachineCandidates(Array.isArray(unmappedUsersResult?.users) ? unmappedUsersResult.users : []);
+    setOnlineDevice(resolveOnlineDevice(devicesResult?.devices));
+  }, hasPendingEnrollment ? 7000 : 60000, { enabled: isAdmin, immediate: false });
 
   async function addEmployee(e) {
     e.preventDefault();

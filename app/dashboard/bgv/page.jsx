@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { apiFetch, getToken } from "@/lib/api";
+import { apiFetch, getToken, apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/useToast";
 import Modal from "@/components/ui/Modal";
@@ -167,7 +167,7 @@ export default function BGVPage() {
       ? "department=All"
       : `emp_id=${encodeURIComponent(selectedEmpId)}&department=All`;
     try {
-      const response = await fetch(`/api/proxy/exports/bgv?${query}`, {
+      const response = await fetch(apiUrl(`/exports/bgv?${query}`), {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!response.ok) throw new Error("Download failed");

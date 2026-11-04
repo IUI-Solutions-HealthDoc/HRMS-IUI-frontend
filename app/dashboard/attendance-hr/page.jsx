@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { apiFetch, getToken } from "@/lib/api";
+import { apiFetch, getToken, apiUrl } from "@/lib/api";
+import { usePolling } from "@/hooks/usePolling";
 import { useToast } from "@/hooks/useToast";
 import Loader from "@/components/ui/Loader";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -319,6 +320,18 @@ export default function AttendanceHRPage() {
         allLogsParams.set("year", String(year));
       }
 
+      if (silent) {
+        // Background refresh: only the live tables. Holidays, employee lists and the
+        // year-wide edited/not-punched reports load on mount and on filter change.
+        const [liveMachine, liveAll] = await Promise.all([
+          apiFetch(`/attendance/machine-logs?${machineParams.toString()}`),
+          apiFetch(`/attendance/all?${allLogsParams.toString()}`).catch(() => []),
+        ]);
+        setMachineLogs(liveMachine?.logs || []);
+        setAllLogs(Array.isArray(liveAll) ? liveAll : []);
+        return;
+      }
+
       const requests = [
         apiFetch(`/attendance/holidays?year=${year}`),
         apiFetch(`/attendance/machine-logs?${machineParams.toString()}`),
@@ -377,16 +390,9 @@ export default function AttendanceHRPage() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(() => load({ silent: true }), 60000);
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") load({ silent: true });
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
   }, [load]);
+  // Live refresh every 2 min, paused while the tab is hidden.
+  usePolling(load, 120000, { immediate: false });
 
   useEffect(() => {
     setEditedPage(1);
@@ -625,7 +631,7 @@ export default function AttendanceHRPage() {
       }
 
       const token = getToken();
-      const response = await fetch(`/api/proxy/attendance/machine-logs/export?${machineParams.toString()}`, {
+      const response = await fetch(apiUrl(`/attendance/machine-logs/export?${machineParams.toString()}`), {
         method: "GET",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),

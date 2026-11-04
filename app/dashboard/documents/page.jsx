@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/lib/auth-context";
-import { apiFetch, getToken } from "@/lib/api";
+import { apiFetch, getToken, apiUrl } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import EmptyState from "@/components/ui/EmptyState";
 import Loader from "@/components/ui/Loader";
@@ -64,7 +64,7 @@ function triggerDownload(url, fileName) {
 
 function toProxyUrl(path) {
   if (!path) return null;
-  return path.startsWith("/api/proxy") ? path : `/api/proxy${path}`;
+  return apiUrl(path);
 }
 
 function getFileNameFromDisposition(headerValue, fallback) {
@@ -392,11 +392,33 @@ export default function DocumentsPage() {
     return response;
   }
 
+  // Ask the API for a short-lived presigned storage URL and let the browser load
+  // the file straight from R2, instead of streaming every byte through Railway
+  // and Vercel. Falls back to the old blob flow for locally stored files.
+  async function resolveDocumentUrl(path, download = false) {
+    const clean = String(path || "").replace(/^\/api\/proxy/, "");
+    const params = new URLSearchParams({ as_url: "1" });
+    if (download) params.set("download", "1");
+    const sep = clean.includes("?") ? "&" : "?";
+    const res = await apiFetch(`${clean}${sep}${params.toString()}`);
+    return res?.url || null;
+  }
+
   async function handleViewDocument(meta) {
     if (!meta?.url) return;
     const previewWindow = window.open("", "_blank");
     renderPreviewLoading(previewWindow, meta.file_name || "document");
     try {
+      const directUrl = await resolveDocumentUrl(meta.url).catch(() => null);
+      if (directUrl && /^https?:/i.test(directUrl)) {
+        if (previewWindow) {
+          try { previewWindow.opener = null; } catch {}
+          previewWindow.location.replace(directUrl);
+        } else {
+          window.open(directUrl, "_blank", "noopener");
+        }
+        return;
+      }
       const response = await fetchProtectedDocument(meta.url);
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
@@ -417,6 +439,12 @@ export default function DocumentsPage() {
   async function handleDownloadDocument(meta, label) {
     if (!meta?.download_url && !meta?.url) return;
     try {
+      const directUrl = await resolveDocumentUrl(meta.url, true).catch(() => null);
+      if (directUrl && /^https?:/i.test(directUrl)) {
+        // The presigned URL already carries Content-Disposition: attachment.
+        triggerDownload(directUrl, `${sanitizeFileName(selectedEmp?.emp_id)}_${sanitizeFileName(label)}`);
+        return;
+      }
       const response = await fetchProtectedDocument(meta.download_url || `${meta.url}?download=1`);
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);

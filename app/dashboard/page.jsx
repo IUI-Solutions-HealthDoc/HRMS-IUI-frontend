@@ -76,6 +76,14 @@ function EmployeeDashboard({ user, showToast }) {
     if (countWords(leaveForm.description) > WORD_LIMITS.description) { showToast(`Description cannot exceed ${WORD_LIMITS.description} words`, "error"); return; }
     const club = clubStatus(leaveForm, leaveBalance, holidays);
     if (club.error) { showToast(club.error, "error"); return; }
+    if (leaveBalance?.is_in_probation && (leaveForm.club || (leaveForm.leave_type !== "Casual Leave" && leaveForm.leave_type !== "Period Leave"))) {
+      showToast("Only Casual Leave and Period Leave can be applied during probation period.", "error");
+      return;
+    }
+    if (leaveForm.leave_type === "Period Leave" && leaveForm.start_date !== leaveForm.end_date) {
+      showToast("Period Leave can only be applied for a single day at a time.", "error");
+      return;
+    }
     try {
       const body = new FormData();
       body.append("subject", leaveForm.subject.trim());
@@ -206,20 +214,47 @@ function EmployeeDashboard({ user, showToast }) {
       {leaveModal && (
         <Modal title="Apply for Leave" onClose={() => { setLeaveModal(false); setLeaveForm(EMPTY_LEAVE_FORM); }}
           footer={<><button className="btn-ghost" onClick={() => setLeaveModal(false)}>Cancel</button><button className="btn-primary" onClick={submitQuickLeave}>Apply</button></>}>
+          {leaveBalance?.is_in_probation && (
+            <div style={{ padding: "10px 14px", background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 8, fontSize: 13, color: "#f59e0b", marginBottom: 14 }}>
+              ⏳ <b>Probation Active</b>: You can apply for <b>Casual Leave</b> and <b>Period Leave</b> until probation ends.
+            </div>
+          )}
           {!leaveForm.club && <div className="form-group"><label className="label">Leave Category</label>
-            <select className="input" value={leaveForm.leave_type} onChange={(e) => setLeaveForm((form) => ({ ...form, leave_type: e.target.value }))}>
+            <select className="input" value={leaveForm.leave_type} onChange={(e) => {
+              const lt = e.target.value;
+              setLeaveForm((form) => ({
+                ...form,
+                leave_type: lt,
+                end_date: lt === "Period Leave" && form.start_date ? form.start_date : form.end_date,
+                club: false,
+              }));
+            }}>
               <option value="Casual Leave">Casual Leave (CL)</option>
-              <option value="Sick Leave">Sick Leave (SL)</option>
-              <option value="Privileged Leave">Privileged Leave (PL)</option>
+              <option value="Sick Leave" disabled={leaveBalance?.is_in_probation}>
+                Sick Leave (SL){leaveBalance?.is_in_probation ? " — Locked (Probation)" : ""}
+              </option>
+              <option value="Privileged Leave" disabled={leaveBalance?.is_in_probation}>
+                Privileged Leave (PL){leaveBalance?.is_in_probation ? " — Locked (Probation)" : ""}
+              </option>
+              {(leaveBalance?.annual_quotas?.period || leaveBalance?.is_female || leaveBalance?.allowed_leave_types?.includes("Period Leave")) && (
+                <option value="Period Leave">Period Leave (1/month - 12/yr)</option>
+              )}
             </select>
           </div>}
           <div className="form-group"><label className="label">Subject <span style={{ color: "#ef4444" }}>*</span></label><input className="input" required value={leaveForm.subject} onChange={(e) => setLeaveForm((form) => ({ ...form, subject: e.target.value }))} /><WordCounter value={leaveForm.subject} limit={WORD_LIMITS.subject} /></div>
           <div className="form-row">
-            <div className="form-group"><label className="label">Start Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" required value={leaveForm.start_date} onChange={(e) => setLeaveForm((form) => ({ ...form, start_date: e.target.value }))} /></div>
-            <div className="form-group"><label className="label">End Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" required min={leaveForm.start_date || undefined} value={leaveForm.end_date} onChange={(e) => setLeaveForm((form) => ({ ...form, end_date: e.target.value }))} /></div>
+            <div className="form-group"><label className="label">Start Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" required value={leaveForm.start_date} onChange={(e) => {
+              const val = e.target.value;
+              setLeaveForm((form) => ({
+                ...form,
+                start_date: val,
+                end_date: form.leave_type === "Period Leave" ? val : (form.end_date && form.end_date < val ? val : form.end_date),
+              }));
+            }} /></div>
+            <div className="form-group"><label className="label">End Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" required min={leaveForm.start_date || undefined} value={leaveForm.leave_type === "Period Leave" ? (leaveForm.start_date || leaveForm.end_date) : leaveForm.end_date} disabled={leaveForm.leave_type === "Period Leave"} onChange={(e) => setLeaveForm((form) => ({ ...form, end_date: e.target.value }))} /></div>
           </div>
           <ClubLeaveFields form={leaveForm} setForm={setLeaveForm} balance={leaveBalance} holidays={holidays} />
-          <div className="form-group"><label className="label">Description</label><textarea className="input" rows={3} value={leaveForm.description} onChange={(e) => setLeaveForm((form) => ({ ...form, description: e.target.value }))} /><WordCounter value={leaveForm.description} limit={WORD_LIMITS.description} /></div>
+          <div className="form-group"><label className="label">Description</label><textarea className="input" rows={3} placeholder="Reason for leave…" value={leaveForm.description} onChange={(e) => setLeaveForm((form) => ({ ...form, description: e.target.value }))} /><WordCounter value={leaveForm.description} limit={WORD_LIMITS.description} /></div>
         </Modal>
       )}
       {selectedLeave && (
@@ -236,6 +271,18 @@ function EmployeeDashboard({ user, showToast }) {
               <div><span className="label">End Date</span><div style={{ marginTop: 6 }}>{fmtDate(selectedLeave.end_date)}</div></div>
             </div>
             <div><span className="label">Description</span><div style={{ marginTop: 6, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{selectedLeave.description || "—"}</div></div>
+            {selectedLeave.attachments?.length > 0 && (
+              <div>
+                <span className="label">Attachments</span>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+                  {selectedLeave.attachments.map((url, j) => (
+                    <a key={j} href={url} target="_blank" rel="noopener noreferrer" className="chip" style={{ color: "var(--accent)", textDecoration: "none", fontWeight: 600 }}>
+                      📎 File {selectedLeave.attachments.length > 1 ? j + 1 : ""}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </Modal>
       )}

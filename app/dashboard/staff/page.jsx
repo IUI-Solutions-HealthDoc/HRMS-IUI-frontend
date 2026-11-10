@@ -357,7 +357,8 @@ export default function StaffPage() {
         cl_quota: editForm.cl_quota !== "" && editForm.cl_quota !== null && editForm.cl_quota !== undefined ? Number(editForm.cl_quota) : 10,
         sl_quota: editForm.sl_quota !== "" && editForm.sl_quota !== null && editForm.sl_quota !== undefined ? Number(editForm.sl_quota) : 12,
         pl_quota: editForm.pl_quota !== "" && editForm.pl_quota !== null && editForm.pl_quota !== undefined ? Number(editForm.pl_quota) : 15,
-        period_quota: (editForm.gender || "Male").toLowerCase() === "female" ? (Number(editForm.period_quota) || 12) : (Number(editForm.period_quota) || 0),
+        // period_quota is not sent here: the backend defaults it to 12 when gender
+        // changes to Female, and HR edits it from the Leave Quotas dialog.
         gender: editForm.gender || "Male",
         joining_date: editForm.joining_date || null,
         probation_end_date: editForm.probation_end_date || null,

@@ -684,6 +684,7 @@ export default function LeaveApprovalsPage() {
                     <option value="Casual Leave">Casual Leave</option>
                     <option value="Sick Leave">Sick Leave</option>
                     <option value="Privileged Leave">Privileged Leave</option>
+                    <option value="Period Leave">Period Leave</option>
                   </select>
                   {editedLeaveType !== (selectedLeave.leave_type || "Casual Leave") && (
                     <button className="btn-primary" onClick={handleUpdateLeaveType} style={{ padding: "6px 12px", fontSize: 12 }}>Update</button>

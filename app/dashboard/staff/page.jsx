@@ -37,17 +37,17 @@ export default function StaffPage() {
     emp_id: "", department_id: "", is_hr: false, is_accounts: false, is_hod: false, is_tl: false, is_superuser: false,
     machine_user_id: "", base_salary: "", hod_department_ids: [],
     hod_user_id: "", tl_user_id: "", system_no: "", is_night_shift: false,
-    joining_date: "", probation_end_date: "",
-    hod_user_ids: [], tl_user_ids: [], cl_quota: 10, sl_quota: 12, pl_quota: 15,
+    joining_date: "", probation_end_date: "", gender: "Male",
+    hod_user_ids: [], tl_user_ids: [], cl_quota: 10, sl_quota: 12, pl_quota: 15, period_quota: 0,
   });
   const [editForm, setEditForm] = useState({
     first_name: "", last_name: "", email: "", department: "", department_id: "",
     is_hr: false, is_accounts: false, is_hod: false, is_tl: false,
     machine_user_id: "", base_salary: "", bank_account: "", ifsc_code: "",
-    joining_date: "", probation_end_date: "",
+    joining_date: "", probation_end_date: "", gender: "Male",
     new_password: "", is_active: true, hod_department_ids: [],
     hod_user_id: "", tl_user_id: "", system_no: "", is_night_shift: false,
-    hod_user_ids: [], tl_user_ids: [], cl_quota: 10, sl_quota: 12, pl_quota: 15,
+    hod_user_ids: [], tl_user_ids: [], cl_quota: 10, sl_quota: 12, pl_quota: 15, period_quota: 0,
   });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); // "all", "active", "deactivated"
@@ -258,6 +258,8 @@ export default function StaffPage() {
         cl_quota: form.cl_quota !== "" && form.cl_quota !== null && form.cl_quota !== undefined ? Number(form.cl_quota) : 10,
         sl_quota: form.sl_quota !== "" && form.sl_quota !== null && form.sl_quota !== undefined ? Number(form.sl_quota) : 12,
         pl_quota: form.pl_quota !== "" && form.pl_quota !== null && form.pl_quota !== undefined ? Number(form.pl_quota) : 15,
+        period_quota: (form.gender || "Male").toLowerCase() === "female" ? (Number(form.period_quota) || 12) : (Number(form.period_quota) || 0),
+        gender: form.gender || "Male",
         joining_date: form.joining_date || undefined,
         probation_end_date: form.probation_end_date || undefined,
       };
@@ -272,8 +274,8 @@ export default function StaffPage() {
         emp_id: "", department_id: "", is_hr: false, is_accounts: false, is_hod: false, is_tl: false, is_superuser: false,
         machine_user_id: "", base_salary: "", hod_department_ids: [],
         hod_user_id: "", tl_user_id: "", system_no: "", is_night_shift: false,
-        joining_date: "", probation_end_date: "",
-        hod_user_ids: [], tl_user_ids: [], cl_quota: 10, sl_quota: 12, pl_quota: 15,
+        joining_date: "", probation_end_date: "", gender: "Male",
+        hod_user_ids: [], tl_user_ids: [], cl_quota: 10, sl_quota: 12, pl_quota: 15, period_quota: 0,
       });
       await load();
     } catch (e) {
@@ -355,6 +357,8 @@ export default function StaffPage() {
         cl_quota: editForm.cl_quota !== "" && editForm.cl_quota !== null && editForm.cl_quota !== undefined ? Number(editForm.cl_quota) : 10,
         sl_quota: editForm.sl_quota !== "" && editForm.sl_quota !== null && editForm.sl_quota !== undefined ? Number(editForm.sl_quota) : 12,
         pl_quota: editForm.pl_quota !== "" && editForm.pl_quota !== null && editForm.pl_quota !== undefined ? Number(editForm.pl_quota) : 15,
+        period_quota: (editForm.gender || "Male").toLowerCase() === "female" ? (Number(editForm.period_quota) || 12) : (Number(editForm.period_quota) || 0),
+        gender: editForm.gender || "Male",
         joining_date: editForm.joining_date || null,
         probation_end_date: editForm.probation_end_date || null,
         new_password: editForm.new_password?.trim() || undefined,
@@ -582,6 +586,8 @@ export default function StaffPage() {
       cl_quota:     emp.cl_quota    ?? 10,
       sl_quota:     emp.sl_quota    ?? 12,
       pl_quota:     emp.pl_quota    ?? 15,
+      period_quota: emp.period_quota ?? ((emp.gender || "").toLowerCase() === "female" ? 12 : 0),
+      gender:       emp.gender       || "Male",
       joining_date: emp.joining_date || "",
       probation_end_date: emp.probation_end_date || "",
       fingerprint_registered: emp.fingerprint_registered || false,
@@ -1058,7 +1064,18 @@ export default function StaffPage() {
                       </div>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 600 }}>{e.first_name} {e.last_name}</div>
+                      <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <span>{e.first_name} {e.last_name}</span>
+                        {e.gender?.toLowerCase() === "female" ? (
+                          <span style={{ fontSize: 10, padding: "1px 5px", borderRadius: 4, background: "rgba(236,72,153,0.15)", color: "#ec4899", fontWeight: 600 }}>
+                            ♀ Female
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 10, padding: "1px 5px", borderRadius: 4, background: "rgba(100,116,139,0.15)", color: "var(--muted)", fontWeight: 600 }}>
+                            ♂ Male
+                          </span>
+                        )}
+                      </div>
                       <div style={{ fontSize: 12, color: "var(--muted)" }}>@{e.username}</div>
                       <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
                         System: {e.system_no || "Not set"} · Shift: {e.is_night_shift ? "Night" : "Day"}
@@ -1147,6 +1164,7 @@ export default function StaffPage() {
             <div className="form-group"><label className="label">Employee ID <span style={{ color: "#ef4444" }}>*</span></label><input className="input" placeholder="EMP005" value={form.emp_id} onChange={(e) => setForm((f) => ({ ...f, emp_id: e.target.value }))} required /></div>
             <div className="form-group"><label className="label">Machine User ID</label><input className="input" placeholder="Leave blank to use Employee ID for ZKTeco" value={form.machine_user_id} onChange={(e) => setForm((f) => ({ ...f, machine_user_id: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Department <span style={{ color: "#ef4444" }}>*</span></label><select className="input" value={form.department_id} onChange={(e) => setForm((f) => ({ ...f, department_id: e.target.value, hod_department_ids: f.is_hod ? withPrimaryDepartment(f.hod_department_ids, parseDepartmentId(e.target.value)) : f.hod_department_ids }))} required><option value="">Select department…</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
+            <div className="form-group"><label className="label">Gender <span style={{ color: "#ef4444" }}>*</span></label><select className="input" value={form.gender || "Male"} onChange={(e) => { const g = e.target.value; setForm((f) => ({ ...f, gender: g, period_quota: g === "Female" ? 12 : 0 })); }} required><option value="Male">Male</option><option value="Female">Female (12 Period Leaves/yr)</option><option value="Other">Other</option></select></div>
             <div className="form-group"><label className="label">Email <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="email" placeholder="user@organization.com" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required /></div>
             <div className="form-group" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <label className="label">Reports To HODs</label>
@@ -1368,6 +1386,7 @@ export default function StaffPage() {
             <div className="form-group"><label className="label">Email <span style={{ color: "#ef4444" }}>*</span></label><input className="input" required placeholder="user@organization.com" type="email" value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Machine User ID</label><input className="input" placeholder="Leave blank to use Employee ID for ZKTeco" value={editForm.machine_user_id} onChange={(e) => setEditForm((f) => ({ ...f, machine_user_id: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Department <span style={{ color: "#ef4444" }}>*</span></label><select className="input" required value={editForm.department_id} onChange={(e) => setEditForm((f) => ({ ...f, department_id: e.target.value, department: departments.find((d) => d.id === +e.target.value)?.name || "", hod_department_ids: f.is_hod ? withPrimaryDepartment(f.hod_department_ids, parseDepartmentId(e.target.value)) : f.hod_department_ids }))}><option value="">Select department…</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
+            <div className="form-group"><label className="label">Gender <span style={{ color: "#ef4444" }}>*</span></label><select className="input" required value={editForm.gender || "Male"} onChange={(e) => { const g = e.target.value; setEditForm((f) => ({ ...f, gender: g, period_quota: g === "Female" ? (f.period_quota || 12) : f.period_quota })); }}><option value="Male">Male</option><option value="Female">Female (12 Period Leaves/yr)</option><option value="Other">Other</option></select></div>
             {!editModal.is_superuser && !editModal.is_hod ? <div className="form-group" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <label className="label">Reports To HODs</label>
               <div style={{

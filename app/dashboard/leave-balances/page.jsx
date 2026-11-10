@@ -23,8 +23,8 @@ export default function LeaveBalancesPage() {
   const [balances, setBalances] = useState([]);
   const [quotaEditor, setQuotaEditor] = useState(null);
   const [quotaForm, setQuotaForm] = useState({
-    cl_quota: "", sl_quota: "", pl_quota: "",
-    cl_taken: "", sl_taken: "", pl_taken: "",
+    cl_quota: "", sl_quota: "", pl_quota: "", period_quota: "",
+    cl_taken: "", sl_taken: "", pl_taken: "", period_taken: "",
   });
   const [quotaSaving, setQuotaSaving] = useState(false);
 
@@ -50,17 +50,28 @@ export default function LeaveBalancesPage() {
       cl_quota: String(row.casual.total),
       sl_quota: String(row.sick.total),
       pl_quota: String(row.privileged.total),
+      period_quota: String(row.period?.total ?? (row.gender?.toLowerCase() === "female" ? 12 : 0)),
       cl_taken: String(row.casual.used),
       sl_taken: String(row.sick.used),
       pl_taken: String(row.privileged.used),
+      period_taken: String(row.period?.used ?? 0),
     });
   }
 
   async function saveLeaveQuotas() {
     if (!quotaEditor) return;
-    const quotaVals = [quotaForm.cl_quota, quotaForm.sl_quota, quotaForm.pl_quota].map(Number);
-    const takenVals = [quotaForm.cl_taken, quotaForm.sl_taken, quotaForm.pl_taken].map(Number);
-    if ([...quotaVals, ...takenVals].some((value) => !Number.isInteger(value) || value < 0)) {
+    const clQ = Number(quotaForm.cl_quota);
+    const slQ = Number(quotaForm.sl_quota);
+    const plQ = Number(quotaForm.pl_quota);
+    const pQ = Number(quotaForm.period_quota);
+
+    const clT = Number(quotaForm.cl_taken);
+    const slT = Number(quotaForm.sl_taken);
+    const plT = Number(quotaForm.pl_taken);
+    const pT = Number(quotaForm.period_taken);
+
+    const allVals = [clQ, slQ, plQ, pQ, clT, slT, plT, pT];
+    if (allVals.some((value) => !Number.isInteger(value) || value < 0)) {
       showToast("Quotas and taken leaves must be whole numbers of zero or more", "error");
       return;
     }
@@ -69,21 +80,24 @@ export default function LeaveBalancesPage() {
       await apiFetch(`/leave/quota/${quotaEditor.emp_id}`, {
         method: "PUT",
         body: JSON.stringify({
-          cl_quota: quotaVals[0],
-          sl_quota: quotaVals[1],
-          pl_quota: quotaVals[2],
-          cl_taken: takenVals[0],
-          sl_taken: takenVals[1],
-          pl_taken: takenVals[2],
+          cl_quota: clQ,
+          sl_quota: slQ,
+          pl_quota: plQ,
+          period_quota: pQ,
+          cl_taken: clT,
+          sl_taken: slT,
+          pl_taken: plT,
+          period_taken: pT,
         }),
       });
       setBalances((prev) => prev.map((b) => {
         if (b.emp_id !== quotaEditor.emp_id) return b;
         return {
           ...b,
-          casual: { ...b.casual, total: quotaVals[0], used: takenVals[0], remaining: Math.max(0, quotaVals[0] - takenVals[0]) },
-          sick: { ...b.sick, total: quotaVals[1], used: takenVals[1], remaining: Math.max(0, quotaVals[1] - takenVals[1]) },
-          privileged: { ...b.privileged, total: quotaVals[2], used: takenVals[2], remaining: Math.max(0, quotaVals[2] - takenVals[2]) },
+          casual: { ...b.casual, total: clQ, used: clT, remaining: Math.max(0, clQ - clT) },
+          sick: { ...b.sick, total: slQ, used: slT, remaining: Math.max(0, slQ - slT) },
+          privileged: { ...b.privileged, total: plQ, used: plT, remaining: Math.max(0, plQ - plT) },
+          period: { ...(b.period || {}), total: pQ, used: pT, remaining: Math.max(0, pQ - pT) },
         };
       }));
       showToast(`Leave quotas updated for ${quotaEditor.name || quotaEditor.emp_id}`);
@@ -140,12 +154,17 @@ export default function LeaveBalancesPage() {
           </div>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Employee</th><th>Department</th><th>Casual (Taken / Total)</th><th>Sick (Taken / Total)</th><th>Privileged (Taken / Total)</th>{canEditLeaveQuotas ? <th>Action</th> : null}</tr></thead>
+              <thead><tr><th>Employee</th><th>Department</th><th>Casual (Taken / Total)</th><th>Sick (Taken / Total)</th><th>Privileged (Taken / Total)</th><th>Period (Taken / Total)</th>{canEditLeaveQuotas ? <th>Action</th> : null}</tr></thead>
               <tbody>
                 {pageRows.map((row) => <tr key={row.emp_id}>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <b>{row.name}</b>
+                      {row.gender?.toLowerCase() === "female" ? (
+                        <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: "rgba(236,72,153,0.15)", color: "#ec4899", fontWeight: 600 }}>
+                          ♀ Female
+                        </span>
+                      ) : null}
                       {row.is_in_probation ? (
                         <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: "rgba(245,158,11,0.15)", color: "#f59e0b", fontWeight: 600 }}>
                           Probation
@@ -158,9 +177,10 @@ export default function LeaveBalancesPage() {
                   <td><b>{row.casual.used} / {row.casual.total}</b></td>
                   <td><b>{row.sick.used} / {row.sick.total}</b></td>
                   <td><b>{row.privileged.used} / {row.privileged.total}</b></td>
+                  <td><b>{row.period ? `${row.period.used} / ${row.period.total}` : (row.gender?.toLowerCase() === "female" ? "0 / 12" : "—")}</b></td>
                   {canEditLeaveQuotas ? <td><button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => openQuotaEditor(row)}>Edit Quotas</button></td> : null}
                 </tr>)}
-                {!loading && filteredRows.length === 0 ? <tr><td colSpan={canEditLeaveQuotas ? 6 : 5} style={{ color: "var(--muted)" }}>No employee balances available.</td></tr> : null}
+                {!loading && filteredRows.length === 0 ? <tr><td colSpan={canEditLeaveQuotas ? 7 : 6} style={{ color: "var(--muted)" }}>No employee balances available.</td></tr> : null}
               </tbody>
             </table>
           </div>
@@ -180,10 +200,11 @@ export default function LeaveBalancesPage() {
             <div style={{ color: "var(--muted)", fontSize: 13, marginBottom: 18 }}>{quotaEditor.name} ({quotaEditor.emp_id}) · {quotaEditor.department || "No department"}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {[
-                ["Casual Leave", "cl_quota", "cl_taken", quotaEditor.casual],
-                ["Sick Leave", "sl_quota", "sl_taken", quotaEditor.sick],
-                ["Privileged Leave", "pl_quota", "pl_taken", quotaEditor.privileged],
-              ].map(([label, qField, tField, balance]) => {
+                ["Casual Leave", "cl_quota", "cl_taken"],
+                ["Sick Leave", "sl_quota", "sl_taken"],
+                ["Privileged Leave", "pl_quota", "pl_taken"],
+                ["Period Leave", "period_quota", "period_taken"],
+              ].map(([label, qField, tField]) => {
                 const total = Number(quotaForm[qField]) || 0;
                 const taken = Number(quotaForm[tField]) || 0;
                 const left = Math.max(0, total - taken);

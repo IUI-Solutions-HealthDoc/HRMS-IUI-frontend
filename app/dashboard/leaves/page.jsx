@@ -66,8 +66,8 @@ export default function LeavesPage() {
     if (countWords(form.description) > WORD_LIMITS.description) { showToast(`Description cannot exceed ${WORD_LIMITS.description} words`, "error"); setSubmitting(false); return; }
     const club = clubStatus(form, balance, holidays);
     if (club.error) { showToast(club.error, "error"); setSubmitting(false); return; }
-    if (balance?.is_in_probation && (form.club || form.leave_type !== "Casual Leave")) {
-      showToast("Only Casual Leave can be applied during probation period.", "error");
+    if (balance?.is_in_probation && (form.club || (form.leave_type !== "Casual Leave" && form.leave_type !== "Period Leave"))) {
+      showToast("Only Casual Leave and Period Leave can be applied during probation period.", "error");
       setSubmitting(false);
       return;
     }
@@ -134,7 +134,7 @@ export default function LeavesPage() {
         <div style={{ padding: "12px 16px", background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 10, fontSize: 13, color: "#f59e0b", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 18 }}>⏳</span>
           <div>
-            <b>Probation Period Active</b>: Your probation ends on <b>{balance.probation_end_date ? fmtDate(balance.probation_end_date) : "the scheduled date"}</b>. Only <b>Casual Leave</b> can be applied during probation. Sick Leave and Privileged Leave will automatically become available once probation concludes.
+            <b>Probation Period Active</b>: Your probation ends on <b>{balance.probation_end_date ? fmtDate(balance.probation_end_date) : "the scheduled date"}</b>. Only <b>Casual Leave</b> and <b>Period Leave</b> can be applied during probation. Sick Leave and Privileged Leave will automatically become available once probation concludes.
           </div>
         </div>
       )}
@@ -490,11 +490,19 @@ export default function LeavesPage() {
           footer={<><button className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button><button className="btn-primary" onClick={applyLeave} disabled={submitting}>{submitting ? "Submitting…" : "Apply Leave"}</button></>}>
           {balance?.is_in_probation && (
             <div style={{ padding: "10px 14px", background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 8, fontSize: 13, color: "#f59e0b", marginBottom: 14 }}>
-              ⏳ <b>Probation Active</b>: You can only apply for <b>Casual Leave</b> until your probation period concludes on {balance.probation_end_date ? fmtDate(balance.probation_end_date) : "the scheduled date"}.
+              ⏳ <b>Probation Active</b>: You can apply for <b>Casual Leave</b> and <b>Period Leave</b> until your probation period concludes on {balance.probation_end_date ? fmtDate(balance.probation_end_date) : "the scheduled date"}.
             </div>
           )}
           {!form.club && <div className="form-group"><label className="label">Leave Category</label>
-            <select className="input" value={form.leave_type} onChange={(e) => setForm((f) => ({ ...f, leave_type: e.target.value }))}>
+            <select className="input" value={form.leave_type} onChange={(e) => {
+              const lt = e.target.value;
+              setForm((f) => ({
+                ...f,
+                leave_type: lt,
+                end_date: lt === "Period Leave" && f.start_date ? f.start_date : f.end_date,
+                club: false,
+              }));
+            }}>
               <option value="Casual Leave">Casual Leave (CL - 10/yr)</option>
               <option value="Sick Leave" disabled={balance?.is_in_probation}>
                 Sick Leave (SL - 12/yr){balance?.is_in_probation ? " — Locked (Probation)" : ""}
@@ -502,7 +510,7 @@ export default function LeavesPage() {
               <option value="Privileged Leave" disabled={balance?.is_in_probation}>
                 Privileged Leave (PL - 15/yr){balance?.is_in_probation ? " — Locked (Probation)" : ""}
               </option>
-              {quotas?.period && (
+              {(quotas?.period || balance?.is_female || balance?.allowed_leave_types?.includes("Period Leave")) && (
                 <option value="Period Leave">
                   Period Leave (1/month - 12/yr)
                 </option>
@@ -511,8 +519,15 @@ export default function LeavesPage() {
           </div>}
           <div className="form-group"><label className="label">Subject <span style={{ color: "#ef4444" }}>*</span></label><input className="input" placeholder="e.g. Family function, Medical, etc." value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} required /><WordCounter value={form.subject} limit={WORD_LIMITS.subject} /></div>
           <div className="form-row">
-            <div className="form-group"><label className="label">Start Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" value={form.start_date} onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))} required /></div>
-            <div className="form-group"><label className="label">End Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" min={form.start_date || undefined} value={form.end_date} onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))} required /></div>
+            <div className="form-group"><label className="label">Start Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" value={form.start_date} onChange={(e) => {
+              const val = e.target.value;
+              setForm((f) => ({
+                ...f,
+                start_date: val,
+                end_date: f.leave_type === "Period Leave" ? val : (f.end_date && f.end_date < val ? val : f.end_date),
+              }));
+            }} required /></div>
+            <div className="form-group"><label className="label">End Date <span style={{ color: "#ef4444" }}>*</span></label><input className="input" type="date" min={form.start_date || undefined} value={form.leave_type === "Period Leave" ? (form.start_date || form.end_date) : form.end_date} disabled={form.leave_type === "Period Leave"} onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))} required /></div>
           </div>
           <ClubLeaveFields form={form} setForm={setForm} balance={balance} holidays={holidays} />
           <div className="form-group">

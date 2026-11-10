@@ -203,7 +203,9 @@ export default function LeaveBalancesPage() {
                 ["Casual Leave", "cl_quota", "cl_taken"],
                 ["Sick Leave", "sl_quota", "sl_taken"],
                 ["Privileged Leave", "pl_quota", "pl_taken"],
-                ["Period Leave", "period_quota", "period_taken"],
+                ...(quotaEditor.gender?.toLowerCase() === "female" || quotaEditor.is_female
+                  ? [["Period Leave", "period_quota", "period_taken"]]
+                  : []),
               ].map(([label, qField, tField]) => {
                 const total = Number(quotaForm[qField]) || 0;
                 const taken = Number(quotaForm[tField]) || 0;

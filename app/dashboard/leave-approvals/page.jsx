@@ -61,6 +61,11 @@ export default function LeaveApprovalsPage() {
   }, [selectedLeave]);
 
   async function handleUpdateLeaveType() {
+    const isFemale = selectedLeave?.is_female || selectedBalance?.is_female || selectedBalance?.annual_quotas?.period;
+    if (editedLeaveType === "Period Leave" && !isFemale) {
+      showToast("Period Leave can only be assigned to female employees", "error");
+      return;
+    }
     try {
       await apiFetch(`/leave/${selectedLeave.id}/update`, { 
         method: "POST", 
@@ -669,7 +674,18 @@ export default function LeaveApprovalsPage() {
             
             <div style={{ marginBottom: 12 }}>
               <span style={{ color: "var(--muted, #666)", fontSize: 12, display: "block" }}>Employee</span>
-              <strong>{selectedLeave.name || selectedLeave.emp_id}</strong>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
+                <strong>{selectedLeave.name || selectedLeave.emp_id}</strong>
+                {(selectedLeave?.is_female || selectedBalance?.is_female) ? (
+                  <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: "rgba(236,72,153,0.15)", color: "#ec4899", fontWeight: 600 }}>
+                    ♀ Female
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: "rgba(100,116,139,0.12)", color: "var(--muted)", fontWeight: 600 }}>
+                    ♂ Male
+                  </span>
+                )}
+              </div>
             </div>
             
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
@@ -684,7 +700,9 @@ export default function LeaveApprovalsPage() {
                     <option value="Casual Leave">Casual Leave</option>
                     <option value="Sick Leave">Sick Leave</option>
                     <option value="Privileged Leave">Privileged Leave</option>
-                    <option value="Period Leave">Period Leave</option>
+                    {(selectedLeave?.is_female || selectedBalance?.is_female || selectedBalance?.annual_quotas?.period || selectedLeave?.leave_type === "Period Leave") && (
+                      <option value="Period Leave">Period Leave</option>
+                    )}
                   </select>
                   {editedLeaveType !== (selectedLeave.leave_type || "Casual Leave") && (
                     <button className="btn-primary" onClick={handleUpdateLeaveType} style={{ padding: "6px 12px", fontSize: 12 }}>Update</button>

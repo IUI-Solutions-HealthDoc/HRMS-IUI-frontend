@@ -34,7 +34,9 @@ import {
   WalletCards,
 } from "lucide-react";
 
+import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { GHOST_PANEL_ROLES, openGhostPanel } from "@/lib/ghost-panel";
 import { NAV_ITEMS } from "@/lib/constants";
 import { backendAssetUrl } from "@/lib/api";
 import AppLogo from "@/components/AppLogo";
@@ -80,11 +82,31 @@ const ICON_MAP = {
   team_setup: Settings2,
 };
 
+const GHOST_HIDDEN_ITEMS = new Set([]); // ghost sees the panel exactly as that role does
+
 export default function Sidebar({ sidebarOpen, onClose }) {
   const { role, user, logout } = useAuth();
   const pathname = usePathname();
 
+  const [switchingTo, setSwitchingTo] = useState("");
+  const [switchErr, setSwitchErr] = useState("");
+  const isGhost = Boolean(user?.is_ghost);
+
+  const switchPanel = async (nextRole) => {
+    if (nextRole === role || switchingTo) return;
+    setSwitchingTo(nextRole);
+    setSwitchErr("");
+    try {
+      await openGhostPanel(nextRole);
+    } catch (error) {
+      setSwitchErr(error.message || "Could not switch panel");
+      setSwitchingTo("");
+    }
+  };
+
   const items = (NAV_ITEMS[role] || NAV_ITEMS.employee).filter((item) => {
+    // Ghost works on everyone's data, not the borrowed account's own pages.
+    if (isGhost && GHOST_HIDDEN_ITEMS.has(item.id)) return false;
     if (item.id === "payslip") {
       return user?.self_service_access?.can_view_my_payslip !== false;
     }
@@ -126,6 +148,29 @@ export default function Sidebar({ sidebarOpen, onClose }) {
         </div>
       </div>
 
+      {isGhost ? (
+        <div className="ghost-switch">
+          <div className="ghost-switch__label">◈ Ghost · open panel as</div>
+          <div className="ghost-switch__roles">
+            {GHOST_PANEL_ROLES.map((panel) => (
+              <button
+                key={panel.role}
+                type="button"
+                className={`ghost-switch__btn ${role === panel.role ? "active" : ""}`}
+                disabled={Boolean(switchingTo)}
+                onClick={() => switchPanel(panel.role)}
+              >
+                {switchingTo === panel.role ? "…" : panel.label}
+              </button>
+            ))}
+          </div>
+          <Link href="/ghost/dashboard" className="ghost-switch__tools" onClick={onClose}>
+            ◈ Ghost tools (silent edits)
+          </Link>
+          {switchErr ? <div className="ghost-switch__err">{switchErr}</div> : null}
+        </div>
+      ) : null}
+
       <nav className="sidebar-nav">
         {items.map((item) => {
           const Icon = ICON_MAP[item.id] || UserCog;
@@ -149,7 +194,7 @@ export default function Sidebar({ sidebarOpen, onClose }) {
         <ThemeToggle />
         <button className="btn-danger" onClick={logout} style={{ width: "100%", justifyContent: "center" }}>
           <DoorOpen size={16} />
-          Sign Out
+          {isGhost ? "Exit Ghost" : "Sign Out"}
         </button>
       </div>
     </aside>

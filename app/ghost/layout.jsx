@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { LogOut, Eye, Users, BarChart3, Calendar, FileText, Menu, X } from "lucide-react";
 import AppLogo from "@/components/AppLogo";
+import { GHOST_PANEL_ROLES, exitGhost, openGhostPanel } from "@/lib/ghost-panel";
 
 export default function GhostLayout({ children }) {
   const router = useRouter();
@@ -12,6 +13,19 @@ export default function GhostLayout({ children }) {
   const [isGhostSession, setIsGhostSession] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [openingPanel, setOpeningPanel] = useState("");
+  const [panelErr, setPanelErr] = useState("");
+
+  const openPanel = async (role) => {
+    setOpeningPanel(role);
+    setPanelErr("");
+    try {
+      await openGhostPanel(role);
+    } catch (error) {
+      setPanelErr(error.message || "Could not open panel");
+      setOpeningPanel("");
+    }
+  };
 
   useEffect(() => {
     // Check if ghost session is active via cookie
@@ -40,7 +54,7 @@ export default function GhostLayout({ children }) {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/ghost-logout", { method: "POST" });
+      await exitGhost();
       router.push("/login");
     } catch (error) {
       console.error("Logout error:", error);
@@ -150,6 +164,23 @@ export default function GhostLayout({ children }) {
           <NavLink href="/ghost/attendance" icon={<FileText size={16} />} label="Attendance" onClick={() => setSidebarOpen(false)} />
           <NavLink href="/ghost/payroll" icon={<BarChart3 size={16} />} label="Payroll" onClick={() => setSidebarOpen(false)} />
           <NavLink href="/ghost/leave" icon={<Calendar size={16} />} label="Leave" onClick={() => setSidebarOpen(false)} />
+          <div className="ghost-shell-panels">
+            <div className="ghost-switch__label">Full panels (every feature)</div>
+            <div className="ghost-switch__roles">
+              {GHOST_PANEL_ROLES.map((panel) => (
+                <button
+                  key={panel.role}
+                  type="button"
+                  className="ghost-switch__btn"
+                  disabled={Boolean(openingPanel)}
+                  onClick={() => openPanel(panel.role)}
+                >
+                  {openingPanel === panel.role ? "Opening…" : `${panel.label} panel →`}
+                </button>
+              ))}
+            </div>
+            {panelErr ? <div className="ghost-switch__err">{panelErr}</div> : null}
+          </div>
         </nav>
 
         {/* Exit Button */}

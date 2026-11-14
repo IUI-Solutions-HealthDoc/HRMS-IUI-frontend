@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 import { useRouter } from "next/navigation";
 import { apiFetch, getToken, setToken, removeToken } from "@/lib/api";
 import { ROLE_COLORS } from "@/lib/constants";
+import { clearGhostPanel, getGhostPanelRole } from "@/lib/ghost-panel";
 
 const AuthContext = createContext(null);
 const STORAGE_KEY_USER = "hrms_user";
@@ -42,6 +43,7 @@ function buildUserData(data, credentialsIdentifier) {
     is_tl:        data.is_tl || role === "tl",
     is_hod:       data.is_hod || role === "hod",
     profile_pic:  data.profile_pic,
+    is_ghost:     Boolean(getGhostPanelRole()),
     self_service_access: data.self_service_access || {},
   };
 }
@@ -80,6 +82,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = useCallback(async (credentials) => {
+    clearGhostPanel();
     const loginData = await apiFetch("/auth/login", {
       method: "POST",
       body: JSON.stringify(credentials),
@@ -99,6 +102,8 @@ export function AuthProvider({ children }) {
   }, [router]);
 
   const logout = useCallback(() => {
+    if (getGhostPanelRole()) fetch("/api/ghost-logout", { method: "POST" }).catch(() => {});
+    clearGhostPanel();
     apiFetch("/auth/logout", { method: "POST" }).catch(() => {});
     removeToken();
     clearUser();

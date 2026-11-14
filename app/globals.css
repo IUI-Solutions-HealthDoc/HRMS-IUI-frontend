@@ -1396,3 +1396,73 @@ input[type="time"].ghost-time-input:focus {
   }
 }
 
+
+/* ── Ghost: full panel switcher (dashboard sidebar + ghost shell) ── */
+.ghost-switch {
+  margin: 0 12px 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px dashed var(--border);
+  background: var(--surface3, transparent);
+}
+.ghost-switch__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-2, var(--muted));
+  margin-bottom: 8px;
+}
+.ghost-switch__roles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.ghost-switch__btn {
+  padding: 8px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 36px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ghost-switch__btn.active {
+  border-color: var(--accent, #7c3aed);
+  color: var(--accent, #7c3aed);
+  background: color-mix(in srgb, var(--accent, #7c3aed) 10%, transparent);
+}
+.ghost-switch__btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.ghost-switch__tools {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2, var(--muted));
+  text-decoration: none;
+}
+.ghost-switch__err {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #ef4444;
+}
+.ghost-shell-panels {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.ghost-shell-panels .ghost-switch__roles {
+  grid-template-columns: 1fr;
+}
+.ghost-shell-panels .ghost-switch__btn {
+  text-align: left;
+  padding: 10px 12px;
+}

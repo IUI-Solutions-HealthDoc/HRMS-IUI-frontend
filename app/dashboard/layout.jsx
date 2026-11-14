@@ -11,7 +11,7 @@ import TopbarNotifications from "@/components/TopbarNotifications";
 import Loader from "@/components/ui/Loader";
 
 export default function DashboardLayout({ children }) {
-  const { isAuthed, loading, role } = useAuth();
+  const { isAuthed, loading, role, user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
 
@@ -52,7 +52,7 @@ export default function DashboardLayout({ children }) {
             <TopbarNotifications role={role} />
             <span className="role-pill">
               <ShieldEllipsis size={14} />
-              {role.toUpperCase()} PORTAL
+              {user?.is_ghost ? "GHOST · " : ""}{role.toUpperCase()} PORTAL
             </span>
           </div>
         </div>

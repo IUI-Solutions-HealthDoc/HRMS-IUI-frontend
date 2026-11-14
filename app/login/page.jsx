@@ -254,15 +254,14 @@ export default function LoginPage() {
                     SYSTEM ACCESS
                   </span>
                 </div>
-                <input
-                  type="password"
+                <PasswordInput
                   placeholder="System passphrase"
                   autoComplete="off"
+                  name="system_passphrase"
                   autoFocus
                   value={ghostPassphrase}
                   onChange={(e) => setGhostPassphrase(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleGhostLogin()}
-                  className="input"
                   style={{ marginBottom: 10 }}
                 />
                 {ghostErr ? (

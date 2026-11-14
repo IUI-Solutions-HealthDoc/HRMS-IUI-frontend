@@ -20,6 +20,26 @@ function toIsoDate(year, monthIndex, day) {
   return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+// Rows the backend builds for days with nothing stored (auto WFH, holidays,
+// synthesized absents, live-board skeletons) carry string or negative ids.
+function storedAttendanceId(record) {
+  const id = record?.id;
+  if (Number.isInteger(id)) return id > 0 ? id : null;
+  if (typeof id === "string" && /^\d+$/.test(id.trim())) {
+    const parsed = Number(id.trim());
+    return parsed > 0 ? parsed : null;
+  }
+  return null;
+}
+
+// A no-punch day shown as WFH from the calendar/grants, not from an HR edit.
+function isWfhOverlayRecord(record) {
+  const status = String(record?.status || "").toLowerCase();
+  return ["wfh", "f", "r"].includes(status)
+    && !record?.check_in && !record?.punch_in
+    && !record?.is_hr_edited;
+}
+
 function isSaturdayIso(iso) {
   if (!iso) return false;
   const [y, m, d] = iso.split("-").map((value) => Number(value));
@@ -603,15 +623,31 @@ export default function AttendanceHRPage() {
     }
   }
 
-  async function revertManualEntry(attendanceId) {
-    if (!confirm("Are you sure you want to delete or revert this manual entry?")) {
+  async function revertManualEntry(record) {
+    const storedId = storedAttendanceId(record);
+    const wfhOverlay = isWfhOverlayRecord(record);
+    if (!wfhOverlay && !storedId) {
+      showToast("Nothing stored to delete for this day", "warn");
+      return;
+    }
+    const who = record.employee_name || record.emp_id || "this employee";
+    const prompt = wfhOverlay
+      ? `Revoke Work From Home for ${who} on ${fmtDate(record.date)}? The day will count as Absent.`
+      : "Are you sure you want to delete or revert this manual entry?";
+    if (!confirm(prompt)) {
       return;
     }
     try {
-      await apiFetch(`/attendance/manual-entry/${attendanceId}`, {
-        method: "DELETE",
-      });
-      showToast("Manual entry deleted/reverted successfully");
+      if (wfhOverlay) {
+        const params = new URLSearchParams({ emp_id: record.emp_id || "", date: record.date || "" });
+        const res = await apiFetch(`/attendance/virtual?${params.toString()}`, { method: "DELETE" });
+        showToast(res?.message || "WFH revoked");
+      } else {
+        await apiFetch(`/attendance/manual-entry/${storedId}`, {
+          method: "DELETE",
+        });
+        showToast("Manual entry deleted/reverted successfully");
+      }
       setDetailRecord(null);
       await load();
     } catch (error) {
@@ -1254,7 +1290,7 @@ export default function AttendanceHRPage() {
           onClose={() => setDetailRecord(null)}
           footer={
             <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-              <button className="btn-danger" onClick={() => revertManualEntry(detailRecord.id)}>
+              <button className="btn-danger" onClick={() => revertManualEntry(detailRecord)}>
                 Delete / Revert Record
               </button>
               <button className="btn-primary" onClick={() => setDetailRecord(null)}>Close</button>

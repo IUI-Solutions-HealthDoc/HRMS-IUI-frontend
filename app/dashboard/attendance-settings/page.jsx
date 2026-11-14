@@ -95,6 +95,23 @@ export default function AttendanceSettingsPage() {
     }
   }
 
+  async function setSecondSaturdayCancelled(day, cancel) {
+    const msg = cancel
+      ? `Cancel the automatic 2nd Saturday WFH on ${day}? Eligible employees will be expected in office that day.`
+      : `Restore the automatic 2nd Saturday WFH on ${day}?`;
+    if (!confirm(msg)) return;
+    try {
+      await apiFetch(`/attendance/wfh-assignment/second-saturday/${day}/cancel`, {
+        method: cancel ? "POST" : "DELETE",
+        ...(cancel ? { body: JSON.stringify({}) } : {}),
+      });
+      showToast(cancel ? "2nd Saturday WFH cancelled" : "2nd Saturday WFH restored");
+      loadWfh();
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  }
+
   async function deleteWfhAssignment(id) {
     if (!confirm("Are you sure you want to delete this WFH assignment?")) return;
     try {
@@ -181,7 +198,7 @@ export default function AttendanceSettingsPage() {
               <span>🏠</span> Work From Home (WFH) Grant Engine
             </div>
             <p style={{ color: "var(--muted)", margin: "4px 0 0 0", fontSize: 13 }}>
-              Assign WFH only to active HR-and-below employees. Super Admin and deactivated accounts are excluded. The 2nd Saturday is automatically WFH for eligible employees.
+              Assign WFH only to active HR-and-below employees. Super Admin and deactivated accounts are excluded. The 2nd Saturday is automatically WFH for eligible employees; delete one below to cancel it for that date.
             </p>
           </div>
         </div>
@@ -297,15 +314,27 @@ export default function AttendanceSettingsPage() {
               </thead>
               <tbody>
                 {wfhAssignments.map((a) => (
-                  <tr key={a.id}>
-                    <td><strong style={{ color: "#06b6d4" }}>{a.date}</strong></td>
-                    <td style={{ textTransform: "capitalize" }}>{a.target_type?.replace("_", " ")}</td>
+                  <tr key={a.auto ? `auto-${a.date}` : a.id} style={a.cancelled ? { opacity: 0.6 } : undefined}>
+                    <td><strong style={{ color: a.cancelled ? "#94a3b8" : "#06b6d4", textDecoration: a.cancelled ? "line-through" : "none" }}>{a.date}</strong></td>
+                    <td style={{ textTransform: a.auto ? "none" : "capitalize" }}>{a.auto ? "2nd Saturday (auto)" : a.target_type?.replace("_", " ")}</td>
                     <td><span className="badge" style={{ background: "rgba(6,182,212,0.12)", color: "#06b6d4" }}>{a.target_value}</span></td>
-                    <td>{a.reason || "Work From Home"}</td>
+                    <td>{a.cancelled ? `Cancelled: ${a.reason || "2nd Saturday WFH cancelled"}` : (a.reason || "Work From Home")}</td>
                     <td>
-                      <button className="btn-ghost" style={{ color: "#ef4444", padding: "4px 10px", fontSize: 12 }} onClick={() => deleteWfhAssignment(a.id)}>
-                        Delete
-                      </button>
+                      {a.auto ? (
+                        a.cancelled ? (
+                          <button className="btn-ghost" style={{ color: "#10b981", padding: "4px 10px", fontSize: 12 }} onClick={() => setSecondSaturdayCancelled(a.date, false)}>
+                            Restore
+                          </button>
+                        ) : (
+                          <button className="btn-ghost" style={{ color: "#ef4444", padding: "4px 10px", fontSize: 12 }} onClick={() => setSecondSaturdayCancelled(a.date, true)}>
+                            Delete
+                          </button>
+                        )
+                      ) : (
+                        <button className="btn-ghost" style={{ color: "#ef4444", padding: "4px 10px", fontSize: 12 }} onClick={() => deleteWfhAssignment(a.id)}>
+                          Delete
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

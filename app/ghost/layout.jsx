@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { LogOut, Eye, Users, BarChart3, Calendar, FileText, Menu, X } from "lucide-react";
 import AppLogo from "@/components/AppLogo";
-import { GHOST_PANEL_ROLES, exitGhost, openGhostPanel } from "@/lib/ghost-panel";
+import { GHOST_PANEL_ROLES, exitGhost, onPageRestored, openGhostPanel } from "@/lib/ghost-panel";
 
 export default function GhostLayout({ children }) {
   const router = useRouter();
@@ -26,6 +26,12 @@ export default function GhostLayout({ children }) {
       setOpeningPanel("");
     }
   };
+
+  // Coming Back from a panel: unfreeze the panel buttons.
+  useEffect(() => onPageRestored(() => {
+    setOpeningPanel("");
+    setPanelErr("");
+  }), []);
 
   useEffect(() => {
     // Check if ghost session is active via cookie

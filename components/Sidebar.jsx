@@ -34,9 +34,9 @@ import {
   WalletCards,
 } from "lucide-react";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { GHOST_PANEL_ROLES, openGhostPanel } from "@/lib/ghost-panel";
+import { GHOST_PANEL_ROLES, onPageRestored, openGhostPanel } from "@/lib/ghost-panel";
 import { NAV_ITEMS } from "@/lib/constants";
 import { backendAssetUrl } from "@/lib/api";
 import AppLogo from "@/components/AppLogo";
@@ -91,6 +91,12 @@ export default function Sidebar({ sidebarOpen, onClose }) {
   const [switchingTo, setSwitchingTo] = useState("");
   const [switchErr, setSwitchErr] = useState("");
   const isGhost = Boolean(user?.is_ghost);
+
+  // Coming Back to this page after a panel switch: unfreeze the switcher.
+  useEffect(() => onPageRestored(() => {
+    setSwitchingTo("");
+    setSwitchErr("");
+  }), []);
 
   const switchPanel = async (nextRole) => {
     if (nextRole === role || switchingTo) return;

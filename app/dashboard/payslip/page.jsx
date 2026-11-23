@@ -152,6 +152,7 @@ export default function PayslipPage() {
                   <div className="payslip-row"><span>Late Penalty Deduction</span><strong style={{ color: "#b91c1c" }}>-{fmtINR(data.late_deduction || 0)}</strong></div>
                   <div className="payslip-row"><span>Early Leave Penalty Deduction</span><strong style={{ color: "#b91c1c" }}>-{fmtINR(data.early_leave_deduction || 0)}</strong></div>
                   <div className="payslip-row"><span>Other Attendance Adjustment</span><strong style={{ color: (data.other_attendance_adjustment || 0) > 0 ? "#b91c1c" : "#166534" }}>{(data.other_attendance_adjustment || 0) > 0 ? `-${fmtINR(Math.abs(data.other_attendance_adjustment || 0))}` : `+${fmtINR(Math.abs(data.other_attendance_adjustment || 0))}`}</strong></div>
+                  {(data.compoff_adjustment || 0) > 0 ? <div className="payslip-row"><span>Comp-Off Adjustment ({data.compoff_adjustment_days || 0} day{(data.compoff_adjustment_days || 0) === 1 ? "" : "s"})</span><strong style={{ color: "#166534" }}>+{fmtINR(data.compoff_adjustment || 0)}</strong></div> : null}
                   <div className="payslip-row"><span>Total Deductions</span><strong style={{ color: "#b91c1c" }}>-{fmtINR(data.total_deductions || data.deductions || 0)}</strong></div>
                   <div className="payslip-row"><span>Comp-Off Credited Days</span><strong>{data.compoff_credited_days || 0}</strong></div>
                   <div className="payslip-row"><span>Comp-Off Used Days</span><strong>{data.compoff_used_days || 0}</strong></div>

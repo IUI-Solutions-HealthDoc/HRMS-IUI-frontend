@@ -67,7 +67,7 @@ export default function AppraisalPage() {
     );
     if (note === null) return;
     try {
-      await apiFetch(`/performance/increment-requests/${id}/decide`, {
+      const result = await apiFetch(`/performance/increment-requests/${id}/decide`, {
         method: "POST",
         body: JSON.stringify(
           isAccounts
@@ -75,7 +75,7 @@ export default function AppraisalPage() {
             : { decision, admin_comments: note || undefined }
         ),
       });
-      showToast(isAccounts ? "Request updated for Admin queue" : "Increment decision saved");
+      showToast(isAccounts ? "Request updated for Admin queue" : (result?.message || "Increment decision saved"));
       load();
     } catch (e) { showToast(e.message, "error"); }
   }
@@ -178,6 +178,7 @@ export default function AppraisalPage() {
               <div className="form-group">
                 <label className="label">Effective From</label>
                 <input className="input" type="date" min={new Date().toISOString().split("T")[0]} value={requestForm.effective_from} onChange={(e) => setRequestForm((current) => ({ ...current, effective_from: e.target.value }))} />
+                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>Once Admin approves, the new salary applies from the 1st of the next month (or the month chosen here, if later).</div>
               </div>
             </div>
             <div className="form-group">

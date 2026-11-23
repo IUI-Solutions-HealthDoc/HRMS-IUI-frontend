@@ -30,8 +30,12 @@ export default function PayrollPage() {
   const { role } = useAuth();
   const isAdmin = role === "admin";
   const isAccounts = role === "accounts";
-  const canUploadPayslip = role === "hr";
-  const showSalary = isAdmin || isAccounts;
+  const isHR = role === "hr";
+  const canUploadPayslip = isHR;
+  const canEditPayroll = isAdmin || isHR || isAccounts;
+  const showSalary = isAdmin || isAccounts || isHR;
+  const myRole = isAdmin ? "admin" : isHR ? "hr" : isAccounts ? "accounts" : null;
+  const ROLE_LABEL = { hr: "HR", accounts: "Accounts", admin: "Admin" };
   const [payroll, setPayroll] = useState([]);
   const [loading, setLoading] = useState(true);
   const [queue, setQueue] = useState([]);
@@ -39,7 +43,7 @@ export default function PayrollPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [editModal, setEditModal] = useState(null);
   const [uploadModal, setUploadModal] = useState(null);
-  const [salaryForm, setSalaryForm] = useState({ base_salary: "", bank_account: "", ifsc_code: "" });
+  const [salaryForm, setSalaryForm] = useState({ base_salary: "", bank_account: "", ifsc_code: "", beneficiary_name: "", bank_name: "", bank_branch: "", account_type: "Savings" });
   const [selfServiceSettings, setSelfServiceSettings] = useState(null);
   const [uploadFile, setUploadFile] = useState(null);
   const [showToast, toastNode] = useToast();
@@ -58,8 +62,8 @@ export default function PayrollPage() {
     setLoading(true);
     try {
       const requests = [apiFetch(`/payroll/summary?month=${month}&year=${year}`)];
-      if (isAdmin) requests.push(apiFetch("/payroll/approval-queue"));
-      if (isAdmin) requests.push(apiFetch("/auth/self-service-settings"));
+      requests.push(canEditPayroll ? apiFetch("/payroll/approval-queue") : Promise.resolve([]));
+      requests.push(isAdmin ? apiFetch("/auth/self-service-settings") : Promise.resolve(null));
       const [data, queueData, settingsData] = await Promise.all(requests);
       setPayroll(Array.isArray(data) ? data : []);
       setQueue(Array.isArray(queueData) ? queueData : []);
@@ -69,7 +73,7 @@ export default function PayrollPage() {
     } finally {
       setLoading(false);
     }
-  }, [month, showToast, year]);
+  }, [canEditPayroll, isAdmin, month, showToast, year]);
 
   useEffect(() => {
     load();
@@ -112,7 +116,8 @@ export default function PayrollPage() {
   const paidEmployees = payroll.filter((r) => (r.base_salary || 0) > 0);
   const totalPayroll = paidEmployees.reduce((sum, r) => sum + (r.base_salary || 0), 0);
   const avgSalary = paidEmployees.length ? Math.round(totalPayroll / paidEmployees.length) : 0;
-  const pendingApprovals = queue.length;
+  const pendingApprovals = queue.filter((item) => item.can_decide).length;
+  const waitingOnOthers = queue.filter((item) => !item.can_decide).length;
   const payslipsUploaded = payroll.filter((r) => r.uploaded_payslip_url).length;
 
   function openEditModal(row) {
@@ -120,6 +125,10 @@ export default function PayrollPage() {
       base_salary: row.base_salary ? String(row.base_salary) : "",
       bank_account: row.bank_account || "",
       ifsc_code: row.ifsc_code || "",
+      beneficiary_name: row.beneficiary_name || "",
+      bank_name: row.bank_name || "",
+      bank_branch: row.bank_branch || "",
+      account_type: row.account_type || "Savings",
     });
     setEditModal(row);
   }
@@ -136,6 +145,10 @@ export default function PayrollPage() {
           base_salary: salaryForm.base_salary ? +salaryForm.base_salary : undefined,
           bank_account: salaryForm.bank_account || undefined,
           ifsc_code: salaryForm.ifsc_code || undefined,
+          beneficiary_name: salaryForm.beneficiary_name.trim() || undefined,
+          bank_name: salaryForm.bank_name.trim() || undefined,
+          bank_branch: salaryForm.bank_branch.trim() || undefined,
+          account_type: salaryForm.account_type || undefined,
         }),
       });
       showToast(result?.message || "Payroll details updated");
@@ -167,8 +180,8 @@ export default function PayrollPage() {
 
   async function decideRequest(kind, id, decision) {
     try {
-      await apiFetch(`/payroll/approval-queue/${kind}/${id}/decide?decision=${decision}`, { method: "POST" });
-      showToast(`Request ${decision}d`);
+      const result = await apiFetch(`/payroll/approval-queue/${kind}/${id}/decide?decision=${decision}`, { method: "POST" });
+      showToast(result?.message || `Request ${decision}d`);
       load();
     } catch (error) {
       showToast(error.message, "error");
@@ -202,7 +215,7 @@ export default function PayrollPage() {
     { icon: "👥", iconBg: "rgba(99,102,241,0.12)", iconColor: "#6366f1", value: payroll.length, label: "Employees", sub: `Active: ${activeCount}  •  Inactive: ${inactiveCount}` },
     { icon: "💰", iconBg: "rgba(16,185,129,0.12)", iconColor: "#10b981", value: fmtINR(totalPayroll), label: "Total Payroll", sub: "Total Base Salary" },
     { icon: "📊", iconBg: "rgba(59,130,246,0.12)", iconColor: "#3b82f6", value: fmtINR(avgSalary), label: "Avg Salary", sub: "Average Base Salary" },
-    { icon: "⏳", iconBg: "rgba(251,146,60,0.12)", iconColor: "#f59e0b", value: isAdmin ? pendingApprovals : payroll.filter((r) => r.pending_request).length, label: "Pending Approvals", sub: isAdmin ? "Payroll change requests" : "Waiting for Admin approval" },
+    { icon: "⏳", iconBg: "rgba(251,146,60,0.12)", iconColor: "#f59e0b", value: pendingApprovals, label: "Pending Approvals", sub: waitingOnOthers ? `For your review  •  ${waitingOnOthers} waiting on others` : "Salary / bank changes for your review" },
     { icon: "📄", iconBg: "rgba(139,92,246,0.12)", iconColor: "#8b5cf6", value: payslipsUploaded, label: "Payslips Uploaded", sub: "This Month" },
   ];
 
@@ -221,10 +234,10 @@ export default function PayrollPage() {
           <h1 className="syne" style={{ fontSize: 26, fontWeight: 800, margin: 0, textTransform: "uppercase", letterSpacing: "0.02em" }}>Payroll Summary</h1>
           <p style={{ color: "var(--muted)", marginTop: 4, fontSize: 13, maxWidth: 600 }}>
             {isAdmin
-              ? "Manage and review employee payroll details. Admin can review payroll and approve increments."
-              : canUploadPayslip
-                ? "Upload each employee's monthly payslip PDF. Salary figures stay visible to Accounts and Admin only."
-                : "Review employee payroll and bank details, including comp-off extra pay and final payable salary. Use Edit to change salary or bank details."}
+              ? "Manage and review employee payroll details. Admin changes apply immediately."
+              : isHR
+                ? "Review salaries, upload monthly payslips and edit salary or bank details. Your changes go to Accounts for approval, and Accounts' changes come to you."
+                : "Review employee payroll and bank details, including comp-off extra pay and final payable salary. Your changes go to HR for approval, and HR's changes come to you."}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -273,34 +286,47 @@ export default function PayrollPage() {
         </div>
       )}
 
-      {/* Admin: Pending Approvals */}
-      {isAdmin && queue.length > 0 && (
+      {/* Salary / bank change approvals: HR reviews Accounts, Accounts reviews HR */}
+      {canEditPayroll && queue.length > 0 && (
         <div className="card" style={{ marginBottom: 24 }}>
           <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
-            <h2 className="syne" style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Pending Payroll Approvals</h2>
+            <h2 className="syne" style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Salary / Bank Change Approvals</h2>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>Changes made by HR are approved by Accounts. Changes made by Accounts are approved by HR.</div>
           </div>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Employee</th><th>Request Type</th><th>Details</th><th>Requested On</th><th>Action</th></tr></thead>
+              <thead><tr><th>Employee</th><th>Requested By</th><th>Changes</th><th>Requested On</th><th>Action</th></tr></thead>
               <tbody>
-                {queue.map((item) => (
-                  <tr key={`${item.kind}-${item.id}`}>
-                    <td><b>{item.employee_name}</b><div style={{ fontSize: 12, color: "var(--muted)" }}>{item.emp_id} · {item.is_active === false ? "Inactive" : "Active"}</div></td>
-                    <td>{item.kind === "salary" ? "Salary Change" : "Payroll Update"}</td>
-                    <td style={{ maxWidth: 320 }}>
-                      {item.proposed_base_salary !== null && item.proposed_base_salary !== undefined ? <div>Base Salary: {fmtINR(item.current_base_salary)} → {fmtINR(item.proposed_base_salary)}</div> : null}
-                      {item.proposed_bank_account ? <div>Bank: {item.proposed_bank_account}</div> : null}
-                      {item.proposed_ifsc_code ? <div>IFSC: {item.proposed_ifsc_code}</div> : null}
-                    </td>
-                    <td>{fmtDateTime(item.requested_on)}</td>
-                    <td>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <button className="btn-primary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => decideRequest(item.kind, item.id, "approve")}>Approve</button>
-                        <button className="btn-danger" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => decideRequest(item.kind, item.id, "reject")}>Reject</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {queue.map((item) => {
+                  const labels = item.labels || {};
+                  const proposed = item.proposed || {};
+                  const current = item.current || {};
+                  const show = (field, value) => (value === null || value === undefined || value === "" ? "—" : field === "base_salary" ? fmtINR(value) : String(value));
+                  return (
+                    <tr key={`${item.kind}-${item.id}`}>
+                      <td><b>{item.employee_name}</b><div style={{ fontSize: 12, color: "var(--muted)" }}>{item.emp_id} · {item.is_active === false ? "Inactive" : "Active"}</div></td>
+                      <td>{ROLE_LABEL[item.requested_by_role] || "Accounts"}{item.requested_by_name ? <div style={{ fontSize: 12, color: "var(--muted)" }}>{item.requested_by_name}</div> : null}</td>
+                      <td style={{ maxWidth: 360 }}>
+                        {Object.keys(proposed).map((field) => (
+                          <div key={field} style={{ fontSize: 13 }}>
+                            <span style={{ color: "var(--muted)" }}>{labels[field] || field}:</span> {show(field, current[field])} → <b>{show(field, proposed[field])}</b>
+                          </div>
+                        ))}
+                      </td>
+                      <td>{fmtDateTime(item.requested_on)}</td>
+                      <td>
+                        {item.can_decide ? (
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            <button className="btn-primary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => decideRequest(item.kind, item.id, "approve")}>Approve</button>
+                            <button className="btn-danger" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => decideRequest(item.kind, item.id, "reject")}>Reject</button>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 600 }}>Waiting for {ROLE_LABEL[item.reviewer_role] || "review"}</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -412,23 +438,26 @@ export default function PayrollPage() {
                         {row.last_updated ? (
                           <div>
                             <div style={{ fontSize: 13 }}>{fmtDateTime(row.last_updated)}</div>
-                            <div style={{ fontSize: 11, color: "var(--muted)" }}>{role}</div>
+                            {row.pending_request && row.pending_request_role ? <div style={{ fontSize: 11, color: "var(--muted)" }}>Change by {ROLE_LABEL[row.pending_request_role] || row.pending_request_role}</div> : null}
                           </div>
                         ) : "—"}
                       </td>
                       <td>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          {isAccounts && (
-                            <button
-                              className="btn-ghost"
-                              style={{ padding: "6px 14px", fontSize: 12, borderRadius: 6 }}
-                              disabled={!!row.pending_request}
-                              title={row.pending_request ? "A change for this employee is waiting for Admin approval" : "Edit salary or bank details"}
-                              onClick={() => openEditModal(row)}
-                            >
-                              {row.pending_request ? "Pending" : "Edit"}
-                            </button>
-                          )}
+                          {canEditPayroll && (() => {
+                            const blockedBy = !isAdmin && row.pending_request && row.pending_request_role && row.pending_request_role !== myRole ? row.pending_request_role : null;
+                            return (
+                              <button
+                                className="btn-ghost"
+                                style={{ padding: "6px 14px", fontSize: 12, borderRadius: 6 }}
+                                disabled={!!blockedBy}
+                                title={blockedBy ? `A change by ${ROLE_LABEL[blockedBy]} is waiting for your review above` : row.pending_request ? "Your earlier change is still waiting for review; saving again replaces it" : "Edit salary or bank details"}
+                                onClick={() => openEditModal(row)}
+                              >
+                                {blockedBy ? "Review pending" : row.pending_request ? "Edit (pending)" : "Edit"}
+                              </button>
+                            );
+                          })()}
                           {canUploadPayslip && (
                             <button
                               className="btn-ghost"
@@ -500,8 +529,9 @@ export default function PayrollPage() {
               <span style={{ fontSize: 14, fontWeight: 700, color: "var(--primary, #6366f1)" }}>Information</span>
             </div>
             <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "var(--muted)", lineHeight: 1.8 }}>
-              <li>First payroll change can be saved directly.</li>
-              <li>Any subsequent change will require Admin approval.</li>
+              <li>Salary or bank changes made by HR are approved by Accounts.</li>
+              <li>Salary or bank changes made by Accounts are approved by HR.</li>
+              <li>Approved increments apply from the 1st of the next month.</li>
             </ul>
           </div>
           <div className="card" style={{ padding: "18px 22px" }}>
@@ -536,7 +566,7 @@ export default function PayrollPage() {
           }
         >
           <div className="card" style={{ padding: 14, marginBottom: 16, background: "rgba(59,130,246,0.08)" }}>
-            {editModal.payroll_edit_count ? "This employee already used the first direct payroll edit. Saving now will create an admin approval request." : "This is the first payroll edit for this employee, so Accounts can save it directly."}
+            {isAdmin ? "Admin changes apply immediately." : isHR ? "Your change will be sent to Accounts for approval. It applies once Accounts approves it." : "Your change will be sent to HR for approval. It applies once HR approves it."}
           </div>
           <div className="form-group">
             <label className="label">Base Salary</label>
@@ -550,10 +580,25 @@ export default function PayrollPage() {
             <label className="label">IFSC Code</label>
             <input className="input" maxLength={11} value={salaryForm.ifsc_code} onChange={(e) => setSalaryForm((current) => ({ ...current, ifsc_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") }))} />
           </div>
-          <div className="card" style={{ padding: 12, marginBottom: 12, fontSize: 12, color: "var(--muted)", lineHeight: 1.7 }}>
-            <div><b style={{ color: "var(--text)" }}>Account holder:</b> {editModal.beneficiary_name || editModal.employee_name}</div>
-            <div><b style={{ color: "var(--text)" }}>Bank / branch:</b> {[editModal.bank_name, editModal.bank_branch].filter(Boolean).join(" · ") || "Not entered by HR"}</div>
-            <div><b style={{ color: "var(--text)" }}>Account type:</b> {editModal.account_type || "Savings"}</div>
+          <div className="form-group">
+            <label className="label">Account Holder Name</label>
+            <input className="input" placeholder={editModal.employee_name} value={salaryForm.beneficiary_name} onChange={(e) => setSalaryForm((current) => ({ ...current, beneficiary_name: e.target.value }))} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div className="form-group">
+              <label className="label">Bank Name</label>
+              <input className="input" value={salaryForm.bank_name} onChange={(e) => setSalaryForm((current) => ({ ...current, bank_name: e.target.value }))} />
+            </div>
+            <div className="form-group">
+              <label className="label">Branch</label>
+              <input className="input" value={salaryForm.bank_branch} onChange={(e) => setSalaryForm((current) => ({ ...current, bank_branch: e.target.value }))} />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="label">Account Type</label>
+            <select className="input" value={salaryForm.account_type} onChange={(e) => setSalaryForm((current) => ({ ...current, account_type: e.target.value }))}>
+              {["Savings", "Current", "Salary"].map((v) => <option key={v} value={v}>{v}</option>)}
+            </select>
           </div>
           <BankProofField key={editModal.emp_id} empId={editModal.emp_id} canUpload={false} showToast={showToast} />
         </Modal>

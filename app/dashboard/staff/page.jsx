@@ -13,6 +13,7 @@ import Loader from "@/components/ui/Loader";
 import PasswordInput from "@/components/ui/PasswordInput";
 import Pagination from "@/components/ui/Pagination";
 import EmployeeBulkImport from "@/components/EmployeeBulkImport";
+import BankProofField from "@/components/BankProofField";
 import { validateEmail, validateStrongPassword, validateBaseSalary, sanitizeNumericInput } from "@/lib/validators";
 
 export default function StaffPage() {
@@ -44,6 +45,7 @@ export default function StaffPage() {
     first_name: "", last_name: "", email: "", department: "", department_id: "",
     is_hr: false, is_accounts: false, is_hod: false, is_tl: false,
     machine_user_id: "", base_salary: "", bank_account: "", ifsc_code: "",
+    beneficiary_name: "", bank_name: "", bank_branch: "", account_type: "Savings",
     joining_date: "", probation_end_date: "", gender: "Male",
     new_password: "", is_active: true, hod_department_ids: [],
     hod_user_id: "", tl_user_id: "", system_no: "", is_night_shift: false,
@@ -324,6 +326,10 @@ export default function StaffPage() {
       showToast("Enter a valid 11-character IFSC code", "error");
       return;
     }
+    if (editForm.bank_account && (editForm.bank_account.length < 6 || editForm.bank_account.length > 20)) {
+      showToast("Bank account number must be 6 to 20 digits", "error");
+      return;
+    }
     try {
       const parsedDepartmentId = editForm.department_id === "" || editForm.department_id === null || editForm.department_id === undefined
         ? undefined
@@ -353,7 +359,11 @@ export default function StaffPage() {
         system_no: (editForm.system_no ?? "").trim() || null,
         base_salary: Number.isFinite(parsedBaseSalary) ? parsedBaseSalary : undefined,
         bank_account: (editForm.bank_account ?? "").trim(),
-        ifsc_code: (editForm.ifsc_code ?? "").trim(),
+        ifsc_code: (editForm.ifsc_code ?? "").trim().toUpperCase(),
+        beneficiary_name: (editForm.beneficiary_name ?? "").trim(),
+        bank_name: (editForm.bank_name ?? "").trim(),
+        bank_branch: (editForm.bank_branch ?? "").trim(),
+        account_type: editForm.account_type || "Savings",
         cl_quota: editForm.cl_quota !== "" && editForm.cl_quota !== null && editForm.cl_quota !== undefined ? Number(editForm.cl_quota) : 10,
         sl_quota: editForm.sl_quota !== "" && editForm.sl_quota !== null && editForm.sl_quota !== undefined ? Number(editForm.sl_quota) : 12,
         pl_quota: editForm.pl_quota !== "" && editForm.pl_quota !== null && editForm.pl_quota !== undefined ? Number(editForm.pl_quota) : 15,
@@ -584,6 +594,10 @@ export default function StaffPage() {
       base_salary:  emp.base_salary || "",
       bank_account: emp.bank_account || "",
       ifsc_code:    emp.ifsc_code   || "",
+      beneficiary_name: emp.beneficiary_name || "",
+      bank_name: emp.bank_name || "",
+      bank_branch: emp.bank_branch || "",
+      account_type: emp.account_type || "Savings",
       cl_quota:     emp.cl_quota    ?? 10,
       sl_quota:     emp.sl_quota    ?? 12,
       pl_quota:     emp.pl_quota    ?? 15,
@@ -611,6 +625,9 @@ export default function StaffPage() {
     try {
       const details = await apiFetch(`/employees/bank-details/${code}`);
       setBankDetails(details);
+      if (details?.bank) {
+        setEditForm((current) => ({ ...current, bank_name: details.bank || current.bank_name, bank_branch: details.branch || current.bank_branch }));
+      }
     } catch (error) {
       showToast(error.message, "error");
     }
@@ -1467,8 +1484,21 @@ export default function StaffPage() {
             <div className="form-group"><label className="label">Joining Date</label><input className="input" type="date" value={editForm.joining_date || ""} onChange={(e) => setEditForm((f) => ({ ...f, joining_date: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Probation Period End Date</label><input className="input" type="date" min={editForm.joining_date || undefined} value={editForm.probation_end_date || ""} onChange={(e) => setEditForm((f) => ({ ...f, probation_end_date: e.target.value }))} /></div>
             {isAdmin && <div className="form-group"><label className="label">Base Salary (₹)</label><input className="input" type="number" min="0" max="10000000" placeholder="0 - 1,00,00,000" value={editForm.base_salary} onChange={(e) => setEditForm((f) => ({ ...f, base_salary: sanitizeNumericInput(e.target.value, true) }))} /></div>}
-            <div className="form-group"><label className="label">Bank Account</label><input className="input" inputMode="numeric" placeholder="Account number (digits only)" value={editForm.bank_account} onChange={(e) => setEditForm((f) => ({ ...f, bank_account: e.target.value.replace(/[^0-9]/g, "") }))} /></div>
-            <div className="form-group"><label className="label">IFSC Code</label><input className="input" maxLength={11} placeholder="e.g. HDFC0001234" value={editForm.ifsc_code} onChange={(e) => { setBankDetails(null); setEditForm((f) => ({ ...f, ifsc_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") })); }} onBlur={lookupIfsc} />{bankDetails ? <div style={{ marginTop: 6, fontSize: 11, color: "var(--muted)", lineHeight: 1.5 }}><strong style={{ color: "var(--text)" }}>{bankDetails.bank}</strong><br />{bankDetails.branch}{bankDetails.city ? ` · ${bankDetails.city}` : ""}{bankDetails.state ? ` · ${bankDetails.state}` : ""}</div> : null}</div>
+            <div style={{ gridColumn: "1 / -1", marginTop: 8, padding: "12px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: 8 }}>
+              <div className="label" style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: "var(--primary)" }}>🏦 Bank Account Details (used by Accounts for salary transfer)</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+                <div className="form-group"><label className="label">Account Holder Name</label><input className="input" maxLength={150} placeholder="As printed on passbook / cheque" value={editForm.beneficiary_name} onChange={(e) => setEditForm((f) => ({ ...f, beneficiary_name: e.target.value }))} /></div>
+                <div className="form-group"><label className="label">Account Number</label><input className="input" inputMode="numeric" maxLength={20} placeholder="Digits only" value={editForm.bank_account} onChange={(e) => setEditForm((f) => ({ ...f, bank_account: e.target.value.replace(/[^0-9]/g, "") }))} /></div>
+                <div className="form-group"><label className="label">IFSC Code</label><input className="input" maxLength={11} placeholder="e.g. HDFC0001234" value={editForm.ifsc_code} onChange={(e) => { setBankDetails(null); setEditForm((f) => ({ ...f, ifsc_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") })); }} onBlur={lookupIfsc} />{bankDetails ? <div style={{ marginTop: 6, fontSize: 11, color: "var(--muted)", lineHeight: 1.5 }}><strong style={{ color: "var(--text)" }}>{bankDetails.bank}</strong><br />{bankDetails.branch}{bankDetails.city ? ` · ${bankDetails.city}` : ""}{bankDetails.state ? ` · ${bankDetails.state}` : ""}</div> : null}</div>
+                <div className="form-group"><label className="label">Bank Name</label><input className="input" maxLength={150} placeholder="Filled from IFSC" value={editForm.bank_name} onChange={(e) => setEditForm((f) => ({ ...f, bank_name: e.target.value }))} /></div>
+                <div className="form-group"><label className="label">Branch</label><input className="input" maxLength={150} placeholder="Filled from IFSC" value={editForm.bank_branch} onChange={(e) => setEditForm((f) => ({ ...f, bank_branch: e.target.value }))} /></div>
+                <div className="form-group"><label className="label">Account Type</label><select className="input" value={editForm.account_type || "Savings"} onChange={(e) => setEditForm((f) => ({ ...f, account_type: e.target.value }))}><option value="Savings">Savings</option><option value="Salary">Salary</option><option value="Current">Current</option></select></div>
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <BankProofField key={editModal.emp_id} empId={editModal.emp_id} canUpload={isHR} showToast={showToast} />
+                {!isHR ? <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>HR uploads the passbook / cancelled cheque copy.</div> : null}
+              </div>
+            </div>
             <div className="form-group"><label className="label">Reset Password (leave blank to keep)</label><PasswordInput autoComplete="new-password" name="staff_reset_password_no_autofill" minLength={8} placeholder="8+ chars, uppercase, digit, special" value={editForm.new_password} onChange={(e) => setEditForm((f) => ({ ...f, new_password: e.target.value }))} /></div>
 
             <div style={{ gridColumn: "1 / -1", marginTop: 8, padding: "10px 12px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: 8 }}>

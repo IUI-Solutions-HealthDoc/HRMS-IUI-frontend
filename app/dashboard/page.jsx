@@ -907,7 +907,7 @@ function AccountsDashboard({ showToast }) {
       try {
         const [p, s] = await Promise.all([
           apiFetch(`/payroll/summary?month=${new Date().getMonth() + 1}&year=${new Date().getFullYear()}`).catch(() => []),
-          apiFetch("/sunday-work/pending-extra-pay").catch(() => []),
+          apiFetch(`/sunday-work/pending-extra-pay?month=${new Date().getMonth() + 1}&year=${new Date().getFullYear()}`).catch(() => []),
         ]);
         setStats({ payroll: Array.isArray(p) ? p : [], compOff: Array.isArray(s) ? s : [] });
       } catch {}
@@ -917,7 +917,7 @@ function AccountsDashboard({ showToast }) {
   }, []);
 
   const totalPayroll = stats.payroll.reduce((s, e) => s + (e.net_salary || 0), 0);
-  const extraPay = stats.compOff.reduce((s, e) => s + (e.extra_pay_amount || 0), 0);
+  const extraPay = stats.compOff.reduce((s, e) => s + Number(e.extra_pay ?? e.extra_pay_amount ?? 0), 0);
 
   return (
     <div>

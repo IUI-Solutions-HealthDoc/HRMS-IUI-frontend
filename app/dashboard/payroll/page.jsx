@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/useToast";
 import { fmtDate, fmtDateTime, fmtINR } from "@/lib/formatters";
 import Modal from "@/components/ui/Modal";
 import Loader from "@/components/ui/Loader";
+import BankProofField from "@/components/BankProofField";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -114,9 +115,22 @@ export default function PayrollPage() {
   const pendingApprovals = queue.length;
   const payslipsUploaded = payroll.filter((r) => r.uploaded_payslip_url).length;
 
+  function openEditModal(row) {
+    setSalaryForm({
+      base_salary: row.base_salary ? String(row.base_salary) : "",
+      bank_account: row.bank_account || "",
+      ifsc_code: row.ifsc_code || "",
+    });
+    setEditModal(row);
+  }
+
   async function updateEmployee(empId) {
+    if (salaryForm.ifsc_code && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(salaryForm.ifsc_code.trim().toUpperCase())) {
+      showToast("Enter a valid 11-character IFSC code", "error");
+      return;
+    }
     try {
-      await apiFetch(`/payroll/update-employee/${empId}`, {
+      const result = await apiFetch(`/payroll/update-employee/${empId}`, {
         method: "POST",
         body: JSON.stringify({
           base_salary: salaryForm.base_salary ? +salaryForm.base_salary : undefined,
@@ -124,7 +138,7 @@ export default function PayrollPage() {
           ifsc_code: salaryForm.ifsc_code || undefined,
         }),
       });
-      showToast("Payroll details updated");
+      showToast(result?.message || "Payroll details updated");
       setEditModal(null);
       load();
     } catch (error) {
@@ -188,7 +202,7 @@ export default function PayrollPage() {
     { icon: "👥", iconBg: "rgba(99,102,241,0.12)", iconColor: "#6366f1", value: payroll.length, label: "Employees", sub: `Active: ${activeCount}  •  Inactive: ${inactiveCount}` },
     { icon: "💰", iconBg: "rgba(16,185,129,0.12)", iconColor: "#10b981", value: fmtINR(totalPayroll), label: "Total Payroll", sub: "Total Base Salary" },
     { icon: "📊", iconBg: "rgba(59,130,246,0.12)", iconColor: "#3b82f6", value: fmtINR(avgSalary), label: "Avg Salary", sub: "Average Base Salary" },
-    { icon: "⏳", iconBg: "rgba(251,146,60,0.12)", iconColor: "#f59e0b", value: pendingApprovals, label: "Pending Approvals", sub: "Payroll change requests" },
+    { icon: "⏳", iconBg: "rgba(251,146,60,0.12)", iconColor: "#f59e0b", value: isAdmin ? pendingApprovals : payroll.filter((r) => r.pending_request).length, label: "Pending Approvals", sub: isAdmin ? "Payroll change requests" : "Waiting for Admin approval" },
     { icon: "📄", iconBg: "rgba(139,92,246,0.12)", iconColor: "#8b5cf6", value: payslipsUploaded, label: "Payslips Uploaded", sub: "This Month" },
   ];
 
@@ -208,7 +222,9 @@ export default function PayrollPage() {
           <p style={{ color: "var(--muted)", marginTop: 4, fontSize: 13, maxWidth: 600 }}>
             {isAdmin
               ? "Manage and review employee payroll details. Admin can review payroll and approve increments."
-              : "Review employee payroll details, including comp-off extra pay and final payable salary."}
+              : canUploadPayslip
+                ? "Upload each employee's monthly payslip PDF. Salary figures stay visible to Accounts and Admin only."
+                : "Review employee payroll and bank details, including comp-off extra pay and final payable salary. Use Edit to change salary or bank details."}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -224,7 +240,7 @@ export default function PayrollPage() {
 
       {/* Stat Cards Row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 24 }}>
-        {statCards.map((card) => (
+        {(showSalary ? statCards : statCards.filter((card) => ["Employees", "Payslips Uploaded"].includes(card.label))).map((card) => (
           <div key={card.label} className="card" style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: card.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
               {card.icon}
@@ -365,7 +381,11 @@ export default function PayrollPage() {
                   {paginated.map((row) => (
                     <tr key={row.emp_id}>
                       <td><span className="chip">{row.emp_id}</span></td>
-                      <td style={{ fontWeight: 600 }}>{row.employee_name}</td>
+                      <td style={{ fontWeight: 600 }}>
+                        {row.employee_name}
+                        {showSalary && !row.bank_account ? <div style={{ fontSize: 11, color: "#ef4444", fontWeight: 500, whiteSpace: "nowrap" }}>No bank account on file</div> : null}
+                        {showSalary && row.bank_account && row.bank_proof_status === "missing" ? <div style={{ fontSize: 11, color: "#f59e0b", fontWeight: 500, whiteSpace: "nowrap" }}>Bank proof not uploaded</div> : null}
+                      </td>
                       <td>{row.department || "—"}</td>
                       {showSalary && (
                         <td>
@@ -398,6 +418,17 @@ export default function PayrollPage() {
                       </td>
                       <td>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          {isAccounts && (
+                            <button
+                              className="btn-ghost"
+                              style={{ padding: "6px 14px", fontSize: 12, borderRadius: 6 }}
+                              disabled={!!row.pending_request}
+                              title={row.pending_request ? "A change for this employee is waiting for Admin approval" : "Edit salary or bank details"}
+                              onClick={() => openEditModal(row)}
+                            >
+                              {row.pending_request ? "Pending" : "Edit"}
+                            </button>
+                          )}
                           {canUploadPayslip && (
                             <button
                               className="btn-ghost"
@@ -517,8 +548,14 @@ export default function PayrollPage() {
           </div>
           <div className="form-group">
             <label className="label">IFSC Code</label>
-            <input className="input" value={salaryForm.ifsc_code} onChange={(e) => setSalaryForm((current) => ({ ...current, ifsc_code: e.target.value }))} />
+            <input className="input" maxLength={11} value={salaryForm.ifsc_code} onChange={(e) => setSalaryForm((current) => ({ ...current, ifsc_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") }))} />
           </div>
+          <div className="card" style={{ padding: 12, marginBottom: 12, fontSize: 12, color: "var(--muted)", lineHeight: 1.7 }}>
+            <div><b style={{ color: "var(--text)" }}>Account holder:</b> {editModal.beneficiary_name || editModal.employee_name}</div>
+            <div><b style={{ color: "var(--text)" }}>Bank / branch:</b> {[editModal.bank_name, editModal.bank_branch].filter(Boolean).join(" · ") || "Not entered by HR"}</div>
+            <div><b style={{ color: "var(--text)" }}>Account type:</b> {editModal.account_type || "Savings"}</div>
+          </div>
+          <BankProofField key={editModal.emp_id} empId={editModal.emp_id} canUpload={false} showToast={showToast} />
         </Modal>
       )}
 
@@ -536,7 +573,7 @@ export default function PayrollPage() {
         >
           <div className="form-group">
             <label className="label">Payslip File</label>
-            <input className="input" type="file" onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
+            <input className="input" type="file" accept=".pdf,application/pdf" onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
           </div>
         </Modal>
       )}

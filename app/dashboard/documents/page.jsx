@@ -17,7 +17,7 @@ const DOC_TYPES = [
   { id: "twelfth_mark", label: "12th Marksheet", icon: "📜" },
   { id: "graduation", label: "Graduation Degree", icon: "🧑‍🎓" },
   { id: "experience_letter", label: "Experience Letter", icon: "💼" },
-  { id: "passbook", label: "Bank Passbook", icon: "🏦" },
+  { id: "passbook", label: "Bank Proof (Passbook / Cancelled Cheque)", icon: "🏦" },
   { id: "master_photo", label: "Master Photo", icon: "📸" },
 ];
 

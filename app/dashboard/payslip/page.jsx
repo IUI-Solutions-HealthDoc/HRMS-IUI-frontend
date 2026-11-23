@@ -18,6 +18,7 @@ export default function PayslipPage() {
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
   const [showToast, toastNode] = useToast();
+  const [uploadedUrl, setUploadedUrl] = useState(null);
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
   const load = useCallback(async () => {
@@ -27,6 +28,10 @@ export default function PayslipPage() {
       return;
     }
     setLoading(true);
+    setUploadedUrl(null);
+    apiFetch(`/payroll/uploaded-payslip/me?month=${month}&year=${year}`)
+      .then((res) => setUploadedUrl(res?.url || null))
+      .catch(() => setUploadedUrl(null));
     try {
       const d = await apiFetch(`/payroll/payslip/me?month=${month}&year=${year}`);
       setData(d);
@@ -86,6 +91,12 @@ export default function PayslipPage() {
           <button className="btn-primary" onClick={load}>View</button>
         </div>
       </div>
+      {uploadedUrl && user?.self_service_access?.can_view_my_payslip !== false ? (
+        <div className="card no-print" style={{ maxWidth: 860, margin: "0 auto 12px", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13 }}>HR has uploaded your payslip PDF for this month.</span>
+          <a className="btn-primary" href={uploadedUrl} target="_blank" rel="noreferrer">Open uploaded payslip</a>
+        </div>
+      ) : null}
       {loading ? <Loader /> : user?.self_service_access?.can_view_my_payslip === false ? <EmptyState icon="₹" title="My Payslip disabled" sub="Admin has turned off self payslip access for your role." /> : !data ? <EmptyState icon="₹" title="No payslip found" sub="Payslip not generated for this period yet" /> : (
         <>
           <div className="payslip-actions no-print" style={{ maxWidth: 860, margin: "0 auto 12px", display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>

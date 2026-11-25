@@ -66,7 +66,7 @@ function todayIsoDate() {
 }
 
 function createInitialManualForm() {
-  return { employee_emp_id: "", employee_emp_ids: [], apply_to_all: false, attendance_date: todayIsoDate(), in_time: "", out_time: "", reason: "" };
+  return { mode: "add", employee_emp_id: "", employee_emp_ids: [], exclude_emp_ids: [], apply_to_all: false, attendance_date: todayIsoDate(), in_time: "", out_time: "", reason: "" };
 }
 
 function createInitialManualLockState() {
@@ -466,6 +466,7 @@ export default function AttendanceHRPage() {
         employee_emp_id: manualForm.employee_emp_id,
         employee_emp_ids: manualForm.employee_emp_ids,
         apply_to_all: manualForm.apply_to_all,
+        exclude_emp_ids: manualForm.apply_to_all ? manualForm.exclude_emp_ids : [],
         attendance_date: manualForm.attendance_date,
       }),
     })
@@ -480,7 +481,7 @@ export default function AttendanceHRPage() {
           salary_month: data?.salary_month || "",
           error: "",
         });
-        if (data && !manualForm.apply_to_all && (manualForm.employee_emp_ids.length === 1 || (!manualForm.employee_emp_ids.length && manualForm.employee_emp_id))) {
+        if (data && manualForm.mode !== "delete" && !manualForm.apply_to_all && (manualForm.employee_emp_ids.length === 1 || (!manualForm.employee_emp_ids.length && manualForm.employee_emp_id))) {
           setManualForm((current) => ({
             ...current,
             in_time: data.existing_check_in || "",
@@ -499,7 +500,7 @@ export default function AttendanceHRPage() {
     return () => {
       cancelled = true;
     };
-  }, [manualForm.apply_to_all, manualForm.attendance_date, manualForm.employee_emp_id, manualForm.employee_emp_ids, manualOpen]);
+  }, [manualForm.apply_to_all, manualForm.attendance_date, manualForm.employee_emp_id, manualForm.employee_emp_ids, manualForm.exclude_emp_ids, manualForm.mode, manualOpen]);
 
   function handlePickDay(iso) {
     if (!isAdmin) return;
@@ -566,8 +567,25 @@ export default function AttendanceHRPage() {
   }
 
   async function saveManualEntry() {
+    const isDelete = manualForm.mode === "delete";
+    const body = {
+      employee_emp_id: manualForm.employee_emp_id,
+      employee_emp_ids: manualForm.apply_to_all ? [] : manualForm.employee_emp_ids,
+      apply_to_all: manualForm.apply_to_all,
+      exclude_emp_ids: manualForm.apply_to_all ? manualForm.exclude_emp_ids : [],
+      attendance_date: manualForm.attendance_date,
+      in_time: manualForm.in_time,
+      out_time: manualForm.out_time,
+      reason: manualForm.reason,
+    };
+    if (isDelete) {
+      const who = manualForm.apply_to_all
+        ? `all employees${manualForm.exclude_emp_ids.length ? ` except ${manualForm.exclude_emp_ids.length}` : ""}`
+        : `${manualForm.employee_emp_ids.length} selected employee(s)`;
+      if (!window.confirm(`Delete attendance on ${fmtDate(manualForm.attendance_date)} for ${who}? HR-edited punches go back to the machine punch; other rows are removed.`)) return;
+    }
     try {
-      const data = await apiFetch("/attendance/manual-entry", { method: "POST", body: JSON.stringify(manualForm) });
+      const data = await apiFetch(isDelete ? "/attendance/manual-entry/bulk-delete" : "/attendance/manual-entry", { method: "POST", body: JSON.stringify(body) });
       await load();
       showToast(data?.message || "Manual attendance saved", data?.skipped_locked_count ? "warn" : "success");
       setManualOpen(false);
@@ -702,6 +720,13 @@ export default function AttendanceHRPage() {
 
   function toggleEmployee(empId) {
     setManualForm((current) => {
+      if (current.apply_to_all) {
+        const excluded = current.exclude_emp_ids.includes(empId);
+        return {
+          ...current,
+          exclude_emp_ids: excluded ? current.exclude_emp_ids.filter((item) => item !== empId) : [...current.exclude_emp_ids, empId],
+        };
+      }
       const exists = current.employee_emp_ids.includes(empId);
       const nextIds = exists ? current.employee_emp_ids.filter((item) => item !== empId) : [...current.employee_emp_ids, empId];
       return {
@@ -720,8 +745,8 @@ export default function AttendanceHRPage() {
   }
 
   const selectedEmployees = useMemo(
-    () => employees.filter((employee) => manualForm.employee_emp_ids.includes(employee.emp_id)),
-    [employees, manualForm.employee_emp_ids]
+    () => employees.filter((employee) => (manualForm.apply_to_all ? manualForm.exclude_emp_ids : manualForm.employee_emp_ids).includes(employee.emp_id)),
+    [employees, manualForm.apply_to_all, manualForm.employee_emp_ids, manualForm.exclude_emp_ids]
   );
   const paginatedAllLogs = useMemo(
     () => paginateItems(allLogs, allLogsPage),
@@ -777,7 +802,7 @@ export default function AttendanceHRPage() {
   const manualEntryLocked = manualLockState.selected_count > 0 && manualLockState.editable_count === 0 && manualLockState.locked_count > 0;
   const manualEntryDisabled = (
     (!manualForm.apply_to_all && manualForm.employee_emp_ids.length === 0)
-    || !manualForm.reason.trim()
+    || (manualForm.mode !== "delete" && !manualForm.reason.trim())
     || !manualForm.attendance_date
     || manualLockState.loading
     || Boolean(manualLockState.error)
@@ -801,7 +826,7 @@ export default function AttendanceHRPage() {
           </select>
           {isHR ? (
             <>
-              <button className="btn-primary" onClick={openManualModal}>Manual Entry</button>
+              <button className="btn-primary" onClick={openManualModal}>Add / Delete Attendance</button>
               <button className="btn-primary" type="button" style={{ background: "#06b6d4", borderColor: "#06b6d4" }} onClick={() => router.push("/dashboard/attendance-settings")}>🏠 Grant WFH</button>
             </>
           ) : null}
@@ -1147,17 +1172,33 @@ export default function AttendanceHRPage() {
 
       {manualOpen ? (
         <Modal
-          title="Manual Attendance Entry"
+          title={manualForm.mode === "delete" ? "Delete Attendance" : "Add Attendance"}
           onClose={() => setManualOpen(false)}
           footer={
             <>
               <button className="btn-ghost" onClick={() => setManualOpen(false)}>Cancel</button>
-              <button className="btn-primary" disabled={manualEntryDisabled} onClick={saveManualEntry}>
-                {manualLockState.loading ? "Checking..." : "Save Entry"}
+              <button className={manualForm.mode === "delete" ? "btn-danger" : "btn-primary"} disabled={manualEntryDisabled} onClick={saveManualEntry}>
+                {manualLockState.loading ? "Checking..." : manualForm.mode === "delete" ? "Delete Attendance" : "Save Entry"}
               </button>
             </>
           }
         >
+          <div className="form-group">
+            <label className="label">Action</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              {[["add", "Add / update attendance"], ["delete", "Delete attendance"]].map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={manualForm.mode === value ? (value === "delete" ? "btn-danger" : "btn-primary") : "btn-ghost"}
+                  style={{ padding: "6px 12px", fontSize: 13 }}
+                  onClick={() => setManualForm((current) => ({ ...current, mode: value }))}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="form-group">
             <label className="label">Attendance Date</label>
             <div style={{ marginBottom: 10, fontSize: 13, color: "var(--muted)" }}>
@@ -1177,17 +1218,16 @@ export default function AttendanceHRPage() {
               <select
                 className="input"
                 value={manualPick}
-                disabled={manualForm.apply_to_all}
                 onChange={(e) => setManualPick(e.target.value)}
               >
-                <option value="">Select employee from filtered list</option>
+                <option value="">{manualForm.apply_to_all ? "Pick an employee to leave out" : "Select employee from filtered list"}</option>
                 {filteredEmployees.map((employee) => (
                   <option key={employee.emp_id} value={employee.emp_id}>
                     {employee.emp_id} - {employee.first_name} {employee.last_name}
                   </option>
                 ))}
               </select>
-              <button className="btn-ghost" type="button" disabled={!manualPick || manualForm.apply_to_all} onClick={addPickedEmployee}>Add</button>
+              <button className="btn-ghost" type="button" disabled={!manualPick} onClick={addPickedEmployee}>{manualForm.apply_to_all ? "Exclude" : "Add"}</button>
             </div>
             <div className="card" style={{ marginTop: 12, maxHeight: 220, overflow: "auto", padding: 12 }}>
               <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 4px", fontWeight: 700, borderBottom: "1px solid var(--border)" }}>
@@ -1199,9 +1239,11 @@ export default function AttendanceHRPage() {
                     apply_to_all: e.target.checked,
                     employee_emp_id: "",
                     employee_emp_ids: e.target.checked ? [] : current.employee_emp_ids,
+                    exclude_emp_ids: [],
                   }))}
                 />
                 All Employees
+                {manualForm.apply_to_all ? <span style={{ fontWeight: 400, fontSize: 12, color: "var(--muted)" }}>· employees listed below are left out</span> : null}
               </label>
               {selectedEmployees.map((employee) => (
                 <div key={employee.emp_id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "8px 4px", borderTop: "1px solid var(--border)" }}>
@@ -1213,10 +1255,9 @@ export default function AttendanceHRPage() {
                     type="button"
                     className="btn-ghost"
                     style={{ padding: "4px 10px", fontSize: 12 }}
-                    disabled={manualForm.apply_to_all}
                     onClick={() => toggleEmployee(employee.emp_id)}
                   >
-                    Remove
+                    {manualForm.apply_to_all ? "Include" : "Remove"}
                   </button>
                 </div>
               ))}
@@ -1246,14 +1287,14 @@ export default function AttendanceHRPage() {
           ) : null}
           {!manualLockState.error && manualLockState.selected_count > 0 && manualLockState.locked_count === 0 ? (
             <div style={{ marginBottom: 16, fontSize: 12, color: "var(--muted)" }}>
-              Manual edit will apply to {manualLockState.editable_count} employee{manualLockState.editable_count !== 1 ? "s" : ""} on {fmtDate(manualForm.attendance_date)}.
+              {manualForm.mode === "delete" ? "Attendance will be deleted for" : "Manual edit will apply to"} {manualLockState.editable_count} employee{manualLockState.editable_count !== 1 ? "s" : ""} on {fmtDate(manualForm.attendance_date)}.
             </div>
           ) : null}
-          <div className="form-row">
+          {manualForm.mode !== "delete" ? <div className="form-row">
             <div className="form-group"><label className="label">In Time</label><input className="input" type="time" step="1" value={manualForm.in_time} onChange={(e) => setManualForm((current) => ({ ...current, in_time: e.target.value }))} /></div>
             <div className="form-group"><label className="label">Out Time</label><input className="input" type="time" step="1" value={manualForm.out_time} onChange={(e) => setManualForm((current) => ({ ...current, out_time: e.target.value }))} /></div>
-          </div>
-          <div className="form-group"><label className="label">Reason</label><textarea className="input" rows={3} value={manualForm.reason} onChange={(e) => setManualForm((current) => ({ ...current, reason: e.target.value }))} /></div>
+          </div> : null}
+          <div className="form-group"><label className="label">Reason{manualForm.mode === "delete" ? " (optional)" : ""}</label><textarea className="input" rows={3} value={manualForm.reason} onChange={(e) => setManualForm((current) => ({ ...current, reason: e.target.value }))} /></div>
         </Modal>
       ) : null}
 

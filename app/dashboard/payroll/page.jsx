@@ -8,6 +8,7 @@ import { fmtDate, fmtDateTime, fmtINR } from "@/lib/formatters";
 import Modal from "@/components/ui/Modal";
 import Loader from "@/components/ui/Loader";
 import BankProofField from "@/components/BankProofField";
+import BankBulkUpload from "@/components/BankBulkUpload";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -240,7 +241,7 @@ export default function PayrollPage() {
                 : "Review employee payroll and bank details, including comp-off extra pay and final payable salary. Your changes go to HR for approval, and HR's changes come to you."}
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <select className="input" style={{ width: "auto", minWidth: 70 }} value={month} onChange={(e) => setMonth(+e.target.value)}>
             {MONTHS.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}
           </select>
@@ -248,6 +249,7 @@ export default function PayrollPage() {
             {[2024, 2025, 2026, 2027].map((v) => <option key={v} value={v}>{v}</option>)}
           </select>
           <button className="btn-primary" onClick={load}>Load</button>
+          {canEditPayroll ? <BankBulkUpload onDone={load} showToast={showToast} /> : null}
         </div>
       </div>
 

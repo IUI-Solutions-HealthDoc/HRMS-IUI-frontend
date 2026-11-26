@@ -331,7 +331,7 @@ textarea.input { resize: vertical; min-height: 110px; }
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 22px;
+  padding: 12px 14px;
   position: relative;
   overflow: hidden;
   box-shadow: var(--shadow);
@@ -912,8 +912,9 @@ tr:hover td { background: var(--hover-row); }
 
 .grid-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
-  gap: 14px;
+  /* Compact cards: a dashboard's whole row of stats fits on one line on a laptop. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr));
+  gap: 10px;
   margin-bottom: 24px;
 }
 
@@ -986,7 +987,7 @@ tr:hover td { background: var(--hover-row); }
 }
 
 @media (max-width: 560px) {
-  .grid-stats { grid-template-columns: 1fr; }
+  .grid-stats { grid-template-columns: 1fr 1fr; }
   .main-content { padding: 12px; }
   .dashboard-topbar { flex-wrap: wrap; gap: 10px; padding: 12px; }
   .dashboard-topbar__actions {

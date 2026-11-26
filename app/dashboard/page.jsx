@@ -548,41 +548,46 @@ function AdminDashboard({ showToast }) {
             <StatCard icon="⭐" label="Avg Performance" value={avgPerformance} accent="#f59e0b" sub={ratedCount > 0 ? "/ 5.0" : "No ratings yet"} />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 20, marginBottom: 32 }}>
+          {/* Panels size to their own content (no equal-height stretch). */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16, marginBottom: 24, alignItems: "start" }}>
             <div className="card">
-              <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
-                <h3 className="syne" style={{ fontSize: 15, fontWeight: 700 }}>👥 Departments</h3>
-                <div style={{ marginTop: 4, fontSize: 12, color: "var(--muted)" }}>{departmentCounts.length} total departments</div>
+              <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                <h3 className="syne" style={{ fontSize: 14, fontWeight: 700 }}>👥 Departments</h3>
+                <div style={{ fontSize: 12, color: "var(--muted)" }}>{departmentCounts.length} total</div>
               </div>
-              <div style={{ padding: 20, display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <div style={{ padding: "12px 16px", display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {departmentCounts.map((dept) => (
-                  <span key={dept.name} className="badge" style={{ background: "var(--hover-bg)", color: "var(--text)" }}>{dept.name}</span>
+                  <span key={dept.name} className="badge" style={{ background: "var(--hover-bg)", color: "var(--text)", fontSize: 11, padding: "3px 9px" }}>{dept.name}</span>
                 ))}
               </div>
             </div>
             <div className="card">
-              <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
-                <h3 className="syne" style={{ fontSize: 15, fontWeight: 700 }}>⚡ Quick Actions</h3>
+              <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
+                <h3 className="syne" style={{ fontSize: 14, fontWeight: 700 }}>⚡ Quick Actions</h3>
               </div>
+              <div style={{ padding: 12, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 190px), 1fr))", gap: 8 }}>
               {quickActions.map(([label, icon, color, href], i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => router.push(href)}
                   style={{
-                    width: "calc(100% - 24px)",
-                    padding: "14px 20px",
+                    width: "100%",
+                    minWidth: 0,
+                    padding: "9px 12px",
                     border: "1px solid rgba(0,200,150,0.2)",
                     background: "rgba(0,200,150,0.04)",
                     borderRadius: 10,
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    fontSize: 14,
+                    fontSize: 13,
+                    textAlign: "left",
+                    gap: 8,
                     cursor: "pointer",
                     color: "var(--text)",
                     transition: "all 0.18s",
-                    margin: "12px",
+                    margin: 0,
                     boxShadow: "none",
                   }}
                   onMouseEnter={(event) => {
@@ -594,13 +599,14 @@ function AdminDashboard({ showToast }) {
                     event.currentTarget.style.boxShadow = "none";
                   }}
                 >
-                  <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 18 }}>{icon}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                    <span style={{ fontSize: 15, flexShrink: 0 }}>{icon}</span>
                     <span>{label}</span>
                   </span>
-                  <span style={{ color, fontWeight: 700 }}>→</span>
+                  <span style={{ color, fontWeight: 700, flexShrink: 0 }}>→</span>
                 </button>
               ))}
+              </div>
             </div>
           </div>
 
